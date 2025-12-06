@@ -14,10 +14,16 @@ import { WobbleCard } from "@/components/ui/wobble-card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { ContainerScrollAnimation } from "@/components/ui/container-scroll-animation";
 import { FollowingPointer } from "@/components/ui/following-pointer";
+import { useAuth } from "@/context/AuthContext";
+import { Lock } from "lucide-react";
+import { TicketForm } from "@/components/tickets/TicketForm";
+import { FeedbackForm } from "@/components/feedback/FeedbackForm";
+import { inquiryService } from "@/services/inquiryService";
 
 const Contact = () => {
   const { toast } = useToast();
   const [isVisible, setIsVisible] = useState(false);
+  const { user, isAuthenticated } = useAuth();
   
   useEffect(() => {
     setIsVisible(true);
@@ -45,14 +51,22 @@ const Contact = () => {
     feedback: ""
   });
   
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you within 24 hours.",
-    });
-    setContactForm({ name: "", email: "", phone: "", message: "" });
-  };
+  const handleContactSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  await inquiryService.create({
+    name: contactForm.name,
+    email: contactForm.email,
+    phone: contactForm.phone,
+    message: contactForm.message
+  });
+
+  toast({
+    title: "Message Sent!",
+    description: "We'll get back to you within 24 hours.",
+  });
+  setContactForm({ name: "", email: "", phone: "", message: "" });
+};
   
   const handleTicketSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +110,9 @@ const Contact = () => {
       }
     }
   };
+
+  const isStudent = user?.role === 'student';
+  const canRaiseTicket = isAuthenticated && (isStudent || user?.role === 'super_admin');
 
   return (
     <FollowingPointer>
@@ -413,31 +430,35 @@ const Contact = () => {
                   duration={1.5}
                 />
                 <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-light">
-                  Choose the best way to get in touch with us
+                  {canRaiseTicket 
+                    ? "Choose the best way to get in touch with us" 
+                    : "Have a question? Send us a general inquiry below."}
                 </p>
               </div>
               
           <Tabs defaultValue="contact" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-8 bg-card/30 backdrop-blur-sm border border-border/30 rounded-2xl p-1">
-                  <TabsTrigger 
-                    value="contact" 
-                    className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
-                  >
-                    General Inquiry
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="ticket" 
-                    className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
-                  >
-                    Raise a Ticket
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="feedback" 
-                    className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
-                  >
-                    Feedbacks
-                  </TabsTrigger>
-            </TabsList>
+              {canRaiseTicket ? (
+                  <TabsList className="grid w-full grid-cols-3 mb-8 bg-card/30 backdrop-blur-sm border border-border/30 rounded-2xl p-1">
+                    <TabsTrigger value="contact" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">
+                      General Inquiry
+                    </TabsTrigger>
+                    <TabsTrigger value="ticket" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">
+                      Raise a Ticket
+                    </TabsTrigger>
+                    <TabsTrigger value="feedback" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">
+                      Feedbacks
+                    </TabsTrigger>
+                  </TabsList>
+                ) : (
+                  // If Guest: Show a nice prompt about logging in for tickets
+                  <div className="mb-8 text-center p-4 bg-muted/30 rounded-xl border border-border/50">
+                    {/* <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                      <Lock className="w-4 h-4" />
+                      <span className="font-medium">Student Features Locked</span>
+                      <span className="opacity-70">- Login to Raise Tickets or Submit Feedback</span>
+                    </p> */}
+                  </div>
+                )}
             
             {/* Contact Form */}
             <TabsContent value="contact">
@@ -519,219 +540,45 @@ const Contact = () => {
             </TabsContent>
             
             {/* Ticket Form */}
-            <TabsContent value="ticket">
-                  <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 bg-card/30 backdrop-blur-sm overflow-hidden">
-                    <div className="p-8 md:p-10">
-                      <div className="text-center mb-8">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary/8 to-primary/4 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/5">
-                          <AlertCircle className="w-8 h-8 text-primary" strokeWidth={1.2} />
-                        </div>
-                        <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Create a Support Ticket</h3>
-                        <p className="text-muted-foreground">Get priority support for technical issues</p>
-                      </div>
-                      
-                  <form onSubmit={handleTicketSubmit} className="space-y-6">
-                        <div className="grid md:grid-cols-2 gap-6">
-                          <div className="space-y-3">
-                            <Label htmlFor="ticket-name" className="text-sm font-semibold text-foreground">Full Name *</Label>
-                        <Input
-                          id="ticket-name"
-                          placeholder="John Doe"
-                          value={ticketForm.name}
-                          onChange={(e) => setTicketForm({ ...ticketForm, name: e.target.value })}
-                          required
-                              className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                        />
-                      </div>
-                      
-                          <div className="space-y-3">
-                            <Label htmlFor="ticket-email" className="text-sm font-semibold text-foreground">Email *</Label>
-                        <Input
-                          id="ticket-email"
-                          type="email"
-                          placeholder="john@example.com"
-                          value={ticketForm.email}
-                          onChange={(e) => setTicketForm({ ...ticketForm, email: e.target.value })}
-                          required
-                              className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                        />
-                      </div>
-                    </div>
-                    
-                        <div className="grid md:grid-cols-2 gap-6">
-                          <div className="space-y-3">
-                            <Label htmlFor="ticket-subject" className="text-sm font-semibold text-foreground">Subject *</Label>
-                        <Input
-                          id="ticket-subject"
-                          placeholder="Brief description of the issue"
-                          value={ticketForm.subject}
-                          onChange={(e) => setTicketForm({ ...ticketForm, subject: e.target.value })}
-                          required
-                              className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                        />
-                      </div>
-                      
-                          <div className="space-y-3">
-                            <Label htmlFor="ticket-priority" className="text-sm font-semibold text-foreground">Priority</Label>
-                        <select
-                          id="ticket-priority"
-                              className="w-full h-12 px-4 rounded-xl border border-border/30 bg-background focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                          value={ticketForm.priority}
-                          onChange={(e) => setTicketForm({ ...ticketForm, priority: e.target.value })}
-                        >
-                              <option value="low">Low Priority</option>
-                              <option value="medium">Medium Priority</option>
-                              <option value="high">High Priority</option>
-                          <option value="urgent">Urgent</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                        <div className="space-y-3">
-                          <Label htmlFor="ticket-description" className="text-sm font-semibold text-foreground">Description *</Label>
-                      <Textarea
-                        id="ticket-description"
-                        placeholder="Provide detailed information about your issue..."
-                        rows={6}
-                        value={ticketForm.description}
-                        onChange={(e) => setTicketForm({ ...ticketForm, description: e.target.value })}
-                        required
-                            className="rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300 resize-none"
-                      />
-                    </div>
-                    
-                        <div className="flex items-start gap-3 p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl border border-primary/10">
-                          <AlertCircle className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-semibold text-foreground mb-1">Support Information</p>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                        We'll send you an email confirmation with your ticket ID. 
-                        Our support team typically responds within 4-6 hours during business hours.
-                      </p>
-                          </div>
-                    </div>
-                    
-                        <Button 
-                          type="submit" 
-                          size="lg" 
-                          className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/20"
-                        >
-                          <AlertCircle className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform duration-300" />
-                      Submit Ticket
-                          <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                    </Button>
-                  </form>
-                    </div>
-                  </WobbleCard>
-            </TabsContent>
-            
+            {canRaiseTicket && (
+  <TabsContent value="ticket">
+    <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 bg-card/30 backdrop-blur-sm overflow-hidden">
+      <div className="p-8 md:p-10">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary/8 to-primary/4 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/5">
+            <AlertCircle className="w-8 h-8 text-primary" strokeWidth={1.2} />
+          </div>
+          <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Create a Support Ticket</h3>
+          <p className="text-muted-foreground">Get priority support for technical issues</p>
+        </div>
+        
+        <TicketForm />
+        
+      </div>
+    </WobbleCard>
+  </TabsContent>
+)}
+
             {/* Feedback Form */}
-            <TabsContent value="feedback">
-                  <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 bg-card/30 backdrop-blur-sm overflow-hidden">
-                    <div className="p-8 md:p-10">
-                      <div className="text-center mb-8">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary/8 to-primary/4 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/5">
-                          <Star className="w-8 h-8 text-primary" strokeWidth={1.2} />
-                        </div>
-                        <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Share Your Feedback</h3>
-                        <p className="text-muted-foreground">Help us improve by sharing your experience</p>
+           {canRaiseTicket && (
+              <TabsContent value="feedback">
+                <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 bg-card/30 backdrop-blur-sm overflow-hidden">
+                  <div className="p-8 md:p-10">
+                    <div className="text-center mb-8">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary/8 to-primary/4 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/5">
+                        <Star className="w-8 h-8 text-primary" strokeWidth={1.2} />
                       </div>
-                      
-                  <form onSubmit={handleFeedbackSubmit} className="space-y-6">
-                        <div className="grid md:grid-cols-2 gap-6">
-                          <div className="space-y-3">
-                            <Label htmlFor="feedback-name" className="text-sm font-semibold text-foreground">Full Name *</Label>
-                        <Input
-                          id="feedback-name"
-                          placeholder="John Doe"
-                          value={feedbackForm.name}
-                          onChange={(e) => setFeedbackForm({ ...feedbackForm, name: e.target.value })}
-                          required
-                              className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                        />
-                      </div>
-                      
-                          <div className="space-y-3">
-                            <Label htmlFor="feedback-email" className="text-sm font-semibold text-foreground">Email *</Label>
-                        <Input
-                          id="feedback-email"
-                          type="email"
-                          placeholder="john@example.com"
-                          value={feedbackForm.email}
-                          onChange={(e) => setFeedbackForm({ ...feedbackForm, email: e.target.value })}
-                          required
-                              className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                        />
-                      </div>
+                      <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Share Your Feedback</h3>
+                      <p className="text-muted-foreground">Help us improve by sharing your experience</p>
                     </div>
                     
-                        <div className="space-y-3">
-                          <Label className="text-sm font-semibold text-foreground">Rate Your Experience *</Label>
-                          <div className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl border border-primary/10">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <button
-                                key={star}
-                                type="button"
-                                onClick={() => setFeedbackForm({ ...feedbackForm, rating: star })}
-                                className="transition-all duration-300 hover:scale-125 focus:outline-none"
-                                aria-label={`Rate ${star} stars`}
-                              >
-                                <Star 
-                                  className={`w-10 h-10 transition-all duration-300 ${
-                                    star <= feedbackForm.rating 
-                                      ? 'fill-primary text-primary drop-shadow-lg' 
-                                      : 'text-muted-foreground/30 hover:text-muted-foreground/50'
-                                  }`}
-                                  strokeWidth={1.5}
-                                />
-                              </button>
-                            ))}
-                          </div>
-                          <p className="text-center text-sm text-muted-foreground mt-2">
-                            {feedbackForm.rating === 5 && "Excellent! We're glad you had a great experience"}
-                            {feedbackForm.rating === 4 && "Great! Thank you for your positive feedback"}
-                            {feedbackForm.rating === 3 && "Good! We'll work on making it better"}
-                            {feedbackForm.rating === 2 && "We're sorry. Please tell us how we can improve"}
-                            {feedbackForm.rating === 1 && "We apologize. Your feedback helps us improve"}
-                          </p>
-                        </div>
+                    <FeedbackForm />
                     
-                        <div className="space-y-3">
-                          <Label htmlFor="feedback-message" className="text-sm font-semibold text-foreground">Your Feedback *</Label>
-                      <Textarea
-                        id="feedback-message"
-                        placeholder="Tell us about your experience with our training programs..."
-                        rows={6}
-                        value={feedbackForm.feedback}
-                        onChange={(e) => setFeedbackForm({ ...feedbackForm, feedback: e.target.value })}
-                        required
-                            className="rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300 resize-none"
-                      />
-                    </div>
-                    
-                        <div className="flex items-start gap-3 p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl border border-primary/10">
-                          <Sparkles className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-semibold text-foreground mb-1">Your Voice Matters</p>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                        Your feedback helps us improve our training programs and provide better support to all students.
-                      </p>
-                          </div>
-                    </div>
-                    
-                        <Button 
-                          type="submit" 
-                          size="lg" 
-                          className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/20"
-                        >
-                          <Star className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform duration-300" />
-                      Submit Feedback
-                          <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                    </Button>
-                  </form>
-                    </div>
-                  </WobbleCard>
-            </TabsContent>
+                  </div>
+                </WobbleCard>
+              </TabsContent>
+            )}
+
           </Tabs>
         </div>
           </section>
