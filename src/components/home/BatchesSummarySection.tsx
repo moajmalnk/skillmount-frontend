@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, ArrowRight } from "lucide-react";
+import { GraduationCap, ArrowRight, Loader2 } from "lucide-react"; // Added Loader2
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { ContainerScrollAnimation } from "@/components/ui/container-scroll-animation";
 import { WobbleCard } from "@/components/ui/wobble-card";
@@ -8,15 +8,17 @@ import { WobbleCard } from "@/components/ui/wobble-card";
 interface BatchesSummarySectionProps {
   totalStudents: number;
   totalBatches: number;
-  startBatch: string;
-  endBatch: string;
+  latestBatch: string;
+  oldestBatch: string;
+  isLoading?: boolean; // New optional prop
 }
 
 export const BatchesSummarySection = ({ 
   totalStudents, 
-  totalBatches, 
-  startBatch, 
-  endBatch
+  totalBatches,
+  latestBatch,
+  oldestBatch,
+  isLoading = false
 }: BatchesSummarySectionProps) => {
   return (
     <ContainerScrollAnimation direction="up" speed="slow">
@@ -30,15 +32,28 @@ export const BatchesSummarySection = ({
                 <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 <span className="text-xs sm:text-sm font-medium text-primary tracking-wide">Our Journey</span>
               </div>
+              
               <div className="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-bold text-foreground mb-6 sm:mb-8 tracking-tight leading-[0.9]">
-                {/* Dynamically display the count */}
-                <TextGenerateEffect words={`${totalBatches} Monthly`} className="block" duration={2} />
-                <TextGenerateEffect words="Batches" className="block bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent" duration={2} />
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-4 py-2">
+                    <Loader2 className="w-12 h-12 animate-spin text-primary/50" />
+                  </div>
+                ) : (
+                  <>
+                    <TextGenerateEffect words={`${totalBatches} Monthly`} className="block" duration={2} />
+                    <TextGenerateEffect words="Batches" className="block bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent" duration={2} />
+                  </>
+                )}
               </div>
+
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-8 sm:mb-10 md:mb-12 font-light px-4 sm:px-0">
-                {/* Dynamically display the date range */}
-                From {startBatch} to {endBatch}, we've nurtured over {totalStudents} students across diverse specializations in WordPress, No-Code tools, and CMS platforms.
+                {isLoading ? (
+                   "Loading batch details..."
+                ) : (
+                   `From ${oldestBatch} to ${latestBatch}, we've nurtured over ${totalStudents} students across diverse specializations in WordPress, No-Code tools, and CMS platforms.`
+                )}
               </p>
+
               <Link to="/students">
                 <Button size="sm" className="rounded-full px-6 sm:px-8 md:px-12 h-10 sm:h-12 md:h-16 text-xs sm:text-sm md:text-base font-semibold shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 transition-all duration-500 group">
                   <span className="hidden sm:inline">Explore All Batches</span><span className="sm:hidden">Explore Batches</span>

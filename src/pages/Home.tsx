@@ -22,11 +22,11 @@ const Home = () => {
   const [latestGraduates, setLatestGraduates] = useState<Student[]>([]);
   const [totalStudentCount, setTotalStudentCount] = useState(0);
   
-  // State for Batch Data
+  // FIXED: State for Batch Data
   const [batchData, setBatchData] = useState({
     count: 0,
-    startBatch: "Start",
-    endBatch: "Present"
+    latestBatch: "",
+    oldestBatch: ""
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -43,12 +43,14 @@ const Home = () => {
         const students = allUsers.filter(u => u.role === 'student') as Student[];
         setTotalStudentCount(students.length);
         
-        // --- BATCH LOGIC FIX ---
+        // --- FIXED BATCH COUNT LOGIC ---
+        // Ensure we get the array from settings, default to empty if undefined
         const batches = settings.batches || [];
+        
         setBatchData({
-          count: batches.length, // Should be 7 based on your array
-          startBatch: batches[batches.length - 1], // "March 2025"
-          endBatch: batches[0] // "Sep 2025"
+          count: batches.length, // This comes directly from systemService
+          latestBatch: batches[0] || "Present", 
+          oldestBatch: batches[batches.length - 1] || "Start"
         });
         
         // Filter Top Performers
@@ -74,7 +76,6 @@ const Home = () => {
     fetchData();
   }, []);
 
-  // SEO Data
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "EducationalOrganization",
@@ -119,12 +120,13 @@ const Home = () => {
             isLoading={isLoading} 
         />
         
-        {/* Updated Section Props */}
+        {/* Pass isLoading to handle the '0' flash */}
         <BatchesSummarySection 
-            totalStudents={totalStudentCount} 
-            totalBatches={batchData.count} 
-            startBatch={batchData.startBatch} 
-            endBatch={batchData.endBatch}
+            totalStudents={totalStudentCount}
+            totalBatches={batchData.count}
+            latestBatch={batchData.latestBatch}
+            oldestBatch={batchData.oldestBatch}
+            isLoading={isLoading} // Added prop
         />
         
         <FAQSection />
