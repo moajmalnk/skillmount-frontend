@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, X, Settings, Database, Users, BookOpen, 
-  Share2, Save, RotateCcw, CheckCircle2 
+  Share2, Save, RotateCcw, CheckCircle2, MessageSquare, Loader2, HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// --- REUSABLE SUB-COMPONENT FOR LIST MANAGEMENT ---
+// Import Service & Type
+import { systemService, SystemSettings } from "@/services/systemService";
+
+// --- REUSABLE SUB-COMPONENT ---
 interface SettingCardProps {
   title: string;
   description: string;
@@ -24,7 +27,7 @@ interface SettingCardProps {
   placeholder: string;
 }
 
-const SettingCard = ({ title, description, icon: Icon, items, onAdd, onRemove, placeholder }: SettingCardProps) => {
+const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemove, placeholder }: SettingCardProps) => {
   const [newItem, setNewItem] = useState("");
 
   const handleAdd = () => {
@@ -35,7 +38,6 @@ const SettingCard = ({ title, description, icon: Icon, items, onAdd, onRemove, p
     }
     onAdd(newItem.trim());
     setNewItem("");
-    toast.success(`${title} Updated`, { description: `Added "${newItem}" to the list.` });
   };
 
   return (
@@ -68,34 +70,35 @@ const SettingCard = ({ title, description, icon: Icon, items, onAdd, onRemove, p
         <ScrollArea className="h-[200px] pr-4">
           <div className="flex flex-wrap gap-2">
             <AnimatePresence mode="popLayout">
-              {items.map((item) => (
-                <motion.div
-                  key={item}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  layout
-                >
-                  <Badge 
-                    variant="secondary" 
-                    className="pl-3 pr-1 py-1.5 flex items-center gap-2 text-sm hover:bg-muted transition-colors border border-border/50"
+              {items.length > 0 ? (
+                items.map((item) => (
+                  <motion.div
+                    key={item}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    layout
                   >
-                    {item}
-                    <button 
-                      onClick={() => onRemove(item)}
-                      className="p-0.5 hover:bg-destructive hover:text-destructive-foreground rounded-full transition-colors"
+                    <Badge 
+                      variant="secondary" 
+                      className="pl-3 pr-1 py-1.5 flex items-center gap-2 text-sm hover:bg-muted transition-colors border border-border/50"
                     >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                </motion.div>
-              ))}
+                      {item}
+                      <button 
+                        onClick={() => onRemove(item)}
+                        className="p-0.5 hover:bg-destructive hover:text-destructive-foreground rounded-full transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="w-full text-center py-8 text-muted-foreground text-sm italic">
+                  No items yet. Add one above.
+                </div>
+              )}
             </AnimatePresence>
-            {items.length === 0 && (
-              <p className="text-sm text-muted-foreground italic w-full text-center py-8">
-                No items added yet.
-              </p>
-            )}
           </div>
         </ScrollArea>
       </CardContent>
@@ -105,113 +108,164 @@ const SettingCard = ({ title, description, icon: Icon, items, onAdd, onRemove, p
 
 // --- MAIN SETTINGS COMPONENT ---
 export const SettingsManager = () => {
-  // Initial State (Mock Data)
-  const [batches, setBatches] = useState(["Sep 2025", "Aug 2025", "July 2025"]);
-  const [mentors, setMentors] = useState(["Dr. Smith", "Prof. Jane Doe", "Mr. Alex Johnson"]);
-  const [topics, setTopics] = useState(["WordPress", "React", "Digital Marketing", "SEO"]);
-  const [platforms, setPlatforms] = useState(["YouTube", "Instagram", "LinkedIn", "Blog"]);
-  const [coordinators, setCoordinators] = useState(["Sarah Wilson", "Mike Ross"]);
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Generic Handlers
-  const addItem = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
-    setter(prev => [item, ...prev]);
+  // 1. Fetch Settings on Load
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const data = await systemService.getSettings();
+        setSettings(data);
+      } catch (error) {
+        toast.error("Failed to load system settings");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  // 2. Generic Update Handler
+  const updateList = async (key: keyof SystemSettings, newList: string[]) => {
+    if (!settings) return;
+
+    const newSettings = { ...settings, [key]: newList };
+    setSettings(newSettings); // Optimistic UI update
+
+    // Save to backend (silent save)
+    try {
+      await systemService.updateSettings(newSettings);
+      toast.success(`${key.charAt(0).toUpperCase() + key.slice(1)} updated`);
+    } catch (error) {
+      toast.error("Failed to save changes");
+    }
   };
 
-  const removeItem = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
-    setter(prev => prev.filter(i => i !== item));
+  // Helper wrappers
+  const createHandlers = (key: keyof SystemSettings) => ({
+    onAdd: (item: string) => {
+      if (!settings) return;
+      const currentList = settings[key] || [];
+      updateList(key, [item, ...currentList]);
+    },
+    onRemove: (item: string) => {
+      if (!settings) return;
+      const currentList = settings[key] || [];
+      updateList(key, currentList.filter(i => i !== item));
+    }
+  });
+
+  const handleSaveAll = async () => {
+    if (!settings) return;
+    setIsSaving(true);
+    try {
+      await systemService.updateSettings(settings);
+      toast.success("All settings saved successfully");
+    } catch (error) {
+      toast.error("Failed to save settings");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading || !settings) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/40 pb-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">System Configurations</h2>
-          <p className="text-muted-foreground">Manage global dropdown options and system defaults.</p>
+          <p className="text-muted-foreground">Manage global dropdown options and system values.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <RotateCcw className="w-4 h-4 mr-2" /> Reset Changes
-          </Button>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Save className="w-4 h-4 mr-2" /> Save All Changes
-          </Button>
-        </div>
+        <Button 
+          className="bg-primary hover:bg-primary/90" 
+          onClick={handleSaveAll}
+          disabled={isSaving}
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} 
+          Save All Changes
+        </Button>
       </div>
 
-      {/* Settings Grid */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-          <TabsTrigger value="general">General Data</TabsTrigger>
-          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        <TabsList className="bg-muted/50 p-1">
+          <TabsTrigger value="general" className="px-6">General Data</TabsTrigger>
+          <TabsTrigger value="tickets" className="px-6">Ticketing & Support</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             <SettingCard 
               title="Batches" 
-              description="Active student batches available for enrollment."
-              icon={Database}
-              items={batches}
-              onAdd={addItem(setBatches)}
-              onRemove={removeItem(setBatches)}
-              placeholder="e.g. Oct 2025"
+              description="Active student batches." 
+              icon={Database} 
+              items={settings.batches || []} 
+              {...createHandlers('batches')}
+              placeholder="e.g. Oct 2025" 
             />
-            
             <SettingCard 
               title="Mentors" 
-              description="Faculty members assignable to students."
-              icon={Users}
-              items={mentors}
-              onAdd={addItem(setMentors)}
-              onRemove={removeItem(setMentors)}
-              placeholder="e.g. Dr. Alan Grant"
+              description="Faculty members." 
+              icon={Users} 
+              items={settings.mentors || []} 
+              {...createHandlers('mentors')}
+              placeholder="e.g. Dr. Alan Grant" 
             />
-
             <SettingCard 
               title="Coordinators" 
-              description="Staff managing batch operations."
-              icon={CheckCircle2}
-              items={coordinators}
-              onAdd={addItem(setCoordinators)}
-              onRemove={removeItem(setCoordinators)}
-              placeholder="e.g. Sarah Connor"
+              description="Batch staff." 
+              icon={CheckCircle2} 
+              items={settings.coordinators || []} 
+              {...createHandlers('coordinators')}
+              placeholder="e.g. Sarah" 
             />
-
             <SettingCard 
-              title="Expertise Topics" 
-              description="Subjects for Tutor specialization."
-              icon={BookOpen}
-              items={topics}
-              onAdd={addItem(setTopics)}
-              onRemove={removeItem(setTopics)}
-              placeholder="e.g. Python"
+              title="Topics" 
+              description="Tutor specializations." 
+              icon={BookOpen} 
+              items={settings.topics || []} 
+              {...createHandlers('topics')}
+              placeholder="e.g. Python" 
             />
-
             <SettingCard 
-              title="Referral Platforms" 
-              description="Sources for Affiliate tracking."
-              icon={Share2}
-              items={platforms}
-              onAdd={addItem(setPlatforms)}
-              onRemove={removeItem(setPlatforms)}
-              placeholder="e.g. TikTok"
+              title="Platforms" 
+              description="Affiliate sources." 
+              icon={Share2} 
+              items={settings.platforms || []} 
+              {...createHandlers('platforms')}
+              placeholder="e.g. TikTok" 
+            />
+            {/* ADDED FAQ CATEGORIES CARD */}
+            <SettingCard 
+              title="FAQ Categories" 
+              description="Categories for Help Center." 
+              icon={HelpCircle} 
+              items={settings.faqCategories || []} 
+              {...createHandlers('faqCategories')}
+              placeholder="e.g. Hosting" 
             />
           </div>
         </TabsContent>
 
-        <TabsContent value="advanced">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Policies</CardTitle>
-              <CardDescription>Configure global system behavior.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center h-40 text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
-                Advanced Policy Settings (Privacy, Terms, Refunds) Coming Soon
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="tickets" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <SettingCard 
+              title="Ticket Macros" 
+              description="Pre-defined replies for faster support."
+              icon={MessageSquare}
+              items={settings.macros || []}
+              {...createHandlers('macros')}
+              placeholder="e.g. Please check your internet..."
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

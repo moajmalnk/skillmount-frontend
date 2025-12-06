@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Sparkles, ArrowRight, Paperclip, X } from "lucide-react";
+import { Star, Sparkles, ArrowRight, Paperclip, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { VoiceRecorder } from "@/components/tickets/VoiceRecorder";
 import { useAuth } from "@/context/AuthContext";
+import { feedbackService } from "@/services/feedbackService";
 
 export const FeedbackForm = () => {
   const { user } = useAuth();
@@ -27,28 +27,41 @@ export const FeedbackForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if(!user) {
+        toast.error("You must be logged in to submit feedback.");
+        return;
+    }
+
     setIsSubmitting(true);
 
-    // Simulate API Upload
-    setTimeout(() => {
-      console.log("Submitting Feedback:", {
-        user: user?.email,
-        ...formData
+    try {
+      // Connect to Service
+      await feedbackService.create({
+        studentId: user.id,
+        studentName: user.name,
+        rating: formData.rating,
+        message: formData.feedback,
+        hasAttachment: !!formData.attachment,
+        hasVoiceNote: !!formData.voiceNote
       });
 
       toast.success("Feedback Received!", {
-        description: "Thank you for your valuable feedback. We appreciate it!",
+        description: "Thank you for helping us improve SkillMount!",
       });
 
-      // Reset
+      // Reset Form
       setFormData({
         rating: 5,
         feedback: "",
         attachment: null,
         voiceNote: null
       });
+
+    } catch (error) {
+      toast.error("Failed to submit feedback. Please try again.");
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -76,7 +89,7 @@ export const FeedbackForm = () => {
             </button>
           ))}
         </div>
-        <p className="text-center text-sm text-muted-foreground mt-2 min-h-[20px]">
+        <p className="text-center text-sm text-muted-foreground mt-2 min-h-[20px] font-medium">
           {formData.rating === 5 && "Excellent! We're glad you had a great experience"}
           {formData.rating === 4 && "Great! Thank you for your positive feedback"}
           {formData.rating === 3 && "Good! We'll work on making it better"}
@@ -158,25 +171,20 @@ export const FeedbackForm = () => {
         </div>
       </div>
 
-      {/* 4. Footer & Submit */}
-      <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-xl border border-border/50">
-        <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-muted-foreground">
-          <p>
-            Your feedback helps us improve. Voice notes are great for explaining complex suggestions!
-          </p>
-        </div>
-      </div>
-
       <Button 
         type="submit" 
         size="lg" 
         className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/20"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Submitting..." : (
+        {isSubmitting ? (
           <>
-            <Star className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform duration-300" />
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            Sending...
+          </>
+        ) : (
+          <>
+            <Sparkles className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform duration-300" />
             Submit Feedback
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
           </>

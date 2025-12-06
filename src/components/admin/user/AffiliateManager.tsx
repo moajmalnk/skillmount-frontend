@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ManagementTable } from "@/components/admin/ManagementTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, Copy, RefreshCw } from "lucide-react";
+import { Pencil, Trash2, RefreshCw, Loader2, Copy } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -14,31 +14,17 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
+// Import Service & Types
+import { userService } from "@/services/userService";
+import { Affiliate } from "@/types/user";
+
 const PLATFORMS = ["YouTube", "Instagram", "LinkedIn", "Blog", "Other"];
 
-interface Affiliate {
-  regId: string;
-  name: string;
-  email: string;
-  phone: string;
-  platform: string;
-  couponCode: string; // New Field
-  status: "Active" | "Inactive" | "Pending";
-}
-
 export const AffiliateManager = () => {
-  const [affiliates, setAffiliates] = useState<Affiliate[]>([
-    { 
-      regId: "AFF-2025-001", 
-      name: "Marketing Pro Agency", 
-      email: "contact@marketpro.com", 
-      phone: "9988776655", 
-      platform: "Instagram",
-      couponCode: "MARKET20", 
-      status: "Active" 
-    },
-  ]);
+  const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Dialog State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [formData, setFormData] = useState({ 
     name: "", 
@@ -48,7 +34,25 @@ export const AffiliateManager = () => {
     couponCode: "" 
   });
 
-  const generateRegId = () => `AFF-${new Date().getFullYear()}-${String(affiliates.length + 1).padStart(3, '0')}`;
+  // 1. Fetch Data
+  const loadAffiliates = async () => {
+    setIsLoading(true);
+    try {
+      const data = (await userService.getElementsByRole("affiliate")) as Affiliate[];
+      setAffiliates(data);
+    } catch (error) {
+      toast.error("Failed to load affiliates");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAffiliates();
+  }, []);
+
+  const generateRegId = (count: number) => 
+    `AFF-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
   
   // Auto-generate coupon from name (e.g., "John Doe" -> "JOHN20")
   const generateCoupon = (name: string) => {
@@ -67,30 +71,58 @@ export const AffiliateManager = () => {
     }));
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!formData.name || !formData.email || !formData.phone || !formData.couponCode) {
       toast.error("All fields are mandatory.");
       return;
     }
 
-    const newAffiliate: Affiliate = {
-      regId: generateRegId(),
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      platform: formData.platform || "Other",
-      couponCode: formData.couponCode.toUpperCase(),
-      status: "Pending"
-    };
+    try {
+      const newRegId = generateRegId(affiliates.length);
 
-    setAffiliates([...affiliates, newAffiliate]);
-    
-    toast.success(`Affiliate Created! Code: ${newAffiliate.couponCode}`, {
-      description: "Credentials and Coupon Code sent via email.",
-    });
+      const newAffiliate: Partial<Affiliate> = {
+        regId: newRegId,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        role: "affiliate",
+        status: "Pending",
+        platform: formData.platform || "Other",
+        couponCode: formData.couponCode.toUpperCase(),
+        isProfileComplete: false
+      };
 
-    setIsCreateOpen(false);
-    setFormData({ name: "", email: "", phone: "", platform: "", couponCode: "" });
+      await userService.create(newAffiliate);
+      
+      toast.success(`Affiliate Created! Code: ${newAffiliate.couponCode}`, {
+        description: "Credentials and Coupon Code sent via email.",
+      });
+
+      setIsCreateOpen(false);
+      setFormData({ name: "", email: "", phone: "", platform: "", couponCode: "" });
+      
+      loadAffiliates();
+
+    } catch (error) {
+      toast.error("Failed to create affiliate");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if(!confirm("Are you sure you want to remove this partner?")) return;
+
+    try {
+      await userService.delete(id);
+      toast.success("Affiliate removed");
+      loadAffiliates();
+    } catch (error) {
+      toast.error("Failed to delete");
+    }
+  };
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.success("Coupon code copied!");
   };
 
   return (
@@ -101,34 +133,63 @@ export const AffiliateManager = () => {
         columns={["Reg ID", "Name", "Platform", "Coupon Code", "Status"]}
         onAddNew={() => setIsCreateOpen(true)}
       >
-        {affiliates.map((affiliate) => (
-          <TableRow key={affiliate.regId}>
-            <TableCell className="font-medium">{affiliate.regId}</TableCell>
-            <TableCell>
-              <div className="font-medium">{affiliate.name}</div>
-              <div className="text-xs text-muted-foreground">{affiliate.email}</div>
-            </TableCell>
-            <TableCell>{affiliate.platform}</TableCell>
-            <TableCell>
-              <Badge variant="outline" className="font-mono bg-primary/5 border-primary/20 text-primary">
-                {affiliate.couponCode}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                affiliate.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {affiliate.status}
-              </span>
-            </TableCell>
-            <TableCell className="text-right">
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+        {isLoading ? (
+          <TableRow>
+            <TableCell colSpan={6} className="h-24 text-center">
+              <div className="flex justify-center items-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span>Loading Partners...</span>
               </div>
             </TableCell>
           </TableRow>
-        ))}
+        ) : affiliates.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+              No affiliates found. Add one to get started.
+            </TableCell>
+          </TableRow>
+        ) : (
+          affiliates.map((affiliate) => (
+            <TableRow key={affiliate.id}>
+              <TableCell className="font-medium">{affiliate.regId}</TableCell>
+              <TableCell>
+                <div className="font-medium">{affiliate.name}</div>
+                <div className="text-xs text-muted-foreground">{affiliate.email}</div>
+              </TableCell>
+              <TableCell>{affiliate.platform}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="font-mono bg-primary/5 border-primary/20 text-primary">
+                    {affiliate.couponCode}
+                  </Badge>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyCode(affiliate.couponCode)}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </TableCell>
+              <TableCell>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  affiliate.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {affiliate.status}
+                </span>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-4 w-4" /></Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDelete(affiliate.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
       </ManagementTable>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

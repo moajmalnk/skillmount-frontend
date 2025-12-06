@@ -14,6 +14,7 @@ import { PublicRoute } from "@/components/layout/PublicRoute";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollProgressBar from "./components/ScrollProgressBar";
+import { ScrollToTop } from "@/components/ScrollToTop"; // <-- Import the new component
 
 // Pages
 import Home from "./pages/Home";
@@ -29,9 +30,71 @@ import SkelUI from "./pages/SkelUI";
 import NotFound from "./pages/NotFound";
 import TicketInbox from "./pages/tickets/TicketInbox";
 import AffiliateHub from "./pages/affiliate/AffiliateHub";
+import StudentTickets from "./pages/tickets/StudentTickets";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
+
+// Hooks
+import { useReferral } from "@/hooks/useReferral";
 
 const queryClient = new QueryClient();
 
+// 1. Inner Component (Inside Router context)
+const AppContent = () => {
+  // Activate global referral tracking logic
+  useReferral();
+
+  return (
+    <>
+      <ScrollToTop /> {/* <-- Activate ScrollToTop here */}
+      <ScrollProgressBar />
+      <div className="flex flex-col min-h-screen relative">
+        <Navbar />
+        <main className="flex-1 relative">
+          <Routes>
+            
+            {/* === PUBLIC ROUTES (With Safety Trap) === */}
+            <Route element={<PublicRoute />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/students" element={<Students />} />
+              <Route path="/students/:id" element={<StudentProfile />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/skelui" element={<SkelUI />} />
+              
+              {/* Blog Routes */}
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+            </Route>
+
+            {/* === PROTECTED ROUTES === */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/materials" element={<Materials />} />
+              <Route path="/tickets/manage" element={<TicketInbox />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/affiliate/hub" element={<AffiliateHub />} />
+              <Route path="/student/tickets" element={<StudentTickets />} />
+            </Route>
+
+            {/* === REDIRECTS === */}
+            <Route path="/student/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/tutor/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/affiliate/dashboard" element={<Navigate to="/" replace />} />
+            
+            {/* === 404 === */}
+            <Route path="*" element={<NotFound />} />
+            
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </>
+  );
+};
+
+// 2. Outer Component (Providers)
 const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
@@ -45,48 +108,7 @@ const App = () => (
               v7_relativeSplatPath: true,
             }}
           >
-            <ScrollProgressBar />
-            <div className="flex flex-col min-h-screen relative">
-              <Navbar />
-              <main className="flex-1 relative">
-                <Routes>
-                  
-                  {/* === PUBLIC ROUTES (With Safety Trap) === */}
-                  {/* Accessible by Guests AND Completed Users. 
-                      Incomplete Users are redirected to Onboarding. */}
-                  <Route element={<PublicRoute />}>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/students" element={<Students />} />
-                    <Route path="/students/:id" element={<StudentProfile />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/skelui" element={<SkelUI />} />
-                  </Route>
-
-                  {/* === PROTECTED ROUTES === */}
-                  {/* Only for Logged In Users. 
-                      Incomplete Users are forced to Onboarding. */}
-                  <Route element={<ProtectedRoute />}>
-                    <Route path="/onboarding" element={<Onboarding />} />
-                    <Route path="/faq" element={<FAQ />} />
-                    <Route path="/materials" element={<Materials />} />
-                    <Route path="/tickets/manage" element={<TicketInbox />} />
-                    <Route path="/admin" element={<Admin />} />
-                    <Route path="/affiliate/hub" element={<AffiliateHub />} />
-                  </Route>
-
-                  {/* === REDIRECTS === */}
-                  <Route path="/student/dashboard" element={<Navigate to="/" replace />} />
-                  <Route path="/tutor/dashboard" element={<Navigate to="/" replace />} />
-                  <Route path="/affiliate/dashboard" element={<Navigate to="/" replace />} />
-                  
-                  {/* === 404 === */}
-                  <Route path="*" element={<NotFound />} />
-                  
-                </Routes>
-              </main>
-              <Footer />
-            </div>
+            <AppContent />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

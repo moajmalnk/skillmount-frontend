@@ -1,166 +1,153 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { 
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
+} from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { 
-  User, MapPin, Briefcase, Camera, CheckCircle2, 
-  ArrowRight, ArrowLeft, Upload, Loader2, BookOpen, Link as LinkIcon
+  ArrowRight, ArrowLeft, Upload, Loader2, CheckCircle2, Camera, Link as LinkIcon 
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import { Label } from "recharts";
 
-// --- MOCK DATA FOR DROPDOWNS (Should come from API/Settings) ---
+// --- MOCK DATA ---
 const MENTORS = ["Dr. Smith", "Prof. Jane Doe", "Mr. Alex Johnson"];
 const COORDINATORS = ["Sarah Wilson", "Mike Ross", "Rachel Green"];
 const TOPICS = ["WordPress Development", "Full Stack Dev", "Digital Marketing", "UI/UX Design"];
 const REFERRING_PLATFORMS = ["YouTube", "Instagram", "LinkedIn", "Blog", "Word of Mouth"];
 
+// --- ZOD SCHEMA DEFINITION ---
+const onboardingSchema = z.object({
+  // Step 1: Personal
+  whatsapp: z.string().min(10, "WhatsApp number must be at least 10 digits"),
+  dob: z.string().min(1, "Date of birth is required"),
+  address: z.string().min(10, "Address is too short"),
+  pincode: z.string().length(6, "Pincode must be exactly 6 digits"),
+
+  // Step 2: Professional (Common)
+  qualification: z.string().min(2, "Qualification is required"),
+  domain: z.string().url("Please enter a valid URL").or(z.literal("")), // Optional but verified if present
+
+  // Step 2: Student Specific
+  mentor: z.string().optional(),
+  coordinator: z.string().optional(),
+  aim: z.string().optional(),
+  skills: z.string().optional(),
+  socialMedia: z.string().optional(),
+  awards: z.string().optional(),
+
+  // Step 2: Tutor Specific
+  topic: z.string().optional(),
+
+  // Step 2: Affiliate Specific
+  referringPlatform: z.string().optional(),
+
+  // Step 3: Photo
+  // Note: File validation is tricky in Zod/RHF, usually handled manually in the render or via custom check
+});
+
+type OnboardingFormValues = z.infer<typeof onboardingSchema>;
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const { user, login } = useAuth();
   const [step, setStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(33);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Comprehensive Form State matching your Requirements Document
-  const [formData, setFormData] = useState({
-    // --- 1. First Login (Mandatory) Common Fields ---
-    whatsapp: "",
-    dob: "",
-    address: "",
-    pincode: "",
-    
-    // --- 2. Role Specific Fields ---
-    // Common Professional
-    qualification: "",
-    domain: "", // Portfolio/Website URL
-    
-    // Student Specific
-    mentor: "",
-    coordinator: "",
-    aim: "", // Professional/Academic goal
-    skills: "", // Text/Tags
-    awards: "", // Awards, Projects
-    socialMedia: "",
-    
-    // Tutor Specific
-    topics: "",
-    
-    // Affiliate Specific
-    referringPlatform: "",
-    
-    // --- 3. File Upload ---
-    photo: null as File | null
+  // Initialize Form
+  const form = useForm<OnboardingFormValues>({
+    resolver: zodResolver(onboardingSchema),
+    defaultValues: {
+      whatsapp: "", dob: "", address: "", pincode: "",
+      qualification: "", domain: "", mentor: "", coordinator: "",
+      aim: "", skills: "", socialMedia: "", awards: "",
+      topic: "", referringPlatform: ""
+    },
+    mode: "onChange" 
   });
 
   // Redirect if already completed
   useEffect(() => {
-    if (user?.isProfileComplete) {
-      navigate("/");
-    }
+    if (user?.isProfileComplete) navigate("/");
   }, [user, navigate]);
 
-  // VALIDATION LOGIC
-  const isStepValid = () => {
-    // Step 1: Personal Details (Common)
+  // --- NAVIGATION HANDLERS ---
+
+  const handleNext = async () => {
+    let fieldsToValidate: (keyof OnboardingFormValues)[] = [];
+
     if (step === 1) {
-      return (
-        formData.whatsapp.trim() !== "" &&
-        formData.dob.trim() !== "" &&
-        formData.address.trim() !== "" &&
-        formData.pincode.trim() !== ""
-      );
+      fieldsToValidate = ["whatsapp", "dob", "address", "pincode"];
+    } else if (step === 2) {
+      fieldsToValidate = ["qualification", "domain"]; // Common
+      
+      if (user?.role === "student") {
+        fieldsToValidate.push("mentor", "coordinator", "aim", "skills", "socialMedia");
+      } else if (user?.role === "tutor") {
+        fieldsToValidate.push("topic");
+      } else if (user?.role === "affiliate") {
+        fieldsToValidate.push("referringPlatform");
+      }
     }
 
-    // Step 2: Professional Details (Role Specific)
-    if (step === 2) {
-      const commonProfessional = 
-        formData.qualification.trim() !== "" && 
-        formData.domain.trim() !== "";
+    // Trigger validation only for current step fields
+    const isValid = await form.trigger(fieldsToValidate);
 
-      if (!commonProfessional) return false;
-
-      if (user?.role === 'student') {
-        return (
-          formData.mentor.trim() !== "" &&
-          formData.coordinator.trim() !== "" &&
-          formData.aim.trim() !== "" &&
-          formData.skills.trim() !== "" &&
-          formData.awards.trim() !== "" &&
-          formData.socialMedia.trim() !== ""
-        );
-      }
-
-      if (user?.role === 'tutor') {
-        return formData.topics.trim() !== "";
-      }
-
-      if (user?.role === 'affiliate') {
-        return formData.referringPlatform.trim() !== "";
-      }
-
-      return true;
-    }
-
-    // Step 3: Photo Upload
-    if (step === 3) {
-      return !!photoPreview; 
-    }
-
-    return false;
-  };
-
-  const handleNext = () => {
-    if (isStepValid()) {
+    if (isValid) {
       if (step < 3) {
-        const nextStep = step + 1;
-        setStep(nextStep);
-        setProgress((nextStep / 3) * 100);
+        setStep(s => s + 1);
+        setProgress(((step + 1) / 3) * 100);
       } else {
-        handleSubmit();
+        form.handleSubmit(onSubmit)();
       }
     } else {
-      toast.error("Please fill in all mandatory fields to proceed.");
+      toast.error("Please fix errors before proceeding");
     }
   };
 
   const handleBack = () => {
     if (step > 1) {
-      const prevStep = step - 1;
-      setStep(prevStep);
-      setProgress((prevStep / 3) * 100);
+      setStep(s => s - 1);
+      setProgress(((step - 1) / 3) * 100);
     }
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData({ ...formData, photo: file });
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
+      reader.onloadend = () => setPhotoPreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = async () => {
+  const onSubmit = async (data: OnboardingFormValues) => {
+    if (!photoPreview) {
+      toast.error("Please upload a profile photo to complete registration.");
+      return;
+    }
+
     setIsLoading(true);
     
-    // Simulate API submission delay
+    // Simulate API Call
     setTimeout(() => {
       if (user) {
         const updatedUser = { 
           ...user, 
           isProfileComplete: true,
-          ...formData,
+          ...data,
           avatar: photoPreview || user.avatar 
         };
         
@@ -179,199 +166,169 @@ export default function Onboarding() {
 
   // --- RENDER STEPS ---
 
-  const renderStep1_Personal = () => (
+  const renderStep1 = () => (
     <div className="space-y-6 animate-fade-in">
       <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg mb-6">
-        <h3 className="font-semibold text-primary mb-1">Verify Personal Details</h3>
-        <p className="text-xs text-muted-foreground">
-          Some fields are pre-filled by the Admin. Please complete the missing mandatory fields.
-        </p>
+        <h3 className="font-semibold text-primary mb-1">Personal Details</h3>
+        <p className="text-xs text-muted-foreground">Admin-set fields are read-only.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Read Only Admin Fields */}
         <div className="space-y-2">
-          <Label>Full Name (Admin Set)</Label>
-          <Input value={user?.name || ""} disabled className="bg-muted/50 font-medium" />
+          <Label>Full Name</Label>
+          <Input value={user?.name || ""} disabled className="bg-muted/50" />
         </div>
         <div className="space-y-2">
-          <Label>Email Address (Admin Set)</Label>
-          <Input value={user?.email || ""} disabled className="bg-muted/50 font-medium" />
+          <Label>Email</Label>
+          <Input value={user?.email || ""} disabled className="bg-muted/50" />
         </div>
 
-        {/* Mandatory User Fields */}
-        <div className="space-y-2">
-          <Label className="flex gap-1">WhatsApp Number <span className="text-red-500">*</span></Label>
-          <Input 
-            placeholder="+91 98765 43210" 
-            value={formData.whatsapp}
-            onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="flex gap-1">Date of Birth <span className="text-red-500">*</span></Label>
-          <Input 
-            type="date" 
-            value={formData.dob}
-            onChange={(e) => setFormData({...formData, dob: e.target.value})}
-          />
-        </div>
+        <FormField control={form.control} name="whatsapp" render={({ field }) => (
+          <FormItem>
+            <FormLabel>WhatsApp Number <span className="text-red-500">*</span></FormLabel>
+            <FormControl><Input placeholder="+91 98765 43210" {...field} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+
+        <FormField control={form.control} name="dob" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Date of Birth <span className="text-red-500">*</span></FormLabel>
+            <FormControl><Input type="date" {...field} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
       </div>
 
-      <div className="space-y-2">
-        <Label className="flex gap-1">Full Address <span className="text-red-500">*</span></Label>
-        <Textarea 
-          placeholder="House No, Street, City, State..." 
-          className="resize-none"
-          rows={3}
-          value={formData.address}
-          onChange={(e) => setFormData({...formData, address: e.target.value})}
-        />
-      </div>
-      
-      <div className="grid grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label className="flex gap-1">Pincode <span className="text-red-500">*</span></Label>
-          <Input 
-            placeholder="676507" 
-            value={formData.pincode}
-            onChange={(e) => setFormData({...formData, pincode: e.target.value})}
-          />
-        </div>
-      </div>
+      <FormField control={form.control} name="address" render={({ field }) => (
+        <FormItem>
+          <FormLabel>Full Address <span className="text-red-500">*</span></FormLabel>
+          <FormControl><Textarea placeholder="House No, Street..." className="resize-none" {...field} /></FormControl>
+          <FormMessage />
+        </FormItem>
+      )} />
+
+      <FormField control={form.control} name="pincode" render={({ field }) => (
+        <FormItem>
+          <FormLabel>Pincode <span className="text-red-500">*</span></FormLabel>
+          <FormControl><Input placeholder="676507" {...field} /></FormControl>
+          <FormMessage />
+        </FormItem>
+      )} />
     </div>
   );
 
-  const renderStep2_RoleSpecific = () => {
-    if (!user) return null;
-    const role = user.role;
-
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center gap-2 mb-6">
-          <Badge variant="outline" className="text-sm px-3 py-1 capitalize">
-            {role} Profile
-          </Badge>
-          <span className="text-sm text-muted-foreground">Complete your professional details</span>
-        </div>
-
-        {/* --- COMMON PROFESSIONAL FIELDS (All Roles) --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label className="flex gap-1">Qualification <span className="text-red-500">*</span></Label>
-            <Input 
-              placeholder="e.g. BCA, B.Tech, MBA" 
-              value={formData.qualification}
-              onChange={(e) => setFormData({...formData, qualification: e.target.value})}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="flex gap-1">Domain / Website URL <span className="text-red-500">*</span></Label>
-            <div className="relative">
-              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                className="pl-9"
-                placeholder="https://your-portfolio.com" 
-                value={formData.domain}
-                onChange={(e) => setFormData({...formData, domain: e.target.value})}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* --- STUDENT SPECIFIC FIELDS --- */}
-        {role === 'student' && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="flex gap-1">Assign Mentor <span className="text-red-500">*</span></Label>
-                <Select onValueChange={(val) => setFormData({...formData, mentor: val})} value={formData.mentor}>
-                  <SelectTrigger><SelectValue placeholder="Select Mentor" /></SelectTrigger>
-                  <SelectContent>
-                    {MENTORS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="flex gap-1">Assign Coordinator <span className="text-red-500">*</span></Label>
-                <Select onValueChange={(val) => setFormData({...formData, coordinator: val})} value={formData.coordinator}>
-                  <SelectTrigger><SelectValue placeholder="Select Coordinator" /></SelectTrigger>
-                  <SelectContent>
-                    {COORDINATORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex gap-1">Professional Aim <span className="text-red-500">*</span></Label>
-              <Textarea 
-                placeholder="What is your career goal? (e.g. To become a Full Stack Developer)"
-                value={formData.aim}
-                onChange={(e) => setFormData({...formData, aim: e.target.value})}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="flex gap-1">Skills & Expertise <span className="text-red-500">*</span></Label>
-                <Input 
-                  placeholder="Java, Python, React (Comma separated)" 
-                  value={formData.skills}
-                  onChange={(e) => setFormData({...formData, skills: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="flex gap-1">Social Media Profiles <span className="text-red-500">*</span></Label>
-                <Input 
-                  placeholder="LinkedIn / GitHub URL" 
-                  value={formData.socialMedia}
-                  onChange={(e) => setFormData({...formData, socialMedia: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex gap-1">Awards & Projects <span className="text-red-500">*</span></Label>
-              <Textarea 
-                placeholder="List any major projects or awards..."
-                value={formData.awards}
-                onChange={(e) => setFormData({...formData, awards: e.target.value})}
-              />
-            </div>
-          </>
-        )}
-
-        {/* --- TUTOR SPECIFIC FIELDS --- */}
-        {role === 'tutor' && (
-          <div className="space-y-2">
-            <Label className="flex gap-1">Subject Expertise (Topics) <span className="text-red-500">*</span></Label>
-            <Select onValueChange={(val) => setFormData({...formData, topics: val})} value={formData.topics}>
-              <SelectTrigger><SelectValue placeholder="Select Primary Topic" /></SelectTrigger>
-              <SelectContent>
-                {TOPICS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* --- AFFILIATE SPECIFIC FIELDS --- */}
-        {role === 'affiliate' && (
-          <div className="space-y-2">
-            <Label className="flex gap-1">Referring Platform <span className="text-red-500">*</span></Label>
-            <Select onValueChange={(val) => setFormData({...formData, referringPlatform: val})} value={formData.referringPlatform}>
-              <SelectTrigger><SelectValue placeholder="Select Platform" /></SelectTrigger>
-              <SelectContent>
-                {REFERRING_PLATFORMS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+  const renderStep2 = () => (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center gap-2 mb-6">
+        <Badge variant="outline" className="capitalize">{user?.role} Profile</Badge>
+        <span className="text-sm text-muted-foreground">Professional details</span>
       </div>
-    );
-  };
 
-  const renderStep3_Photo = () => (
+      {/* Common Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormField control={form.control} name="qualification" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Qualification <span className="text-red-500">*</span></FormLabel>
+            <FormControl><Input placeholder="e.g. BCA, B.Tech" {...field} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+
+        <FormField control={form.control} name="domain" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Portfolio URL</FormLabel>
+            <div className="relative">
+              <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <FormControl><Input className="pl-9" placeholder="https://..." {...field} /></FormControl>
+            </div>
+            <FormMessage />
+          </FormItem>
+        )} />
+      </div>
+
+      {/* Role Specific */}
+      {user?.role === 'student' && (
+        <>
+          <div className="grid md:grid-cols-2 gap-6">
+            <FormField control={form.control} name="mentor" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mentor <span className="text-red-500">*</span></FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                  <SelectContent>{MENTORS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+            
+            <FormField control={form.control} name="coordinator" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Coordinator <span className="text-red-500">*</span></FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                  <SelectContent>{COORDINATORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
+
+          <FormField control={form.control} name="aim" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Professional Aim <span className="text-red-500">*</span></FormLabel>
+              <FormControl><Textarea placeholder="Career goals..." {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+
+          <FormField control={form.control} name="skills" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Skills <span className="text-red-500">*</span></FormLabel>
+              <FormControl><Input placeholder="Java, React..." {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          
+          <FormField control={form.control} name="socialMedia" render={({ field }) => (
+            <FormItem>
+              <FormLabel>LinkedIn/GitHub <span className="text-red-500">*</span></FormLabel>
+              <FormControl><Input placeholder="Profile URL" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </>
+      )}
+
+      {user?.role === 'tutor' && (
+        <FormField control={form.control} name="topic" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Primary Topic <span className="text-red-500">*</span></FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl><SelectTrigger><SelectValue placeholder="Select Topic" /></SelectTrigger></FormControl>
+              <SelectContent>{TOPICS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )} />
+      )}
+
+      {user?.role === 'affiliate' && (
+        <FormField control={form.control} name="referringPlatform" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Platform <span className="text-red-500">*</span></FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl><SelectTrigger><SelectValue placeholder="Select Platform" /></SelectTrigger></FormControl>
+              <SelectContent>{REFERRING_PLATFORMS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )} />
+      )}
+    </div>
+  );
+
+  const renderStep3 = () => (
     <div className="flex flex-col items-center justify-center py-8 animate-fade-in space-y-6">
       <div className="relative group cursor-pointer">
         <div className={cn(
@@ -387,28 +344,12 @@ export default function Onboarding() {
             </div>
           )}
         </div>
-        
-        {/* Hidden Input */}
-        <input 
-          type="file" 
-          accept="image/*" 
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          onChange={handlePhotoChange}
-        />
-        
-        {photoPreview && (
-          <div className="absolute bottom-2 right-2 bg-primary text-white p-2 rounded-full shadow-lg">
-            <Upload className="w-4 h-4" />
-          </div>
-        )}
+        <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handlePhotoChange} />
+        {photoPreview && <div className="absolute bottom-2 right-2 bg-primary text-white p-2 rounded-full shadow-lg"><Upload className="w-4 h-4" /></div>}
       </div>
-
-      <div className="text-center space-y-2">
+      <div className="text-center">
         <h3 className="font-semibold text-lg">Upload Profile Photo</h3>
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          Please upload a professional photo. This will be used for your ID card and profile page.
-        </p>
-        <Badge variant="outline" className="mt-2">Mandatory</Badge>
+        <p className="text-xs text-muted-foreground mt-1">Required for ID Card generation.</p>
       </div>
     </div>
   );
@@ -416,86 +357,57 @@ export default function Onboarding() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 md:p-8">
-      {/* Background Decor */}
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
 
       <div className="w-full max-w-3xl">
-        <div className="text-center mb-8 space-y-2">
-          <Badge variant="secondary" className="px-4 py-1 text-primary mb-4 border-primary/20">
-            One-Time Setup
-          </Badge>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Welcome, {user.name}
-          </h1>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            Before you access the dashboard, we need to complete your profile with some mandatory information required for the {user.role} role.
-          </p>
+        <div className="text-center mb-8">
+          <Badge variant="secondary" className="px-4 py-1 text-primary mb-4 border-primary/20">One-Time Setup</Badge>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome, {user.name}</h1>
+          <p className="text-muted-foreground mt-2">Complete your profile to access the dashboard.</p>
         </div>
 
         <Card className="border-border shadow-2xl relative overflow-hidden backdrop-blur-sm bg-card/95">
-          {/* Progress Bar */}
           <div className="absolute top-0 left-0 w-full h-1.5 bg-secondary">
-            <div 
-              className="h-full bg-primary transition-all duration-500 ease-in-out" 
-              style={{ width: `${progress}%` }} 
-            />
+            <div className="h-full bg-primary transition-all duration-500 ease-in-out" style={{ width: `${progress}%` }} />
           </div>
 
           <CardHeader className="border-b border-border/50 bg-muted/20 pb-6">
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center gap-3 text-xl">
-                <span className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold border-2 transition-colors",
-                  "border-primary bg-primary text-primary-foreground"
-                )}>
+                <span className="flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold bg-primary text-primary-foreground">
                   {step}
                 </span>
-                {step === 1 && "Personal Information"}
-                {step === 2 && "Professional Details"}
-                {step === 3 && "Profile Identification"}
+                {step === 1 && "Personal Info"}
+                {step === 2 && "Professional Info"}
+                {step === 3 && "Profile Photo"}
               </CardTitle>
               <span className="text-sm font-medium text-muted-foreground">Step {step} of 3</span>
             </div>
           </CardHeader>
 
-          <CardContent className="p-6 md:p-8 min-h-[400px]">
-            {step === 1 && renderStep1_Personal()}
-            {step === 2 && renderStep2_RoleSpecific()}
-            {step === 3 && renderStep3_Photo()}
-          </CardContent>
+          <Form {...form}>
+            <form onSubmit={(e) => e.preventDefault()}>
+              <CardContent className="p-6 md:p-8 min-h-[400px]">
+                {step === 1 && renderStep1()}
+                {step === 2 && renderStep2()}
+                {step === 3 && renderStep3()}
+              </CardContent>
 
-          <CardFooter className="flex justify-between border-t border-border/50 bg-muted/20 p-6">
-            <Button 
-              variant="outline" 
-              onClick={handleBack} 
-              disabled={step === 1 || isLoading}
-              className="w-32"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back
-            </Button>
-            
-            <Button 
-              onClick={handleNext} 
-              disabled={isLoading || !isStepValid()} 
-              className="w-40"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...
-                </>
-              ) : step === 3 ? (
-                <>Complete <CheckCircle2 className="w-4 h-4 ml-2" /></>
-              ) : (
-                <>Next Step <ArrowRight className="w-4 h-4 ml-2" /></>
-              )}
-            </Button>
-          </CardFooter>
+              <CardFooter className="flex justify-between border-t border-border/50 bg-muted/20 p-6">
+                <Button variant="outline" onClick={handleBack} disabled={step === 1 || isLoading} className="w-32">
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                </Button>
+                
+                <Button onClick={handleNext} disabled={isLoading} className="w-40">
+                  {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 
+                   step === 3 ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Finish</> : 
+                   <><ArrowRight className="w-4 h-4 mr-2" /> Next</>}
+                </Button>
+              </CardFooter>
+            </form>
+          </Form>
         </Card>
-        
-        <p className="text-center text-xs text-muted-foreground mt-8 opacity-70">
-          Need help? Contact support at <a href="#" className="underline hover:text-primary">support@skillmount.com</a>
-        </p>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Added useEffect
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Copy, TrendingUp, Users, DollarSign, ExternalLink, Share2, Sparkles } from "lucide-react";
@@ -8,21 +8,35 @@ import { WobbleCard } from "@/components/ui/wobble-card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { ContainerScrollAnimation } from "@/components/ui/container-scroll-animation";
 import ProfessionalBackground from "@/components/ProfessionalBackground";
+import { Affiliate } from "@/types/user"; // Import the type
 
 export default function AffiliateHub() {
   const { user } = useAuth();
   
-  // Mock Data (Ideally comes from user object or API)
-  const couponCode = "SKILL20"; // This would be dynamic: user?.couponCode
-  const referralLink = `https://skillmount.com/?ref=${couponCode}`;
+  // 1. Cast the generic user to Affiliate type to access 'couponCode'
+  // In a real app, you might want to fetch the latest stats from the backend here
+  const affiliateUser = user as Affiliate; 
+
+  // 2. Use real data or fallback
+  const couponCode = affiliateUser?.couponCode || "PENDING"; 
+  const referralLink = `${window.location.origin}/?ref=${couponCode}`;
   
+  // Mock Stats (These should eventually come from an API endpoint like /api/affiliate/stats)
   const stats = [
-    { label: "Total Earnings", value: "$1,250", icon: DollarSign, color: "text-green-500", bg: "bg-green-500/10" },
-    { label: "Referrals", value: "42", icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Conversion Rate", value: "12.5%", icon: TrendingUp, color: "text-purple-500", bg: "bg-purple-500/10" },
+    { 
+      label: "Total Earnings", 
+      value: affiliateUser?.earnings ? `$${affiliateUser.earnings}` : "$0.00", 
+      icon: DollarSign, color: "text-green-500", bg: "bg-green-500/10" 
+    },
+    { label: "Referrals", value: "0", icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Conversion Rate", value: "0%", icon: TrendingUp, color: "text-purple-500", bg: "bg-purple-500/10" },
   ];
 
   const copyToClipboard = (text: string, type: string) => {
+    if (text === "PENDING") {
+      toast.error("Your account is still pending approval.");
+      return;
+    }
     navigator.clipboard.writeText(text);
     toast.success(`${type} Copied!`, {
       description: "Ready to share with your audience.",
@@ -31,10 +45,10 @@ export default function AffiliateHub() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background */}
+      {/* ... Background components remain the same ... */}
       <div className="absolute inset-0 z-0">
         <ProfessionalBackground
-          src="https://moajmalnk.in/assets/img/hero/moajmalnk.webp" 
+          src="/assets/img/hero/affiliate-bg.jpg" // Ensure path exists
           alt="Background"
           className="w-full h-full opacity-[0.02]"
           overlay={true}
@@ -57,7 +71,7 @@ export default function AffiliateHub() {
           </p>
         </div>
 
-        {/* Main Dashboard Grid */}
+        {/* Dashboard Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
           
           {/* Left: Quick Stats */}
@@ -117,7 +131,7 @@ export default function AffiliateHub() {
             </ContainerScrollAnimation>
           </div>
 
-          {/* Right: Recent Activity / Payout */}
+          {/* Right: Recent Activity */}
           <div className="lg:col-span-1 space-y-8">
             <ContainerScrollAnimation direction="up" speed="slow">
               <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm">
@@ -127,20 +141,10 @@ export default function AffiliateHub() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {[1, 2, 3, 4].map((_, i) => (
-                      <div key={i} className="flex items-center justify-between pb-4 border-b border-border/50 last:border-0 last:pb-0">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                            S{i + 1}
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium">New Student Signup</div>
-                            <div className="text-xs text-muted-foreground">2 hours ago</div>
-                          </div>
-                        </div>
-                        <div className="text-sm font-bold text-green-500">+$25.00</div>
-                      </div>
-                    ))}
+                    {/* Empty State for now */}
+                    <div className="text-center text-sm text-muted-foreground py-8">
+                      No activity yet. Start sharing your link!
+                    </div>
                   </div>
                   
                   <div className="mt-8 pt-6 border-t border-border/50">

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Pencil, Trash2, BookOpen } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, BookOpen, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { 
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger 
@@ -17,25 +17,49 @@ import {
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { toast } from "sonner";
-import { loadFAQs, saveFAQs, faqCategories, FAQ } from "@/lib/faq-data";
+import { FAQ } from "@/lib/faq-data"; 
+import { faqService } from "@/services/faqService";
+import { systemService } from "@/services/systemService"; // Imported systemService
 
 export const FAQManager = () => {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Dialog States
+  // Store dynamic categories here
+  const [categories, setCategories] = useState<string[]>([]);
+  
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [currentFaq, setCurrentFaq] = useState<FAQ | null>(null);
   
-  // Form States
   const [formQuestion, setFormQuestion] = useState("");
   const [formAnswer, setFormAnswer] = useState("");
   const [formCategory, setFormCategory] = useState("");
 
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch FAQs AND Settings in parallel
+      const [faqData, settingsData] = await Promise.all([
+        faqService.getAll(),
+        systemService.getSettings()
+      ]);
+      
+      setFaqs(faqData);
+      setCategories(settingsData.faqCategories || []);
+      
+    } catch (error) {
+      console.error("Failed to load data", error);
+      toast.error("Failed to load data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setFaqs(loadFAQs());
+    loadData();
   }, []);
 
   const resetForm = () => {
@@ -45,27 +69,26 @@ export const FAQManager = () => {
     setCurrentFaq(null);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!formQuestion.trim() || !formAnswer.trim() || !formCategory) {
       toast.error("Please fill in all fields");
       return;
     }
 
-    const newFaq: FAQ = {
-      id: `faq-${Date.now()}`,
-      question: formQuestion.trim(),
-      answer: formAnswer,
-      category: formCategory,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      await faqService.create({
+        question: formQuestion.trim(),
+        answer: formAnswer,
+        category: formCategory,
+      });
 
-    const updatedFaqs = [...faqs, newFaq];
-    saveFAQs(updatedFaqs);
-    setFaqs(updatedFaqs);
-    setIsCreateDialogOpen(false);
-    resetForm();
-    toast.success("FAQ created successfully!");
+      await loadData();
+      setIsCreateDialogOpen(false);
+      resetForm();
+      toast.success("FAQ created successfully!");
+    } catch (error) {
+      toast.error("Failed to create FAQ.");
+    }
   };
 
   const handleEdit = (faq: FAQ) => {
@@ -76,35 +99,38 @@ export const FAQManager = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!currentFaq) return;
     if (!formQuestion.trim() || !formAnswer.trim() || !formCategory) {
       toast.error("Please fill in all fields");
       return;
     }
 
-    const updatedFaq: FAQ = {
-      ...currentFaq,
-      question: formQuestion.trim(),
-      answer: formAnswer,
-      category: formCategory,
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      await faqService.update(currentFaq.id, {
+        question: formQuestion.trim(),
+        answer: formAnswer,
+        category: formCategory,
+      });
 
-    const updatedFaqs = faqs.map(faq => faq.id === currentFaq.id ? updatedFaq : faq);
-    saveFAQs(updatedFaqs);
-    setFaqs(updatedFaqs);
-    setIsEditDialogOpen(false);
-    resetForm();
-    toast.success("FAQ updated successfully!");
+      await loadData();
+      setIsEditDialogOpen(false);
+      resetForm();
+      toast.success("FAQ updated successfully!");
+    } catch (error) {
+      toast.error("Failed to update FAQ.");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    const updatedFaqs = faqs.filter(faq => faq.id !== id);
-    saveFAQs(updatedFaqs);
-    setFaqs(updatedFaqs);
-    setDeleteId(null);
-    toast.success("FAQ deleted successfully!");
+  const handleDelete = async (id: string) => {
+    try {
+      await faqService.delete(id);
+      await loadData();
+      setDeleteId(null);
+      toast.success("FAQ deleted successfully!");
+    } catch (error) {
+      toast.error("Failed to delete FAQ.");
+    }
   };
 
   const filteredFaqs = faqs.filter(faq =>
@@ -155,6 +181,7 @@ export const FAQManager = () => {
               question={formQuestion} setQuestion={setFormQuestion}
               answer={formAnswer} setAnswer={setFormAnswer}
               modules={quillModules}
+              categories={categories} // Pass dynamic categories
             />
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
@@ -171,7 +198,11 @@ export const FAQManager = () => {
           <CardDescription>Manage your frequently asked questions</CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredFaqs.length === 0 ? (
+          {isLoading ? (
+             <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+             </div>
+          ) : filteredFaqs.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground">
@@ -218,6 +249,7 @@ export const FAQManager = () => {
             question={formQuestion} setQuestion={setFormQuestion}
             answer={formAnswer} setAnswer={setFormAnswer}
             modules={quillModules}
+            categories={categories} // Pass dynamic categories
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
@@ -243,16 +275,16 @@ export const FAQManager = () => {
   );
 };
 
-// Sub-component for the form fields to avoid duplication
-const FAQForm = ({ category, setCategory, question, setQuestion, answer, setAnswer, modules }: any) => (
+// Updated Sub-component to accept 'categories' prop
+const FAQForm = ({ category, setCategory, question, setQuestion, answer, setAnswer, modules, categories }: any) => (
   <div className="space-y-4 py-4">
     <div className="space-y-2">
       <Label>Category</Label>
       <Select value={category} onValueChange={setCategory}>
         <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
         <SelectContent>
-          {faqCategories.map((cat) => (
-            <SelectItem key={cat.name} value={cat.name}>{cat.name}</SelectItem>
+          {categories.map((cat: string) => (
+            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
           ))}
         </SelectContent>
       </Select>

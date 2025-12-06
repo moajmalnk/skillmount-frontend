@@ -18,6 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Lock } from "lucide-react";
 import { TicketForm } from "@/components/tickets/TicketForm";
 import { FeedbackForm } from "@/components/feedback/FeedbackForm";
+import { inquiryService } from "@/services/inquiryService";
 
 const Contact = () => {
   const { toast } = useToast();
@@ -50,14 +51,22 @@ const Contact = () => {
     feedback: ""
   });
   
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you within 24 hours.",
-    });
-    setContactForm({ name: "", email: "", phone: "", message: "" });
-  };
+  const handleContactSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  await inquiryService.create({
+    name: contactForm.name,
+    email: contactForm.email,
+    phone: contactForm.phone,
+    message: contactForm.message
+  });
+
+  toast({
+    title: "Message Sent!",
+    description: "We'll get back to you within 24 hours.",
+  });
+  setContactForm({ name: "", email: "", phone: "", message: "" });
+};
   
   const handleTicketSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -443,11 +452,11 @@ const Contact = () => {
                 ) : (
                   // If Guest: Show a nice prompt about logging in for tickets
                   <div className="mb-8 text-center p-4 bg-muted/30 rounded-xl border border-border/50">
-                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                    {/* <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
                       <Lock className="w-4 h-4" />
                       <span className="font-medium">Student Features Locked</span>
                       <span className="opacity-70">- Login to Raise Tickets or Submit Feedback</span>
-                    </p>
+                    </p> */}
                   </div>
                 )}
             

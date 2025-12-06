@@ -129,6 +129,19 @@ export const StudentDashboard = () => {
               </div>
             </WobbleCard>
           </Link>
+          <Link to="/student/tickets"> 
+            <Card className="bg-blue-500/5 border-blue-500/10 hover:border-blue-500/30 transition-all cursor-pointer">
+                <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Ticket className="w-4 h-4 text-blue-500" /> Support
+                </CardTitle>
+                </CardHeader>
+                <CardContent>
+                <div className="text-2xl font-bold">1 Open</div>
+                <div className="text-xs text-muted-foreground">View Tickets</div>
+                </CardContent>
+            </Card>
+        </Link>
         </div>
 
         {/* 3. Right Column: Quick Actions & Status */}

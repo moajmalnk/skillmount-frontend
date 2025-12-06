@@ -1,43 +1,67 @@
+import { useState, useEffect } from "react";
 import { 
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter 
 } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
-  Mail, Phone, MapPin, Calendar, BookOpen, Award, 
-  ShieldAlert, KeyRound, ExternalLink, MessageSquare 
+  ShieldAlert, Save, Loader2, Star, UserCircle, Briefcase, Trophy
 } from "lucide-react";
 import { toast } from "sonner";
+import { User, Student } from "@/types/user";
+import { userService } from "@/services/userService";
+
+// Import Editor Components
+import { ProfileBasicForm } from "./profile-editor/ProfileBasicForm";
+import { ProfileProjectsManager } from "./profile-editor/ProfileProjectsManager";
 
 interface UserDetailSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  user: any | null; // In a real app, define a proper User interface
+  user: User | null;
   type: "student" | "tutor" | "affiliate";
 }
 
 export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheetProps) => {
+  const [formData, setFormData] = useState<Partial<Student>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Reset form when user changes
+  useEffect(() => {
+    if (user && type === 'student') {
+        setFormData(user as Student);
+    }
+  }, [user, type]);
+
   if (!user) return null;
 
-  const handleResetPassword = () => {
-    toast.success("Password Reset Email Sent", {
-      description: `Instructions sent to ${user.email}`,
-    });
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+        await userService.update(user.id, formData);
+        toast.success("Profile Updated Successfully");
+        onClose(); // Optional: close on save or keep open
+    } catch (error) {
+        toast.error("Failed to save changes");
+    } finally {
+        setIsSaving(false);
+    }
   };
 
-  const handleBlockUser = () => {
-    toast.error("User Blocked", {
-      description: `${user.name} has been suspended.`,
-    });
+  const handleUpdate = (updates: Partial<Student>) => {
+    setFormData(prev => ({ ...prev, ...updates }));
   };
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-xl p-0 overflow-hidden flex flex-col">
-        {/* Header Section */}
+      <SheetContent className="w-full sm:max-w-2xl p-0 overflow-hidden flex flex-col">
+        {/* Header */}
         <div className="bg-primary/5 p-6 border-b border-border/50">
           <SheetHeader className="flex flex-row items-start gap-4 space-y-0">
             <Avatar className="h-16 w-16 border-2 border-background shadow-sm">
@@ -51,156 +75,117 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
               <SheetDescription className="flex items-center gap-2">
                 <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{user.regId}</span>
                 <Badge variant={user.status === 'Active' ? 'default' : 'secondary'} className="text-[10px] h-5">
-                  {user.status || "Active"}
+                  {user.status}
                 </Badge>
               </SheetDescription>
             </div>
+            {/* Quick Save Button in Header */}
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                <span className="ml-2 hidden sm:inline">Save Changes</span>
+            </Button>
           </SheetHeader>
         </div>
 
-        {/* Scrollable Content */}
-        <ScrollArea className="flex-1 p-6">
-          <div className="space-y-8">
-            
-            {/* 1. Contact Information */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Details</h4>
-              <div className="grid grid-cols-1 gap-3">
-                <div className="flex items-center gap-3 p-3 rounded-lg border border-border/40 bg-card/50">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground">Email Address</p>
-                    <p className="text-sm font-medium">{user.email}</p>
-                  </div>
+        {/* Content */}
+        <ScrollArea className="flex-1">
+            <Tabs defaultValue="overview" className="w-full">
+                <div className="px-6 pt-4">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="profile">Edit Profile</TabsTrigger>
+                        <TabsTrigger value="projects">Projects</TabsTrigger>
+                    </TabsList>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg border border-border/40 bg-card/50">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground">Phone / WhatsApp</p>
-                    <p className="text-sm font-medium">{user.phone}</p>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600">
-                    <MessageSquare className="w-4 h-4" />
-                  </Button>
+
+                <div className="p-6">
+                    {/* TAB 1: OVERVIEW & ADMIN CONTROLS */}
+                    <TabsContent value="overview" className="space-y-6 mt-0">
+                        {type === 'student' && (
+                            <div className="space-y-4 bg-amber-50/50 p-4 rounded-xl border border-amber-100 dark:bg-amber-950/10 dark:border-amber-900/30">
+                                <h4 className="text-sm font-semibold text-amber-700 dark:text-amber-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Star className="w-4 h-4" /> Showcase Settings
+                                </h4>
+                                
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label>Top Performer</Label>
+                                        <p className="text-xs text-muted-foreground">Highlight in "Elite Showcase"</p>
+                                    </div>
+                                    <Switch 
+                                        checked={formData.isTopPerformer}
+                                        onCheckedChange={(val) => handleUpdate({ isTopPerformer: val })}
+                                    />
+                                </div>
+                                <Separator className="bg-amber-200/30" />
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label>Featured Graduate</Label>
+                                        <p className="text-xs text-muted-foreground">Show in "Latest Graduates"</p>
+                                    </div>
+                                    <Switch 
+                                        checked={formData.isFeatured}
+                                        onCheckedChange={(val) => handleUpdate({ isFeatured: val })}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">Email</span>
+                                <p className="text-sm font-medium">{user.email}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">Phone</span>
+                                <p className="text-sm font-medium">{user.phone}</p>
+                            </div>
+                            {(user as Student).batch && (
+                                <div className="space-y-1">
+                                    <span className="text-xs text-muted-foreground">Batch</span>
+                                    <p className="text-sm font-medium">{(user as Student).batch}</p>
+                                </div>
+                            )}
+                        </div>
+                    </TabsContent>
+
+                    {/* TAB 2: PROFILE EDITOR */}
+                    <TabsContent value="profile" className="mt-0">
+                        <div className="flex items-center gap-2 mb-4 text-muted-foreground">
+                            <UserCircle className="w-4 h-4" />
+                            <span className="text-xs uppercase tracking-wide font-semibold">Basic Information</span>
+                        </div>
+                        <ProfileBasicForm 
+                            data={formData} 
+                            onChange={handleUpdate} 
+                        />
+                    </TabsContent>
+
+                    {/* TAB 3: PROJECTS */}
+                    <TabsContent value="projects" className="mt-0">
+                        <div className="flex items-center gap-2 mb-4 text-muted-foreground">
+                            <Briefcase className="w-4 h-4" />
+                            <span className="text-xs uppercase tracking-wide font-semibold">Portfolio Projects</span>
+                        </div>
+                        <ProfileProjectsManager 
+                            projects={formData.projects || []} 
+                            onChange={(projects) => handleUpdate({ projects })} 
+                        />
+                    </TabsContent>
                 </div>
-                {user.address && (
-                  <div className="flex items-start gap-3 p-3 rounded-lg border border-border/40 bg-card/50">
-                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-xs text-muted-foreground">Address</p>
-                      <p className="text-sm font-medium">{user.address}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Pin: {user.pincode}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* 2. Academic / Professional Info */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                {type === 'student' ? 'Academic Profile' : 'Professional Profile'}
-              </h4>
-              
-              <div className="grid grid-cols-2 gap-4">
-                {/* Student Fields */}
-                {type === 'student' && (
-                  <>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Batch</p>
-                      <div className="font-medium flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-primary" />
-                        {user.batch}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Mentor</p>
-                      <div className="font-medium">{user.mentor || "Not Assigned"}</div>
-                    </div>
-                  </>
-                )}
-
-                {/* Tutor Fields */}
-                {type === 'tutor' && (
-                  <div className="col-span-2 space-y-1">
-                    <p className="text-xs text-muted-foreground">Expertise Topics</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {user.topic?.split(',').map((t: string) => (
-                        <Badge key={t} variant="secondary">{t.trim()}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Affiliate Fields */}
-                {type === 'affiliate' && (
-                  <>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Platform</p>
-                      <div className="font-medium">{user.platform || "N/A"}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Coupon Code</p>
-                      <Badge variant="outline" className="font-mono">{user.couponCode || "N/A"}</Badge>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Extended Details (Aim, Bio, etc) */}
-              {user.aim && (
-                <div className="space-y-1 bg-muted/30 p-3 rounded-md">
-                  <p className="text-xs text-muted-foreground">Professional Aim</p>
-                  <p className="text-sm italic">"{user.aim}"</p>
-                </div>
-              )}
-              
-              {user.domain && (
-                <div className="flex items-center gap-2">
-                  <ExternalLink className="w-3.5 h-3.5 text-primary" />
-                  <a href={user.domain} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">
-                    View Portfolio / Website
-                  </a>
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* 3. System Data */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">System Stats</h4>
-              <div className="flex gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground block text-xs">Profile Status</span>
-                  <Badge variant={user.isProfileComplete ? "default" : "destructive"}>
-                    {user.isProfileComplete ? "Complete" : "Incomplete"}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-xs">Joined</span>
-                  <span className="font-medium">Oct 12, 2025</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
+            </Tabs>
         </ScrollArea>
 
-        {/* Footer Actions */}
+        {/* Footer */}
         <SheetFooter className="p-6 border-t border-border/50 bg-background flex flex-col sm:flex-row gap-3 sm:justify-between">
-          <Button variant="outline" className="w-full sm:w-auto text-destructive hover:bg-destructive/10 border-destructive/30" onClick={handleBlockUser}>
-            <ShieldAlert className="w-4 h-4 mr-2" />
-            Block User
+          <Button variant="outline" className="text-destructive border-destructive/30">
+            <ShieldAlert className="w-4 h-4 mr-2" /> Block User
           </Button>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleResetPassword}>
-              <KeyRound className="w-4 h-4 mr-2" />
-              Reset Pass
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save Changes"}
             </Button>
-            <Button className="flex-1 sm:flex-none" onClick={onClose}>Close</Button>
           </div>
         </SheetFooter>
       </SheetContent>

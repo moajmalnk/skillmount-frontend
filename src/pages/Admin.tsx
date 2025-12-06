@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, LogOut, GraduationCap, Users, Share2, 
   FileText, MessageSquare, Ticket, Star, BookOpen, 
-  Settings
+  Settings,
+  Newspaper
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -16,13 +17,17 @@ import { useAuth } from "@/context/AuthContext";
 // Note: Ensure these paths match your folder structure (user vs users)
 import { DashboardStats } from "@/components/admin/DashboardStats";
 import { ManagementTable } from "@/components/admin/ManagementTable";
-import { FAQManager } from "@/components/admin/FAQManager";
 
 import { MaterialsManager } from "@/components/admin/content/MaterialsManager";
 import { StudentManager } from "@/components/admin/user/StudentManager";
 import { TutorManager } from "@/components/admin/user/TutorManager";
 import { AffiliateManager } from "@/components/admin/user/AffiliateManager";
 import { SettingsManager } from "@/components/admin/settings/SettingsManager";
+import { TicketManager } from "@/components/admin/tickets/TicketManager";
+import { FAQManager } from "@/components/admin/FAQManager";
+import { InquiryManager } from "@/components/admin/InquiryManager";
+import { FeedbackManager } from "@/components/admin/FeedbackManager";
+import { BlogManager } from "@/components/admin/blog/BlogManager";
 
 const Admin = () => {
   // 3. Use Global Auth State
@@ -69,10 +74,11 @@ const Admin = () => {
     { value: "tutors", icon: Users, label: "Tutors", component: <TutorManager /> },
     { value: "affiliates", icon: Share2, label: "Affiliates", component: <AffiliateManager /> },
     { value: "materials", icon: FileText, label: "Materials", component: <MaterialsManager /> },
-    { value: "inquiries", icon: MessageSquare, label: "Inquiries", component: <ManagementTable title="General Inquiries" columns={["Date", "Name", "Email", "Subject", "Status"]} /> },
-    { value: "tickets", icon: Ticket, label: "Tickets", component: <ManagementTable title="Support Tickets" columns={["Ticket ID", "Student", "Subject", "Priority", "Status"]} /> },
-    { value: "feedbacks", icon: Star, label: "Feedbacks", component: <ManagementTable title="Feedbacks" columns={["Date", "User", "Rating", "Comments"]} /> },
+    { value: "inquiries", icon: MessageSquare, label: "Inquiries", component: <InquiryManager /> },
+    {  value: "tickets", icon: Ticket, label: "Tickets", component: <TicketManager />  },
+    { value: "feedbacks", icon: Star, label: "Feedbacks", component: <FeedbackManager /> },
     { value: "faqs", icon: BookOpen, label: "FAQs", component: <FAQManager /> },
+    { value: "blog", icon: Newspaper, label: "Blog", component: <BlogManager /> },
     { value: "settings", icon: Settings, label: "Settings", component: <SettingsManager />  },
   ];
 

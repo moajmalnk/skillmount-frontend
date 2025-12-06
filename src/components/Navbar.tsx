@@ -34,7 +34,7 @@ const Navbar = () => {
   const canViewResources = isAuthenticated && (isStudent || isTutor || isAdmin);
   
   // Ticket Inbox: Tutors and Admins only
-  const canManageTickets = isAuthenticated && (isTutor || isAdmin);
+  const canManageTickets = isAuthenticated && (isTutor);
 
   return (
     <nav className="sticky top-0 z-50 bg-card/80 border-b border-border backdrop-blur-md supports-[backdrop-filter]:bg-card/60">
@@ -56,6 +56,9 @@ const Navbar = () => {
             </Link>
             <Link to="/students">
               <Button variant={isActive("/students") ? "secondary" : "ghost"} size="sm">Students</Button>
+            </Link>
+            <Link to="/blog">
+              <Button variant={isActive("/blog") ? "secondary" : "ghost"} size="sm">Blog</Button>
             </Link>
             
             {/* Conditional Links */}
@@ -79,7 +82,7 @@ const Navbar = () => {
               <Link to="/tickets/manage">
                 <Button variant={isActive("/tickets/manage") ? "secondary" : "ghost"} size="sm" className="text-primary font-medium">
                   {/* <Ticket className="w-4 h-4 mr-2" /> */}
-                  Inbox
+                  Ticket
                 </Button>
               </Link>
             )}
@@ -162,6 +165,9 @@ const Navbar = () => {
             </Link>
             <Link to="/students" onClick={closeMobileMenu} className="block">
               <Button variant={isActive("/students") ? "secondary" : "ghost"} className="w-full justify-start">Students</Button>
+            </Link>
+            <Link to="/blog" onClick={closeMobileMenu} className="block">
+              <Button variant={isActive("/blog") ? "secondary" : "ghost"} className="w-full justify-start">Blog</Button>
             </Link>
             
             {canViewResources && (
