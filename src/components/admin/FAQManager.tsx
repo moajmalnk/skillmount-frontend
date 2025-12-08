@@ -11,15 +11,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { toast } from "sonner";
 import { FAQ } from "@/lib/faq-data"; 
 import { faqService } from "@/services/faqService";
-import { systemService } from "@/services/systemService"; // Imported systemService
+import { systemService } from "@/services/systemService";
+import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog"; // Import the delete dialog
 
 export const FAQManager = () => {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
@@ -31,7 +29,10 @@ export const FAQManager = () => {
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  // Delete State
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  
   const [currentFaq, setCurrentFaq] = useState<FAQ | null>(null);
   
   const [formQuestion, setFormQuestion] = useState("");
@@ -122,14 +123,17 @@ export const FAQManager = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  // --- DELETE HANDLER ---
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await faqService.delete(id);
+      await faqService.delete(deleteId);
       await loadData();
-      setDeleteId(null);
       toast.success("FAQ deleted successfully!");
     } catch (error) {
       toast.error("Failed to delete FAQ.");
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -149,6 +153,9 @@ export const FAQManager = () => {
       ['clean']
     ],
   };
+
+  // Helper to get item name for dialog
+  const faqToDelete = faqs.find(f => f.id === deleteId);
 
   return (
     <div className="space-y-6">
@@ -181,7 +188,7 @@ export const FAQManager = () => {
               question={formQuestion} setQuestion={setFormQuestion}
               answer={formAnswer} setAnswer={setFormAnswer}
               modules={quillModules}
-              categories={categories} // Pass dynamic categories
+              categories={categories}
             />
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
@@ -206,7 +213,7 @@ export const FAQManager = () => {
             <div className="text-center py-12">
               <BookOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground">
-                {searchQuery ? "No FAQs match your search" : "No FAQs yet. Create your first one!"}
+                 {searchQuery ? "No FAQs match your search" : "No FAQs yet. Create your first one!"}
               </p>
             </div>
           ) : (
@@ -226,8 +233,13 @@ export const FAQManager = () => {
                       <Button variant="outline" size="icon" onClick={() => handleEdit(faq)}>
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button variant="outline" size="icon" onClick={() => setDeleteId(faq.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => setDeleteId(faq.id)}
+                        className="text-destructive hover:bg-destructive/10 border-destructive/20"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -249,7 +261,7 @@ export const FAQManager = () => {
             question={formQuestion} setQuestion={setFormQuestion}
             answer={formAnswer} setAnswer={setFormAnswer}
             modules={quillModules}
-            categories={categories} // Pass dynamic categories
+            categories={categories}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
@@ -258,24 +270,19 @@ export const FAQManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Alert */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog 
+        open={!!deleteId} 
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={confirmDelete}
+        itemName={faqToDelete?.question}
+        description="This will permanently delete this question from the help center. This action cannot be undone."
+      />
     </div>
   );
 };
 
-// Updated Sub-component to accept 'categories' prop
+// Sub-component
 const FAQForm = ({ category, setCategory, question, setQuestion, answer, setAnswer, modules, categories }: any) => (
   <div className="space-y-4 py-4">
     <div className="space-y-2">

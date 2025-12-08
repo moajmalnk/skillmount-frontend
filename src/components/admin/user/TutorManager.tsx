@@ -21,7 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { UserDetailSheet } from "./UserDetailSheet"; // Reusing the detail sheet
+import { UserDetailSheet } from "./UserDetailSheet"; 
+import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog"; // Import the delete dialog
 
 // Import Service & Types
 import { userService } from "@/services/userService";
@@ -48,11 +49,13 @@ export const TutorManager = () => {
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
+  // Delete State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
   // 1. Fetch Data
   const loadTutors = async () => {
     setIsLoading(true);
     try {
-      // Cast because we know we are fetching tutors
       const data = (await userService.getElementsByRole("tutor")) as Tutor[];
       setTutors(data);
     } catch (error) {
@@ -88,7 +91,6 @@ export const TutorManager = () => {
       const newRegId = generateRegId(tutors.length);
       const tempPassword = generateTempPassword(formData.email, formData.phone);
 
-      // Construct object matching the Tutor Interface
       const newTutor: Partial<Tutor> = {
         regId: newRegId,
         name: formData.name,
@@ -96,7 +98,7 @@ export const TutorManager = () => {
         phone: formData.phone,
         role: "tutor",
         status: "Pending",
-        topics: [formData.topic], // Store as array to match Interface
+        topics: [formData.topic], 
         isProfileComplete: false
       };
 
@@ -109,25 +111,33 @@ export const TutorManager = () => {
       setIsCreateOpen(false);
       setFormData({ name: "", email: "", phone: "", topic: "" });
       
-      loadTutors(); // Refresh list
+      loadTutors(); 
 
     } catch (error) {
       toast.error("Failed to create tutor");
     }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  // --- DELETE HANDLERS ---
+  const initiateDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if(!confirm("Are you sure you want to remove this tutor?")) return;
+    setDeleteId(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await userService.delete(id);
-      toast.success("Tutor removed");
+      await userService.delete(deleteId);
+      toast.success("Tutor removed successfully");
       loadTutors();
     } catch (error) {
-      toast.error("Failed to delete");
+      toast.error("Failed to delete tutor");
+    } finally {
+      setDeleteId(null);
     }
   };
+
+  const tutorToDelete = tutors.find(t => t.id === deleteId);
 
   return (
     <>
@@ -139,7 +149,7 @@ export const TutorManager = () => {
       >
         {isLoading ? (
           <TableRow>
-            <TableCell colSpan={6} className="h-24 text-center">
+            <TableCell colSpan={7} className="h-24 text-center">
               <div className="flex justify-center items-center gap-2">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 <span>Loading Tutors...</span>
@@ -148,7 +158,7 @@ export const TutorManager = () => {
           </TableRow>
         ) : tutors.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
               No tutors found. Add one to get started.
             </TableCell>
           </TableRow>
@@ -164,7 +174,6 @@ export const TutorManager = () => {
               <TableCell>{tutor.email}</TableCell>
               <TableCell>{tutor.phone}</TableCell>
               <TableCell>
-                {/* Join topics if multiple, or show first */}
                 {tutor.topics && tutor.topics.length > 0 ? tutor.topics[0] : "General"}
               </TableCell>
               <TableCell>
@@ -188,7 +197,7 @@ export const TutorManager = () => {
                     variant="ghost" 
                     size="icon" 
                     className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                    onClick={(e) => handleDelete(tutor.id, e)}
+                    onClick={(e) => initiateDelete(tutor.id, e)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -236,12 +245,21 @@ export const TutorManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Detail Sheet Reuse */}
+      {/* Detail Sheet */}
       <UserDetailSheet 
         isOpen={isSheetOpen} 
         onClose={() => setIsSheetOpen(false)} 
         user={selectedTutor} 
         type="tutor" 
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog 
+        open={!!deleteId} 
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={confirmDelete}
+        itemName={tutorToDelete?.name}
+        description="This will permanently remove the tutor account and revoke their access to the platform."
       />
     </>
   );

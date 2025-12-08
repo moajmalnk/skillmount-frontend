@@ -3,7 +3,7 @@ import { ManagementTable } from "@/components/admin/ManagementTable";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Mail, CheckCircle2, Loader2, MessageSquare } from "lucide-react";
+import { Trash2, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { inquiryService, Inquiry } from "@/services/inquiryService";
 import {
@@ -13,11 +13,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog"; // Import the delete dialog
 
 export const InquiryManager = () => {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // View Modal State
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  
+  // Delete State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -35,12 +41,23 @@ export const InquiryManager = () => {
     loadData();
   }, []);
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  // --- DELETE HANDLERS ---
+  const initiateDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if(!confirm("Are you sure?")) return;
-    await inquiryService.delete(id);
-    toast.success("Inquiry deleted");
-    loadData();
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await inquiryService.delete(deleteId);
+      toast.success("Inquiry deleted successfully");
+      loadData();
+    } catch (error) {
+      toast.error("Failed to delete inquiry");
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   const handleMarkRead = async (id: string, e: React.MouseEvent) => {
@@ -65,12 +82,13 @@ export const InquiryManager = () => {
     }
   };
 
+  const inquiryToDelete = inquiries.find(i => i.id === deleteId);
+
   return (
     <>
       <ManagementTable 
         title="General Inquiries" 
         description="Messages from the public contact form."
-        // FIXED: Removed "Actions" from this array because ManagementTable adds it automatically
         columns={["Date", "Name", "Subject", "Message", "Status"]}
         onAddNew={() => {}} // Hide Add Button
       >
@@ -97,15 +115,32 @@ export const InquiryManager = () => {
               <TableCell>{getStatusBadge(inq.status)}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); window.location.href=`mailto:${inq.email}`; }}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-blue-600 hover:bg-blue-50" 
+                    onClick={(e) => { e.stopPropagation(); window.location.href=`mailto:${inq.email}`; }}
+                  >
                     <Mail className="w-4 h-4" />
                   </Button>
+                  
                   {inq.status === 'New' && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={(e) => handleMarkRead(inq.id, e)}>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-green-600 hover:bg-green-50" 
+                        onClick={(e) => handleMarkRead(inq.id, e)}
+                    >
                         <CheckCircle2 className="w-4 h-4" />
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={(e) => handleDelete(inq.id, e)}>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10" 
+                    onClick={(e) => initiateDelete(inq.id, e)}
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -158,6 +193,15 @@ export const InquiryManager = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog 
+        open={!!deleteId} 
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={confirmDelete}
+        itemName={`Message from ${inquiryToDelete?.name}`}
+        description="This will permanently delete this inquiry message."
+      />
     </>
   );
 };

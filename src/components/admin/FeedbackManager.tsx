@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { feedbackService } from "@/services/feedbackService";
 import { Feedback } from "@/types/feedback";
 import { FeedbackDetailModal } from "./FeedbackDetailModal";
+import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog"; // Import the delete dialog
 
 export const FeedbackManager = () => {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
@@ -16,6 +17,9 @@ export const FeedbackManager = () => {
   // Modal State
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Delete State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const loadFeedbacks = async () => {
     setIsLoading(true);
@@ -38,12 +42,23 @@ export const FeedbackManager = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  // --- DELETE HANDLERS ---
+  const initiateDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening modal when clicking delete
-    if(!confirm("Delete this feedback?")) return;
-    await feedbackService.delete(id);
-    toast.success("Feedback deleted");
-    loadFeedbacks();
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await feedbackService.delete(deleteId);
+      toast.success("Feedback deleted successfully");
+      loadFeedbacks();
+    } catch (error) {
+      toast.error("Failed to delete feedback");
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   const renderStars = (count: number) => (
@@ -57,12 +72,13 @@ export const FeedbackManager = () => {
     </div>
   );
 
+  const feedbackToDelete = feedbacks.find(f => f.id === deleteId);
+
   return (
     <>
       <ManagementTable 
         title="Course Feedback" 
         description="Reviews and ratings submitted by students."
-        // FIXED: Removed "Action" from this array to prevent duplicate headers
         columns={["Date", "Student", "Rating", "Message", "Attachments"]}
         onAddNew={() => {}} 
       >
@@ -102,10 +118,20 @@ export const FeedbackManager = () => {
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleView(item)}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-muted-foreground hover:text-primary" 
+                    onClick={() => handleView(item)}
+                  >
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={(e) => handleDelete(item.id, e)}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10" 
+                    onClick={(e) => initiateDelete(item.id, e)}
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -119,6 +145,16 @@ export const FeedbackManager = () => {
         feedback={selectedFeedback}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog 
+        open={!!deleteId} 
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Feedback?"
+        description="This will permanently remove the student's rating and review. This action cannot be undone."
+        itemName={feedbackToDelete ? `Review by ${feedbackToDelete.studentName}` : undefined}
       />
     </>
   );

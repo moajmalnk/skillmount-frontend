@@ -31,7 +31,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { 
   Pencil, Trash2, Eye, Loader2, Search, Filter, X, 
-  Star, GraduationCap, CheckCircle2, AlertCircle, Plus 
+  Star, GraduationCap, CheckCircle2, AlertCircle, Plus, 
+  EyeIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import { BATCHES, formatBatchForDisplay } from "@/lib/batches"; 
@@ -39,6 +40,7 @@ import { UserDetailSheet } from "./UserDetailSheet";
 import { userService } from "@/services/userService";
 import { Student } from "@/types/user";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
 
 export const StudentManager = () => {
   const [students, setStudents] = useState<Student[]>([]);
@@ -55,6 +57,7 @@ export const StudentManager = () => {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", batch: "" });
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // 1. Fetch Data
   const loadStudents = async () => {
@@ -158,17 +161,27 @@ export const StudentManager = () => {
     }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+ const initiateDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if(!confirm("Are you sure you want to delete this student?")) return;
+    setDeleteId(id);
+  };
+
+  // Confirm Handler (Executes Logic)
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await userService.delete(id);
-      toast.success("Student deleted");
+      await userService.delete(deleteId);
+      toast.success("Student deleted successfully");
       loadStudents();
     } catch (error) {
-      toast.error("Failed to delete");
+      toast.error("Failed to delete student");
+    } finally {
+      setDeleteId(null);
     }
   };
+
+  // Helper to get name for popup
+  const studentToDelete = students.find(s => s.id === deleteId);
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -391,16 +404,25 @@ export const StudentManager = () => {
                             className="h-8 w-8 text-muted-foreground hover:text-primary"
                             onClick={() => handleViewDetails(student)}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <EyeIcon className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={(e) => handleDelete(student.id, e)}
+                            onClick={(e) => initiateDelete(student.id, e)} // Use new handler
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+
+                          {/* Add Dialog at the bottom */}
+                          <DeleteConfirmationDialog 
+                            open={!!deleteId} 
+                            onOpenChange={(open) => !open && setDeleteId(null)}
+                            onConfirm={confirmDelete}
+                            itemName={studentToDelete?.name}
+                            description="This will remove the student, their profile, and all associated project data."
+                          />
                         </div>
                       </TableCell>
                     </TableRow>

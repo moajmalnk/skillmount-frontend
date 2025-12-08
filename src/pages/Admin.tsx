@@ -1,23 +1,29 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, LogOut, GraduationCap, Users, Share2, 
   FileText, MessageSquare, Ticket, Star, BookOpen, 
-  Settings,
-  Newspaper
+  Settings, Newspaper
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // 1. Import Auth Context
 import { useAuth } from "@/context/AuthContext";
 
 // 2. Import Components
-// Note: Ensure these paths match your folder structure (user vs users)
 import { DashboardStats } from "@/components/admin/DashboardStats";
-import { ManagementTable } from "@/components/admin/ManagementTable";
-
 import { MaterialsManager } from "@/components/admin/content/MaterialsManager";
 import { StudentManager } from "@/components/admin/user/StudentManager";
 import { TutorManager } from "@/components/admin/user/TutorManager";
@@ -33,29 +39,27 @@ const Admin = () => {
   // 3. Use Global Auth State
   const { user, isAuthenticated, logout, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   // 4. Protect the Route
   useEffect(() => {
-    // Wait for auth check to finish
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      // Not logged in -> Go to Login Page
       navigate("/login");
     } else if (user?.role !== "super_admin") {
-      // Logged in but not Admin -> Kick out
       toast.error("Access Denied: Super Admin privileges required.");
       navigate("/");
     }
   }, [isAuthenticated, isLoading, user, navigate]);
 
-  const handleLogout = () => {
+  const handleLogoutConfirm = () => {
     logout();
+    setIsLogoutDialogOpen(false);
     navigate('/login');
     toast.info("Logged out successfully");
   };
 
-  // 5. Loading State (Prevents flashing the dashboard before redirect)
   if (isLoading || !isAuthenticated || user?.role !== "super_admin") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -75,7 +79,7 @@ const Admin = () => {
     { value: "affiliates", icon: Share2, label: "Affiliates", component: <AffiliateManager /> },
     { value: "materials", icon: FileText, label: "Materials", component: <MaterialsManager /> },
     { value: "inquiries", icon: MessageSquare, label: "Inquiries", component: <InquiryManager /> },
-    {  value: "tickets", icon: Ticket, label: "Tickets", component: <TicketManager />  },
+    { value: "tickets", icon: Ticket, label: "Tickets", component: <TicketManager />  },
     { value: "feedbacks", icon: Star, label: "Feedbacks", component: <FeedbackManager /> },
     { value: "faqs", icon: BookOpen, label: "FAQs", component: <FAQManager /> },
     { value: "blog", icon: Newspaper, label: "Blog", component: <BlogManager /> },
@@ -100,7 +104,7 @@ const Admin = () => {
                 <div className="font-medium">{user?.name}</div>
                 <div className="text-xs text-muted-foreground capitalize">Super Admin</div>
               </div>
-              <Button variant="outline" onClick={handleLogout}>
+              <Button variant="outline" onClick={() => setIsLogoutDialogOpen(true)}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
@@ -111,7 +115,6 @@ const Admin = () => {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="stats" className="space-y-6">
-          {/* Dynamic Scrollable Tab List */}
           <div className="overflow-x-auto pb-2">
             <TabsList className="inline-flex h-auto w-auto gap-2 bg-transparent p-0 justify-start">
               {tabConfig.map((tab) => (
@@ -126,7 +129,6 @@ const Admin = () => {
             </TabsList>
           </div>
 
-          {/* Render Tab Content */}
           {tabConfig.map((tab) => (
             <TabsContent key={tab.value} value={tab.value} className="space-y-6">
               {tab.component}
@@ -134,6 +136,24 @@ const Admin = () => {
           ))}
         </Tabs>
       </div>
+
+      {/* LOGOUT CONFIRMATION DIALOG */}
+      <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ready to leave?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Select "Logout" below if you are ready to end your current session.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogoutConfirm} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
