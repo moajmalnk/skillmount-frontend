@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, X, Settings, Database, Users, BookOpen, 
-  Share2, Save, RotateCcw, CheckCircle2, MessageSquare, Loader2, HelpCircle
+  Share2, Save, CheckCircle2, HelpCircle, Pencil, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,25 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
 
 // Import Service & Type
 import { systemService, SystemSettings } from "@/services/systemService";
@@ -24,11 +43,17 @@ interface SettingCardProps {
   items: string[];
   onAdd: (item: string) => void;
   onRemove: (item: string) => void;
+  onEdit: (oldItem: string, newItem: string) => void;
   placeholder: string;
 }
 
-const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemove, placeholder }: SettingCardProps) => {
+const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemove, onEdit, placeholder }: SettingCardProps) => {
   const [newItem, setNewItem] = useState("");
+  
+  // State for Edit/Delete Modals
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   const handleAdd = () => {
     if (!newItem.trim()) return;
@@ -40,69 +65,155 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
     setNewItem("");
   };
 
+  const initiateEdit = (item: string) => {
+    setItemToEdit(item);
+    setEditValue(item);
+  };
+
+  const confirmEdit = () => {
+    if (itemToEdit && editValue.trim()) {
+      if (items.includes(editValue.trim()) && editValue.trim() !== itemToEdit) {
+        toast.error("This item name already exists.");
+        return;
+      }
+      onEdit(itemToEdit, editValue.trim());
+      setItemToEdit(null);
+      setEditValue("");
+      toast.success("Item updated successfully");
+    }
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      onRemove(itemToDelete);
+      setItemToDelete(null);
+      toast.success("Item deleted");
+    }
+  };
+
   return (
-    <Card className="h-full border-border/50 shadow-sm hover:shadow-md transition-all duration-300">
-      <CardHeader>
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Icon className="w-5 h-5 text-primary" />
+    <>
+      <Card className="h-full border-border/50 shadow-sm hover:shadow-md transition-all duration-300">
+        <CardHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Icon className="w-5 h-5 text-primary" />
+            </div>
+            <CardTitle className="text-lg">{title}</CardTitle>
           </div>
-          <CardTitle className="text-lg">{title}</CardTitle>
-        </div>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex gap-2">
-          <Input 
-            placeholder={placeholder} 
-            value={newItem}
-            onChange={(e) => setNewItem(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            className="bg-muted/30"
-          />
-          <Button onClick={handleAdd} size="icon" className="shrink-0">
-            <Plus className="w-4 h-4" />
-          </Button>
-        </div>
-        
-        <Separator />
-        
-        <ScrollArea className="h-[200px] pr-4">
-          <div className="flex flex-wrap gap-2">
-            <AnimatePresence mode="popLayout">
-              {items.length > 0 ? (
-                items.map((item) => (
-                  <motion.div
-                    key={item}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    layout
-                  >
-                    <Badge 
-                      variant="secondary" 
-                      className="pl-3 pr-1 py-1.5 flex items-center gap-2 text-sm hover:bg-muted transition-colors border border-border/50"
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input 
+              placeholder={placeholder} 
+              value={newItem}
+              onChange={(e) => setNewItem(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              className="bg-muted/30"
+            />
+            <Button onClick={handleAdd} size="icon" className="shrink-0">
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <Separator />
+          
+          <ScrollArea className="h-[200px] pr-4">
+            <div className="flex flex-wrap gap-2">
+              <AnimatePresence mode="popLayout">
+                {items.length > 0 ? (
+                  items.map((item) => (
+                    <motion.div
+                      key={item}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      layout
                     >
-                      {item}
-                      <button 
-                        onClick={() => onRemove(item)}
-                        className="p-0.5 hover:bg-destructive hover:text-destructive-foreground rounded-full transition-colors"
+                      <Badge 
+                        variant="secondary" 
+                        className="pl-3 pr-1 py-1.5 flex items-center gap-2 text-sm hover:bg-muted transition-colors border border-border/50 group"
                       >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="w-full text-center py-8 text-muted-foreground text-sm italic">
-                  No items yet. Add one above.
-                </div>
-              )}
-            </AnimatePresence>
+                        {item}
+                        <div className="flex items-center border-l border-border/50 ml-1 pl-1 gap-0.5">
+                          <button 
+                            onClick={() => initiateEdit(item)}
+                            className="p-1 hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-md transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <button 
+                            onClick={() => setItemToDelete(item)}
+                            className="p-1 hover:bg-destructive hover:text-destructive-foreground rounded-md transition-colors text-muted-foreground"
+                            title="Delete"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </Badge>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="w-full text-center py-8 text-muted-foreground text-sm italic">
+                    No items yet. Add one above.
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                Confirm Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove <strong>"{itemToDelete}"</strong> from the list? 
+              This action cannot be undone and may affect users currently using this option.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+              Delete Item
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* EDIT ITEM DIALOG */}
+      <Dialog open={!!itemToEdit} onOpenChange={() => setItemToEdit(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Item</DialogTitle>
+            <DialogDescription>
+              Make changes to the item below. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-value">Value</Label>
+              <Input
+                id="edit-value"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+              />
+            </div>
           </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setItemToEdit(null)}>Cancel</Button>
+            <Button onClick={confirmEdit}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
@@ -137,7 +248,6 @@ export const SettingsManager = () => {
     // Save to backend (silent save)
     try {
       await systemService.updateSettings(newSettings);
-      toast.success(`${key.charAt(0).toUpperCase() + key.slice(1)} updated`);
     } catch (error) {
       toast.error("Failed to save changes");
     }
@@ -154,6 +264,12 @@ export const SettingsManager = () => {
       if (!settings) return;
       const currentList = settings[key] || [];
       updateList(key, currentList.filter(i => i !== item));
+    },
+    onEdit: (oldItem: string, newItem: string) => {
+        if (!settings) return;
+        const currentList = settings[key] || [];
+        const updatedList = currentList.map(i => i === oldItem ? newItem : i);
+        updateList(key, updatedList);
     }
   });
 
@@ -173,7 +289,8 @@ export const SettingsManager = () => {
   if (isLoading || !settings) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        {/* <Loader2 className="w-8 h-8 animate-spin text-primary" /> */}
+        <div className="animate-pulse">Loading settings...</div>
       </div>
     );
   }
@@ -190,7 +307,7 @@ export const SettingsManager = () => {
           onClick={handleSaveAll}
           disabled={isSaving}
         >
-          {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} 
+          {isSaving ? <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"/> : <Save className="w-4 h-4 mr-2" />} 
           Save All Changes
         </Button>
       </div>
@@ -243,7 +360,6 @@ export const SettingsManager = () => {
               {...createHandlers('platforms')}
               placeholder="e.g. TikTok" 
             />
-            {/* ADDED FAQ CATEGORIES CARD */}
             <SettingCard 
               title="FAQ Categories" 
               description="Categories for Help Center." 
@@ -260,7 +376,7 @@ export const SettingsManager = () => {
             <SettingCard 
               title="Ticket Macros" 
               description="Pre-defined replies for faster support."
-              icon={MessageSquare}
+              icon={Settings} // Changed icon to Settings generic or MessageSquare
               items={settings.macros || []}
               {...createHandlers('macros')}
               placeholder="e.g. Please check your internet..."

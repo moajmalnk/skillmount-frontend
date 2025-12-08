@@ -6,7 +6,7 @@ export interface BaseUser {
   regId?: string;
   name: string;
   email: string;
-  phone?: string; // Often used as WhatsApp
+  phone?: string;
   role: UserRole;
   status: UserStatus;
   createdAt: string;
@@ -14,13 +14,13 @@ export interface BaseUser {
   isProfileComplete?: boolean;
 }
 
-// ... (StudentProject, SocialLinks, PlacementData interfaces remain same) ...
 export interface StudentProject {
   id: string;
   title: string;
   description: string;
   technologies: string[];
-  imageUrl: string;
+  imageUrl: string; // Kept for backward compatibility (Main/Cover Image)
+  images?: string[];
   demoUrl?: string;
   repoUrl?: string;
   featured?: boolean;
@@ -47,17 +47,15 @@ export interface Student extends BaseUser {
   mentor?: string;
   coordinator?: string;
   
-  // -- Onboarding Specific Fields (Added these) --
   dob?: string;
   address?: string;
   pincode?: string;
   qualification?: string;
   aim?: string;
   
-  // -- Enhanced Profile Fields --
   headline?: string;
   bio?: string;
-  location?: string; // Public display location (e.g. "City, Country")
+  location?: string;
   
   socials?: SocialLinks;
   
@@ -65,14 +63,12 @@ export interface Student extends BaseUser {
   projects: StudentProject[];
   experience?: string;
   
-  // -- Admin Controls --
   isTopPerformer?: boolean;
   isFeatured?: boolean;
   achievements?: string[];
   placement?: PlacementData;
 }
 
-// ... (Tutor and Affiliate interfaces remain same) ...
 export interface Tutor extends BaseUser {
   role: "tutor";
   topics: string[];

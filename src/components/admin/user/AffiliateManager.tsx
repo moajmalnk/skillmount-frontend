@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog"; 
 
 // Import Service & Types
 import { userService } from "@/services/userService";
@@ -24,8 +25,9 @@ export const AffiliateManager = () => {
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Dialog State
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  // Dialog & Form State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ 
     name: "", 
     email: "", 
@@ -33,6 +35,9 @@ export const AffiliateManager = () => {
     platform: "",
     couponCode: "" 
   });
+
+  // Delete State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // 1. Fetch Data
   const loadAffiliates = async () => {
@@ -66,59 +71,97 @@ export const AffiliateManager = () => {
     setFormData(prev => ({ 
       ...prev, 
       name: val,
-      // Only auto-generate if coupon is empty or matches previous auto-gen pattern
-      couponCode: !prev.couponCode ? generateCoupon(val) : prev.couponCode
+      // Only auto-generate if NOT editing or if coupon is empty
+      couponCode: (!editingId && !prev.couponCode) ? generateCoupon(val) : prev.couponCode
     }));
   };
 
-  const handleCreate = async () => {
+  // --- ACTIONS: OPEN/RESET ---
+  const openCreateDialog = () => {
+    setEditingId(null);
+    setFormData({ name: "", email: "", phone: "", platform: "", couponCode: "" });
+    setIsDialogOpen(true);
+  };
+
+  const handleEdit = (affiliate: Affiliate) => {
+    setEditingId(affiliate.id);
+    setFormData({
+      name: affiliate.name,
+      email: affiliate.email,
+      phone: affiliate.phone || "",
+      platform: affiliate.platform,
+      couponCode: affiliate.couponCode
+    });
+    setIsDialogOpen(true);
+  };
+
+  // --- SUBMIT HANDLER (Create & Update) ---
+  const handleSubmit = async () => {
     if (!formData.name || !formData.email || !formData.phone || !formData.couponCode) {
       toast.error("All fields are mandatory.");
       return;
     }
 
     try {
-      const newRegId = generateRegId(affiliates.length);
+      if (editingId) {
+        // UPDATE EXISTING
+        await userService.update(editingId, {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          platform: formData.platform || "Other",
+          couponCode: formData.couponCode.toUpperCase()
+        });
+        toast.success("Affiliate updated successfully");
+      } else {
+        // CREATE NEW
+        const newRegId = generateRegId(affiliates.length);
+        const newAffiliate: Partial<Affiliate> = {
+          regId: newRegId,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          role: "affiliate",
+          status: "Pending",
+          platform: formData.platform || "Other",
+          couponCode: formData.couponCode.toUpperCase(),
+          isProfileComplete: false
+        };
 
-      const newAffiliate: Partial<Affiliate> = {
-        regId: newRegId,
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        role: "affiliate",
-        status: "Pending",
-        platform: formData.platform || "Other",
-        couponCode: formData.couponCode.toUpperCase(),
-        isProfileComplete: false
-      };
+        await userService.create(newAffiliate);
+        toast.success(`Affiliate Created! Code: ${newAffiliate.couponCode}`, {
+          description: "Credentials sent via email.",
+        });
+      }
 
-      await userService.create(newAffiliate);
-      
-      toast.success(`Affiliate Created! Code: ${newAffiliate.couponCode}`, {
-        description: "Credentials and Coupon Code sent via email.",
-      });
-
-      setIsCreateOpen(false);
-      setFormData({ name: "", email: "", phone: "", platform: "", couponCode: "" });
-      
-      loadAffiliates();
+      setIsDialogOpen(false);
+      loadAffiliates(); // Refresh list
 
     } catch (error) {
-      toast.error("Failed to create affiliate");
+      toast.error(editingId ? "Failed to update affiliate" : "Failed to create affiliate");
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if(!confirm("Are you sure you want to remove this partner?")) return;
+  // --- DELETE HANDLERS ---
+  const initiateDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteId(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await userService.delete(id);
-      toast.success("Affiliate removed");
+      await userService.delete(deleteId);
+      toast.success("Affiliate removed successfully");
       loadAffiliates();
     } catch (error) {
-      toast.error("Failed to delete");
+      toast.error("Failed to delete affiliate");
+    } finally {
+      setDeleteId(null);
     }
   };
+
+  const affiliateToDelete = affiliates.find(a => a.id === deleteId);
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -131,7 +174,7 @@ export const AffiliateManager = () => {
         title="Affiliates & Partners" 
         description="Manage partners, referral links, and coupon codes."
         columns={["Reg ID", "Name", "Platform", "Coupon Code", "Status"]}
-        onAddNew={() => setIsCreateOpen(true)}
+        onAddNew={openCreateDialog}
       >
         {isLoading ? (
           <TableRow>
@@ -176,12 +219,19 @@ export const AffiliateManager = () => {
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-4 w-4" /></Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 hover:text-primary"
+                    onClick={() => handleEdit(affiliate)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDelete(affiliate.id)}
+                    onClick={(e) => initiateDelete(affiliate.id, e)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -192,11 +242,14 @@ export const AffiliateManager = () => {
         )}
       </ManagementTable>
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      {/* Create/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add New Affiliate</DialogTitle>
-            <DialogDescription>Create a partner account and assign a unique coupon code.</DialogDescription>
+            <DialogTitle>{editingId ? "Edit Affiliate" : "Add New Affiliate"}</DialogTitle>
+            <DialogDescription>
+              {editingId ? "Update partner details below." : "Create a partner account and assign a unique coupon code."}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -247,6 +300,7 @@ export const AffiliateManager = () => {
                     variant="outline" 
                     onClick={() => setFormData(prev => ({...prev, couponCode: generateCoupon(prev.name)}))}
                     title="Regenerate"
+                    disabled={!!editingId} // Optional: Lock code editing during updates if needed
                   >
                     <RefreshCw className="h-4 w-4" />
                   </Button>
@@ -255,11 +309,20 @@ export const AffiliateManager = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate}>Create Partner</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit}>{editingId ? "Update Partner" : "Create Partner"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog 
+        open={!!deleteId} 
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={confirmDelete}
+        itemName={affiliateToDelete?.name}
+        description="This will permanently delete the affiliate account and deactivate their coupon code."
+      />
     </>
   );
 };

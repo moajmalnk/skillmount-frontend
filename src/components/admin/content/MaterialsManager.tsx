@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog"; // Import the delete dialog
 
 // Import Service & Types
 import { materialService } from "@/services/materialService";
@@ -68,6 +69,9 @@ export const MaterialsManager = () => {
     version: "",
     size: ""
   });
+
+  // --- DELETE STATE ---
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // 1. Load Data
   const loadMaterials = async () => {
@@ -159,16 +163,25 @@ export const MaterialsManager = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if(!confirm("Are you sure you want to delete this resource?")) return;
+  // --- DELETE HANDLERS ---
+  const initiateDelete = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await materialService.delete(id);
-      toast.success("Material deleted");
+      await materialService.delete(deleteId);
+      toast.success("Material deleted successfully");
       loadMaterials();
     } catch (error) {
       toast.error("Failed to delete material");
+    } finally {
+      setDeleteId(null);
     }
   };
+
+  const materialToDelete = materials.find(m => m.id === deleteId);
 
   return (
     <div className="space-y-4">
@@ -293,7 +306,12 @@ export const MaterialsManager = () => {
                       <TableCell className="text-xs">{item.lastUpdated}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(item.id)}>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10" 
+                            onClick={() => initiateDelete(item.id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -409,6 +427,15 @@ export const MaterialsManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog 
+        open={!!deleteId} 
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={confirmDelete}
+        itemName={materialToDelete?.title}
+        description="This will permanently delete the resource. Students will no longer be able to access or download it."
+      />
     </div>
   );
 };
