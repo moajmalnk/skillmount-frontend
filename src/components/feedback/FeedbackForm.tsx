@@ -7,51 +7,64 @@ import { toast } from "sonner";
 import { VoiceRecorder } from "@/components/tickets/VoiceRecorder";
 import { useAuth } from "@/context/AuthContext";
 import { feedbackService } from "@/services/feedbackService";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const FeedbackForm = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     rating: 5,
+    category: "Other",
     feedback: "",
     attachment: null as File | null,
     voiceNote: null as Blob | null
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setFormData({ ...formData, attachment: e.target.files[0] });
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        toast.error("File size must be under 5MB");
+        return;
+      }
+      setFormData({ ...formData, attachment: file });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(!user) {
-        toast.error("You must be logged in to submit feedback.");
-        return;
+    if (!user) {
+      toast.error("You must be logged in to submit feedback.");
+      return;
+    }
+
+    if (!formData.feedback || formData.feedback.length < 10) {
+      toast.error("Please provide a bit more detail in your feedback.");
+      return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Connect to Service
       await feedbackService.create({
-        studentId: user.id,
-        studentName: user.name,
         rating: formData.rating,
+        category: formData.category,
         message: formData.feedback,
         hasAttachment: !!formData.attachment,
-        hasVoiceNote: !!formData.voiceNote
+        hasVoiceNote: !!formData.voiceNote,
+        attachment: formData.attachment,
+        voiceNote: formData.voiceNote
       });
 
       toast.success("Feedback Received!", {
         description: "Thank you for helping us improve SkillMount!",
       });
 
-      // Reset Form
+      // Reset
       setFormData({
         rating: 5,
+        category: "Other",
         feedback: "",
         attachment: null,
         voiceNote: null
@@ -78,12 +91,11 @@ export const FeedbackForm = () => {
               className="transition-all duration-300 hover:scale-125 focus:outline-none"
               aria-label={`Rate ${star} stars`}
             >
-              <Star 
-                className={`w-10 h-10 transition-all duration-300 ${
-                  star <= formData.rating 
-                    ? 'fill-primary text-primary drop-shadow-lg' 
-                    : 'text-muted-foreground/30 hover:text-muted-foreground/50'
-                }`}
+              <Star
+                className={`w-10 h-10 transition-all duration-300 ${star <= formData.rating
+                  ? 'fill-primary text-primary drop-shadow-lg'
+                  : 'text-muted-foreground/30 hover:text-muted-foreground/50'
+                  }`}
                 strokeWidth={1.5}
               />
             </button>
@@ -98,45 +110,64 @@ export const FeedbackForm = () => {
         </p>
       </div>
 
-      {/* 2. Feedback Text */}
-      <div className="space-y-3">
-        <Label htmlFor="feedback-message">Your Feedback *</Label>
-        <Textarea
-          id="feedback-message"
-          placeholder="Tell us about your experience with our training programs..."
-          rows={5}
-          value={formData.feedback}
-          onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
-          required
-          className="rounded-xl border-border/30 focus:border-primary/50 resize-none"
-        />
+      {/* 2. Topic & Feedback */}
+      <div className="space-y-4">
+        <div className="space-y-3">
+          <Label>Topic</Label>
+          <Select
+            value={formData.category}
+            onValueChange={(val) => setFormData({ ...formData, category: val })}
+          >
+            <SelectTrigger className="h-12 rounded-xl">
+              <SelectValue placeholder="Select Topic" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Content">Content Quality</SelectItem>
+              <SelectItem value="Platform">Platform UI/UX</SelectItem>
+              <SelectItem value="Support">Support Service</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3 relative">
+          <Label htmlFor="feedback-message">Your Feedback *</Label>
+          <Textarea
+            id="feedback-message"
+            placeholder="Tell us about your experience..."
+            rows={5}
+            maxLength={500}
+            value={formData.feedback}
+            onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
+            required
+            className="rounded-xl border-border/30 focus:border-primary/50 resize-none pb-6"
+          />
+          <div className="absolute bottom-3 right-3 text-xs text-muted-foreground">
+            {formData.feedback.length}/500
+          </div>
+        </div>
       </div>
 
-      {/* 3. Media Inputs (Voice & File) */}
+      {/* 3. Media Inputs */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Voice Note */}
         <div className="space-y-3">
           <Label className="flex items-center gap-2">
-            Voice Feedback 
-            <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+            Voice Feedback <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
           </Label>
-          <VoiceRecorder 
+          <VoiceRecorder
             onRecordingComplete={(blob) => setFormData({ ...formData, voiceNote: blob })}
             onDelete={() => setFormData({ ...formData, voiceNote: null })}
           />
         </div>
 
-        {/* File Attachment */}
         <div className="space-y-3">
           <Label className="flex items-center gap-2">
-            Attach Screenshot
-            <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+            Attach Screenshot <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
           </Label>
-          
           {!formData.attachment ? (
             <div className="border-2 border-dashed border-border/50 rounded-xl p-4 hover:bg-muted/50 transition-colors text-center cursor-pointer relative h-[88px] flex flex-col items-center justify-center">
-              <input 
-                type="file" 
+              <input
+                type="file"
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 onChange={handleFileChange}
                 accept="image/*,.pdf"
@@ -157,10 +188,10 @@ export const FeedbackForm = () => {
                   <span className="text-xs text-muted-foreground">Attached</span>
                 </div>
               </div>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 onClick={() => setFormData({ ...formData, attachment: null })}
               >
@@ -171,9 +202,9 @@ export const FeedbackForm = () => {
         </div>
       </div>
 
-      <Button 
-        type="submit" 
-        size="lg" 
+      <Button
+        type="submit"
+        size="lg"
         className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/20"
         disabled={isSubmitting}
       >

@@ -1,72 +1,100 @@
+import api from "@/lib/api";
 import { Feedback } from "@/types/feedback";
-
-const STORAGE_KEY = "skillmount_feedbacks";
-
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-const MOCK_FEEDBACKS: Feedback[] = [
-  {
-    id: "FDB-001",
-    studentId: "STU-001",
-    studentName: "Alex Johnson",
-    rating: 5,
-    message: "The course structure is amazing! I loved the Elementor module.",
-    date: "2025-10-20",
-    status: "Reviewed",
-    attachmentUrl: null,
-    voiceUrl: null
-  },
-  {
-    id: "FDB-002",
-    studentId: "STU-005",
-    studentName: "Sarah Williams",
-    rating: 4,
-    message: "Great content, but I wish the audio quality on the live sessions was a bit better. Listen to my recording.",
-    date: "2025-10-22",
-    status: "New",
-    // Mock Image
-    attachmentUrl: "https://images.unsplash.com/photo-1499750310159-5b5f0072c6fd?auto=format&fit=crop&w=600&q=80", 
-    // Mock Audio (Short sample)
-    voiceUrl: "https://www2.cs.uic.edu/~i101/SoundFiles/BabyElephantWalk60.wav" 
-  }
-];
+import { toast } from "sonner";
 
 export const feedbackService = {
+  // 1. GET ALL
   getAll: async (): Promise<Feedback[]> => {
-    await delay(500);
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(MOCK_FEEDBACKS));
-    return MOCK_FEEDBACKS;
+    try {
+      const response = await api.get<any[]>('/feedbacks/');
+
+      // Map Backend (Snake) -> Frontend (Camel) structure
+      const mappedData: Feedback[] = response.data.map((item: any) => ({
+        id: item.id.toString(),
+        studentId: item.student ? item.student.toString() : 'N/A', // student ID from FK
+        studentName: item.student_name || 'Anonymous',
+        rating: item.rating,
+        message: item.message,
+        date: item.date,
+        status: item.status || 'New', // Use real status
+        category: item.category || 'Other',
+        attachmentUrl: item.attachment,
+        voiceUrl: item.voice_note,
+        isPublic: item.is_public,
+        adminReply: item.admin_reply
+      }));
+
+      return mappedData;
+    } catch (error) {
+      console.error("Failed to load feedbacks", error);
+      return [];
+    }
   },
 
+  // 2. CREATE FEEDBACK (Multipart)
   create: async (data: any): Promise<void> => {
-    await delay(800);
-    const current = await feedbackService.getAll();
-    
-    // In a real app, file upload happens here, returning URLs.
-    // For local demo, we create temporary object URLs if files exist
-    const newFeedback: Feedback = {
-      id: `FDB-${Date.now()}`,
-      studentId: data.studentId,
-      studentName: data.studentName,
-      rating: data.rating,
-      message: data.message,
-      date: new Date().toISOString().split('T')[0],
-      status: "New",
-      attachmentUrl: data.hasAttachment ? "https://via.placeholder.com/600" : null, // Placeholder for demo
-      voiceUrl: null // No mock URL for new creations in client-only mode
-    };
+    try {
+      const formData = new FormData();
+      formData.append('rating', data.rating);
+      formData.append('message', data.message);
+      formData.append('category', data.category || 'Other');
 
-    const updated = [newFeedback, ...current];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      // Handle Attachments
+      if (data.hasAttachment && data.attachment) {
+        formData.append('attachment', data.attachment);
+      }
+      if (data.hasVoiceNote && data.voiceNote) {
+        // Voice blobs need a filename with correct extension
+        const mimeType = data.voiceNote.type || '';
+        let extension = 'wav'; // Fallback
+
+        if (mimeType.includes('webm')) extension = 'webm';
+        else if (mimeType.includes('mp4')) extension = 'mp4';
+        else if (mimeType.includes('ogg')) extension = 'ogg';
+
+        formData.append('voice_note', data.voiceNote, `voice_feedback.${extension}`);
+      }
+
+      await api.post('/feedbacks/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+    } catch (error) {
+      console.error("Feedback submission failed", error);
+      throw error;
+    }
   },
 
+  // 3. TOGGLE PUBLIC (Admin)
+  togglePublic: async (id: string, isPublic: boolean): Promise<void> => {
+    try {
+      await api.patch(`/feedbacks/${id}/`, { is_public: isPublic });
+      toast.success(`Feedback is now ${isPublic ? 'Public' : 'Private'}`);
+    } catch (error) {
+      console.error("Toggle failed", error);
+      throw error;
+    }
+  },
+
+  // 4. ADMIN REPLY
+  reply: async (id: string, message: string): Promise<void> => {
+    try {
+      // Use the specific custom action endpoint
+      await api.patch(`/feedbacks/${id}/reply/`, { admin_reply: message });
+      toast.success("Reply saved");
+    } catch (error) {
+      console.error("Reply failed", error);
+      throw error;
+    }
+  },
+
+  // 5. DELETE
   delete: async (id: string): Promise<void> => {
-    await delay(500);
-    const current = await feedbackService.getAll();
-    const updated = current.filter(f => f.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    try {
+      await api.delete(`/feedbacks/${id}/`);
+    } catch (error) {
+      console.error("Delete failed", error);
+      throw error;
+    }
   }
 };

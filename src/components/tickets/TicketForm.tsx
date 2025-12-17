@@ -7,15 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle, ArrowRight, Paperclip, X } from "lucide-react";
 import { toast } from "sonner";
 import { VoiceRecorder } from "./VoiceRecorder";
+import { ticketService } from "@/services/ticketService";
 import { useAuth } from "@/context/AuthContext";
 
 export const TicketForm = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [formKey, setFormKey] = useState(0); // Used to reset non-controlled components like VoiceRecorder
+
   const [formData, setFormData] = useState({
-    subject: "",
-    priority: "medium",
+    title: "",
+    priority: "Medium",
+    category: "Technical",
     description: "",
     attachment: null as File | null,
     voiceNote: null as Blob | null
@@ -29,29 +32,38 @@ export const TicketForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.title || !formData.description) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Simulate API Upload
-    setTimeout(() => {
-      console.log("Submitting Ticket:", {
-        user: user?.email,
-        ...formData
-      });
+    try {
+      const ticketId = await ticketService.create(formData);
 
-      toast.success("Ticket Submitted Successfully", {
-        description: `Ticket #${Math.floor(Math.random() * 10000)} created. Admins notified.`,
+      toast.success("Ticket submitted successfully", {
+        description: ticketId
+          ? `Your support request has been received. Ticket ID: ${ticketId}`
+          : "Your support request has been received.",
       });
 
       // Reset
       setFormData({
-        subject: "",
-        priority: "medium",
+        title: "",
+        priority: "Medium",
+        category: "Technical",
         description: "",
         attachment: null,
         voiceNote: null
       });
+      setFormKey(prev => prev + 1); // Reset Voice Recorder UI
+
+    } catch (error) {
+      toast.error("Failed to submit ticket.");
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -62,15 +74,39 @@ export const TicketForm = () => {
           <Label>Subject <span className="text-red-500">*</span></Label>
           <Input
             placeholder="e.g. Elementor Header Issue"
-            value={formData.subject}
-            onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
+            maxLength={255}
             className="h-12"
           />
         </div>
-        
+
         <div className="space-y-3">
-          <Label>Urgency Status</Label>
+          <Label>Category</Label>
+          <Select
+            value={formData.category}
+            onValueChange={(val) => setFormData({ ...formData, category: val })}
+          >
+            <SelectTrigger className="h-12">
+              <SelectValue placeholder="Select Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Technical">Technical Issue</SelectItem>
+              <SelectItem value="Account">Account Support</SelectItem>
+              <SelectItem value="Content">Course Content</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label>
+            Urgency Status
+            <span className="ml-1 text-xs text-muted-foreground font-normal">
+              (helps us prioritise your ticket)
+            </span>
+          </Label>
           <Select
             value={formData.priority}
             onValueChange={(val) => setFormData({ ...formData, priority: val })}
@@ -79,10 +115,10 @@ export const TicketForm = () => {
               <SelectValue placeholder="Select Priority" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="low">Low - General Query</SelectItem>
-              <SelectItem value="medium">Medium - Standard Support</SelectItem>
-              <SelectItem value="high">High - Blocking Issue</SelectItem>
-              <SelectItem value="urgent">Urgent - Site Down</SelectItem>
+              <SelectItem value="Low">Low - General Query</SelectItem>
+              <SelectItem value="Medium">Medium - Standard Support</SelectItem>
+              <SelectItem value="High">High - Blocking Issue</SelectItem>
+              <SelectItem value="Urgent">Urgent - Site Down</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -106,10 +142,11 @@ export const TicketForm = () => {
         {/* Voice Note */}
         <div className="space-y-3">
           <Label className="flex items-center gap-2">
-            Record Voice Note 
+            Record Voice Note
             <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
           </Label>
-          <VoiceRecorder 
+          <VoiceRecorder
+            key={formKey}
             onRecordingComplete={(blob) => setFormData({ ...formData, voiceNote: blob })}
             onDelete={() => setFormData({ ...formData, voiceNote: null })}
           />
@@ -121,11 +158,11 @@ export const TicketForm = () => {
             Attach Screenshot/File
             <span className="text-xs text-muted-foreground font-normal">(Max 5MB)</span>
           </Label>
-          
+
           {!formData.attachment ? (
             <div className="border-2 border-dashed border-border/50 rounded-xl p-4 hover:bg-muted/50 transition-colors text-center cursor-pointer relative">
-              <input 
-                type="file" 
+              <input
+                type="file"
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 onChange={handleFileChange}
                 accept="image/*,.pdf,.doc,.docx"
@@ -143,10 +180,10 @@ export const TicketForm = () => {
                   {formData.attachment.name}
                 </span>
               </div>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 onClick={() => setFormData({ ...formData, attachment: null })}
               >
@@ -162,15 +199,15 @@ export const TicketForm = () => {
         <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
         <div className="text-sm text-muted-foreground">
           <p>
-            Admins and your assigned Tutor will be notified immediately via 
+            Admins and your assigned Tutor will be notified immediately via
             <span className="font-semibold text-foreground"> In-App, Email, and WhatsApp</span>.
           </p>
         </div>
       </div>
 
-      <Button 
-        type="submit" 
-        size="lg" 
+      <Button
+        type="submit"
+        size="lg"
         className="w-full h-12 shadow-md "
         disabled={isSubmitting}
       >

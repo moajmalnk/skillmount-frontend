@@ -1,113 +1,114 @@
+import api from "@/lib/api";
 import { BlogPost } from "@/types/blog";
+import { toast } from "sonner";
 
-const STORAGE_KEY = "skillmount_blogs";
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-const MOCK_BLOGS: BlogPost[] = [
-  {
-    id: "BLOG-001",
-    slug: "future-of-ai-in-education",
-    title: "The Future of AI in Education: Transforming Learning",
-    excerpt: "Discover how artificial intelligence is revolutionizing the education sector, from personalized learning paths to intelligent tutoring systems.",
-    content: `
-      <h2>The AI Revolution in Classrooms</h2>
-      <p>Artificial Intelligence is no longer a futuristic concept; it's here, and it's reshaping how we learn. From <strong>adaptive learning platforms</strong> that adjust to a student's pace to AI-powered tutors available 24/7, the landscape of education is evolving rapidly.</p>
-      <blockquote>"AI doesn't replace teachers—it amplifies their impact by handling repetitive tasks and providing data-driven insights."</blockquote>
-      <h3>Personalized Learning Paths</h3>
-      <p>One of the most significant benefits is personalization. Traditional classrooms often struggle to cater to 30 different learning speeds. AI algorithms can analyze a student's performance in real-time and curate a unique curriculum that targets their weak points while accelerating their strengths.</p>
-    `,
-    coverImage: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=2000",
-    category: "AI & Machine Learning",
-    tags: ["EdTech", "Artificial Intelligence", "Future"],
-    author: {
-      name: "Dr. Alan Grant",
-      role: "Senior Instructor",
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-    },
-    publishedDate: "2025-10-28",
-    readTime: "8 min read",
-    isFeatured: true,
-    isEditorsPick: true,
-    views: 1250
-  },
-  {
-    id: "BLOG-002",
-    slug: "mastering-web-development-2025",
-    title: "Mastering Web Development: A Complete Roadmap for 2025",
-    excerpt: "A comprehensive guide to becoming a full-stack developer in 2025. Learn the essential technologies, frameworks, and best practices.",
-    content: "<p>Web development is moving fast...</p>",
-    coverImage: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=2000",
-    category: "Web Development",
-    tags: ["React", "Next.js", "Career"],
-    author: {
-      name: "Sarah Williams",
-      role: "Tech Lead",
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg"
-    },
-    publishedDate: "2025-10-25",
-    readTime: "12 min read",
-    isFeatured: false,
-    views: 980
-  },
-  {
-    id: "BLOG-003",
-    slug: "building-your-first-robot",
-    title: "Building Your First Robot: A Beginner's Journey",
-    excerpt: "Step into the exciting world of robotics! This guide walks you through building your first robot from scratch.",
-    content: "<p>Robotics is the intersection of code and physical reality...</p>",
-    coverImage: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=2000",
-    category: "Robotics",
-    tags: ["Hardware", "IoT", "Beginner"],
-    author: {
-      name: "Alex Johnson",
-      role: "Student Mentor",
-      avatar: ""
-    },
-    publishedDate: "2025-10-20",
-    readTime: "10 min read",
-    isFeatured: false,
-    views: 450
-  }
-];
+// Helper to map Backend Snake_Case -> Frontend CamelCase
+const transformBlog = (data: any): BlogPost => ({
+  id: data.id,
+  slug: data.slug,
+  title: data.title,
+  excerpt: data.excerpt,
+  content: data.content,
+  coverImage: data.cover_image,
+  category: data.category,
+  tags: data.tags,
+  author: data.author,
+  publishedDate: data.date, // Map date -> publishedDate
+  readTime: data.readTime,
+  isFeatured: data.is_featured,
+  isEditorsPick: data.is_editors_pick,
+  isPublished: data.is_published,
+  views: data.views,
+});
 
 export const blogService = {
+  // 1. GET ALL POSTS
   getAll: async (): Promise<BlogPost[]> => {
-    await delay(500);
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(MOCK_BLOGS));
-    return MOCK_BLOGS;
+    try {
+      const response = await api.get<any[]>('/blogs/');
+      return response.data.map(transformBlog);
+    } catch (error) {
+      console.error("Failed to fetch blogs", error);
+      return [];
+    }
   },
 
-  getBySlug: async (slug: string): Promise<BlogPost | undefined> => {
-    const blogs = await blogService.getAll();
-    return blogs.find(b => b.slug === slug);
+  // 2. GET SINGLE POST (By Slug)
+  getBySlug: async (slug: string): Promise<BlogPost | null> => {
+    try {
+      const response = await api.get<any>(`/blogs/${slug}/`);
+      return transformBlog(response.data);
+    } catch (error) {
+      console.error("Blog not found", error);
+      return null;
+    }
   },
 
-  create: async (blog: Omit<BlogPost, "id" | "publishedDate" | "views">): Promise<void> => {
-    await delay(800);
-    const blogs = await blogService.getAll();
-    const newBlog: BlogPost = {
-      ...blog,
-      id: `BLOG-${Date.now()}`,
-      publishedDate: new Date().toISOString().split('T')[0],
-      views: 0
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([newBlog, ...blogs]));
+  // 3. CREATE / UPDATE (Multipart)
+  save: async (post: Partial<BlogPost> & { coverImageFile?: File }, originalSlug?: string): Promise<void> => {
+    try {
+      const formData = new FormData();
+
+      // Append fields
+      Object.keys(post).forEach(key => {
+        if (key === 'coverImage' || key === 'coverImageFile' || key === 'author' || key === 'date' || key === 'readTime' || key === 'publishedDate' || key === 'views') return;
+
+        const value = (post as any)[key];
+        if (value === undefined || value === null) return;
+
+        // Map Keys to Snake Case for Backend
+        let backendKey = key;
+        if (key === 'isFeatured') backendKey = 'is_featured';
+        if (key === 'isEditorsPick') backendKey = 'is_editors_pick';
+        if (key === 'isPublished') backendKey = 'is_published';
+        if (key === 'authorId') backendKey = 'author_id';
+
+        if (key === 'tags' && Array.isArray(value)) {
+          // JSON Stringify tags array for backend JSONField
+          formData.append('tags', JSON.stringify(value));
+        } else {
+          formData.append(backendKey, value.toString());
+        }
+      });
+
+      // Append author_id if provided
+      if ((post as any).authorId) {
+        formData.append('author_id', (post as any).authorId);
+      }
+
+      // Append File if exists
+      if (post.coverImageFile) {
+        formData.append('cover_image', post.coverImageFile);
+      }
+
+      if (post.id) {
+        // Update (Use Slug for ID in URL)
+        // Use originalSlug if provided, otherwise fallback to post.slug
+        const slugToUse = originalSlug || post.slug;
+        await api.patch(`/blogs/${slugToUse}/`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success("Post updated successfully");
+      } else {
+        // Create
+        await api.post('/blogs/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success("Post created successfully");
+      }
+    } catch (error) {
+      console.error("Failed to save post", error);
+      throw error;
+    }
   },
 
-  update: async (id: string, data: Partial<BlogPost>): Promise<void> => {
-    await delay(500);
-    const blogs = await blogService.getAll();
-    const updated = blogs.map(b => b.id === id ? { ...b, ...data } : b);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  },
-
-  delete: async (id: string): Promise<void> => {
-    await delay(500);
-    const blogs = await blogService.getAll();
-    const updated = blogs.filter(b => b.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  // 4. DELETE
+  delete: async (slug: string): Promise<void> => {
+    try {
+      await api.delete(`/blogs/${slug}/`);
+    } catch (error) {
+      console.error("Delete failed", error);
+      throw error;
+    }
   }
 };

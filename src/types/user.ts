@@ -1,5 +1,5 @@
 export type UserRole = "student" | "tutor" | "affiliate" | "super_admin";
-export type UserStatus = "Active" | "Inactive" | "Pending";
+export type UserStatus = "Active" | "Inactive" | "Pending" | "Suspended";
 
 export interface BaseUser {
   id: string;
@@ -12,6 +12,7 @@ export interface BaseUser {
   createdAt: string;
   avatar?: string;
   isProfileComplete?: boolean;
+  password?: string;
 }
 
 export interface StudentProject {
@@ -46,39 +47,61 @@ export interface Student extends BaseUser {
   batch: string;
   mentor?: string;
   coordinator?: string;
-  
+
   dob?: string;
   address?: string;
   pincode?: string;
   qualification?: string;
   aim?: string;
-  
+
   headline?: string;
   bio?: string;
   location?: string;
-  
+
   socials?: SocialLinks;
-  
+
   skills: string[];
   projects: StudentProject[];
   experience?: string;
-  
+
   isTopPerformer?: boolean;
   isFeatured?: boolean;
   achievements?: string[];
   placement?: PlacementData;
+  resume?: string; // URL to resume file
 }
 
 export interface Tutor extends BaseUser {
   role: "tutor";
   topics: string[];
+  dob?: string;
+  address?: string;
+  pincode?: string;
+  qualification?: string;
 }
 
 export interface Affiliate extends BaseUser {
   role: "affiliate";
-  couponCode: string;
-  platform: string;
+  // Nested profile data from Backend
+  affiliate_profile?: {
+    coupon_code: string;
+    total_earnings: number;
+    total_referrals: number;
+    platform: string;
+  };
+
+  // Deprecated/Frontend-only aliases
+  couponCode?: string;
+  platform?: string;
   earnings?: number;
+
+  // Onboarding Data
+  whatsappNumber?: string;
+  domain?: string;
+  address?: string;
+  pincode?: string;
+  dob?: string;
+  qualification?: string;
 }
 
 export type User = Student | Tutor | Affiliate | BaseUser;

@@ -14,9 +14,12 @@ export const ProtectedRoute = () => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 2. Logged In BUT Profile Incomplete? -> Force Onboarding
-  // (We allow /onboarding itself to render to prevent infinite loops)
-  if (!user.isProfileComplete && location.pathname !== "/onboarding") {
+  // 2. Logged In BUT Profile Incomplete? -> Force Onboarding (Students Only)
+  if (
+    user.role === 'student' &&
+    !user.isProfileComplete &&
+    location.pathname !== "/onboarding"
+  ) {
     return <Navigate to="/onboarding" replace />;
   }
 

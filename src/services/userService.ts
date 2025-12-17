@@ -1,197 +1,248 @@
-import { Student, UserRole, User } from "@/types/user";
-import { BATCHES, getBatchesSortedLatestFirst } from "@/lib/batches";
-import { ALL_SKILLS } from "@/lib/students-data";
+import api from "@/lib/api";
+import { User, UserRole, Student, Tutor, Affiliate } from "@/types/user";
+import { toast } from "sonner";
 
-const STORAGE_KEY = "skillmount_users";
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+// --- Helper: Build FormData from User Object ---
+const buildUserFormData = (data: Partial<User> & { avatarFile?: File; resumeFile?: File }) => {
+  const formData = new FormData();
 
-// Helper Lists for Random Generation
-const FIRST_NAMES = ["Aarav", "Zara", "Ishaan", "Mira", "Vihaan", "Ananya", "Aditya", "Sana", "Kabir", "Riya", "Arjun", "Fatima", "Rohan", "Aisha", "Karthik"];
-const LAST_NAMES = ["Sharma", "Khan", "Patel", "Nair", "Menon", "Verma", "Reddy", "Iyer", "Gupta", "Malik", "Singh", "Das"];
-const LOCATIONS = ["Kerala, India", "Bangalore, India", "Dubai, UAE", "Mumbai, India", "Chennai, India", "Remote"];
-
-// Generate 50+ Mock Students
-const generateMockStudents = (): Student[] => {
-  const batches = getBatchesSortedLatestFirst();
-  
-  return Array.from({ length: 60 }, (_, i) => {
-    const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
-    const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
-    const batch = batches[i % batches.length];
-    const isPlaced = Math.random() > 0.7;
-    
-    const studentSkills = [];
-    const skillCount = Math.floor(Math.random() * 3) + 3;
-    for(let j=0; j<skillCount; j++) {
-        const randomSkill = ALL_SKILLS[Math.floor(Math.random() * ALL_SKILLS.length)];
-        if(!studentSkills.includes(randomSkill)) {
-            studentSkills.push(randomSkill);
-        }
+  // 1. Standard Fields
+  const appendIfPresent = (key: string, value: any) => {
+    if (value !== undefined && value !== null) {
+      formData.append(key, value.toString());
     }
-  
-    return {
-      id: `STU-${1000 + i}`,
-      regId: `SM-${2024000 + i}`,
-      name: `${firstName} ${lastName}`,
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`,
-      phone: `+91 98${Math.floor(10000000 + Math.random() * 90000000)}`,
-      role: "student",
-      status: "Active",
-      batch: batch.id,
-      mentor: "Dr. Alan Grant",
-      location: LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)],
-      createdAt: new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString(),
-      isProfileComplete: true,
-      
-      headline: `${isPlaced ? "Frontend Developer" : "Aspiring Web Developer"} | ${batch.displayName} Student`,
-      bio: `Passionate developer trained in modern web technologies. I love building accessible and performant websites.`,
-      
-      skills: studentSkills,
-      projects: [], 
-      
-      isTopPerformer: Math.random() > 0.9, 
-      isFeatured: Math.random() > 0.85,
-      
-      placement: isPlaced ? {
-        company: ["TechCorp", "Creative Agency", "WebSolutions", "Google", "Amazon"][Math.floor(Math.random() * 5)],
-        role: "Junior Developer",
-        package: `${Math.floor(Math.random() * 4) + 3} LPA`
-      } : undefined,
+  };
 
-      socials: {
-        github: `https://github.com/${firstName.toLowerCase()}`,
-        website: Math.random() > 0.5 ? `https://${firstName.toLowerCase()}.dev` : undefined,
-        linkedin: `https://linkedin.com/in/${firstName.toLowerCase()}`
-      }
-    };
-  });
+  appendIfPresent('name', data.name);
+  appendIfPresent('email', data.email);
+  appendIfPresent('phone', data.phone);
+  appendIfPresent('is_profile_complete', data.isProfileComplete);
+  appendIfPresent('status', data.status);
+  appendIfPresent('password', data.password);
+  appendIfPresent('role', data.role);
+  appendIfPresent('reg_id', data.regId);
+
+  if (data.avatarFile) {
+    formData.append('avatar', data.avatarFile);
+  }
+
+  // 2. Role Specific Fields (FLATTENED for Backend)
+  if (data.role === 'student') {
+    const sData = data as any;
+    // Basic Profile
+    appendIfPresent('headline', sData.headline);
+    appendIfPresent('bio', sData.bio);
+    appendIfPresent('dob', sData.dob);
+    appendIfPresent('address', sData.address);
+    appendIfPresent('pincode', sData.pincode);
+    appendIfPresent('qualification', sData.qualification);
+    appendIfPresent('aim', sData.aim);
+
+    // Rich Profile
+    appendIfPresent('experience', sData.experience);
+    if (data.resumeFile) {
+      formData.append('resume', data.resumeFile);
+    }
+
+    // Academic (Missing in previous version)
+    appendIfPresent('mentor', sData.mentor);
+    appendIfPresent('coordinator', sData.coordinator);
+
+    // Batch ID mapping
+    const batchId = sData.batch || sData.batch_id;
+    if (batchId) formData.append('batch_id', batchId);
+
+    // JSON Arrays/Objects
+    if (sData.skills) formData.append('skills', JSON.stringify(sData.skills));
+    if (sData.socials) formData.append('socials', JSON.stringify(sData.socials));
+    if (sData.projects) formData.append('projects', JSON.stringify(sData.projects));
+    if (sData.achievements) formData.append('achievements', JSON.stringify(sData.achievements));
+    if (sData.placement) formData.append('placement', JSON.stringify(sData.placement));
+  }
+
+  if (data.role === 'tutor') {
+    const tData = data as any;
+    if (tData.topics) formData.append('topics', JSON.stringify(tData.topics));
+  }
+
+  if (data.role === 'affiliate') {
+    const aData = data as any;
+    appendIfPresent('platform', aData.platform);
+    if (aData.couponCode) formData.append('coupon_code', aData.couponCode);
+
+    // Onboarding
+    appendIfPresent('whatsapp_number', aData.whatsappNumber);
+    appendIfPresent('domain', aData.domain);
+    appendIfPresent('address', aData.address);
+    appendIfPresent('pincode', aData.pincode);
+    appendIfPresent('dob', aData.dob);
+    appendIfPresent('qualification', aData.qualification);
+  }
+
+  return formData;
 };
 
-// Static Admin & Specific Test Users
-const MOCK_OTHERS: User[] = [
-  // 1. SUPER ADMIN
-  {
-    id: "ADMIN-001",
-    name: "Super Admin",
-    email: "admin@skillmount.com",
-    role: "super_admin",
-    status: "Active",
-    createdAt: "2024-01-01",
-    isProfileComplete: true
-  },
-  // 2. ACTIVE TUTOR
-  {
-    id: "TUT-001",
-    name: "Dr. Alan Grant",
-    email: "tutor@skillmount.com",
-    role: "tutor",
-    status: "Active",
-    createdAt: "2024-01-01",
-    isProfileComplete: true,
-    topics: ["WordPress", "React"]
-  },
-  // 3. INCOMPLETE STUDENT (For Onboarding Test)
-  {
-    id: "STU-NEW",
-    regId: "SM-PENDING-01",
-    name: "Sarah (Incomplete)",
-    email: "new@skillmount.com", // Matches auth.ts mock
-    role: "student",
-    status: "Pending",
-    batch: "0925",
-    createdAt: new Date().toISOString(),
-    isProfileComplete: false, // <--- Key for testing
-    skills: [],
-    projects: []
-  },
-  // 4. INCOMPLETE TUTOR (For Onboarding Test)
-  {
-    id: "TUT-NEW",
-    name: "Prof. Newbie",
-    email: "newtutor@skillmount.com", // Matches auth.ts mock
-    role: "tutor",
-    status: "Pending",
-    createdAt: new Date().toISOString(),
-    isProfileComplete: false, // <--- Key for testing
-    topics: []
-  },
-  // 5. INCOMPLETE AFFILIATE (For Onboarding Test)
-  {
-    id: "AFF-NEW",
-    name: "Partner Pending",
-    email: "newaffiliate@skillmount.com", // Matches auth.ts mock
-    role: "affiliate",
-    status: "Pending",
-    createdAt: new Date().toISOString(),
-    isProfileComplete: false, // <--- Key for testing
-    couponCode: "PENDING",
-    platform: "Instagram"
-  },
-  // 6. ACTIVE AFFILIATE
-  {
-    id: "AFF-001",
-    name: "Marketing Pro",
-    email: "affiliate@skillmount.com",
-    role: "affiliate",
-    status: "Active",
-    createdAt: "2024-01-01",
-    isProfileComplete: true,
-    couponCode: "PRO20",
-    platform: "YouTube",
-    earnings: 450
+// --- Helper: Clean JSON Payload ---
+const buildUserJsonPayload = (data: Partial<User>) => {
+  const payload: any = { ...data };
+
+  // Remove File objects and frontend-only aliases
+  delete payload.avatarFile;
+  delete payload.resumeFile;
+  if (typeof payload.avatar === 'string') delete payload.avatar;
+  if (typeof payload.resume === 'string') delete payload.resume;
+
+  // Remove Nested Profiles (Backend expects flat fields)
+  delete payload.student_profile;
+  delete payload.affiliate_profile;
+  delete payload.tutor_profile;
+
+  // Remove System Fields
+  delete payload.id;
+  delete payload.date_joined;
+  delete payload.last_login;
+  delete payload.groups;
+  delete payload.user_permissions;
+
+  // Ensure Flattened Fields for Student
+  if (data.role === 'student') {
+    const sData = data as any;
+    if (sData.batch || sData.batch_id) {
+      payload.batch_id = sData.batch || sData.batch_id;
+    }
+    // Mentor/Coordinator are top-level in 'data' usually, but good to ensure
+    if (sData.mentor) payload.mentor = sData.mentor;
+    if (sData.coordinator) payload.coordinator = sData.coordinator;
+    if (sData.experience) payload.experience = sData.experience;
+    if (sData.achievements) payload.achievements = sData.achievements;
+    if (sData.placement) payload.placement = sData.placement;
+
+    // Performance Flags
+    if (sData.isTopPerformer !== undefined) payload.is_top_performer = sData.isTopPerformer;
+    if (sData.isFeatured !== undefined) payload.is_featured_graduate = sData.isFeatured;
   }
-];
+
+  // Ensure Flattened Fields for Affiliate
+  if (data.role === 'affiliate') {
+    const aData = data as any;
+    if (aData.couponCode) payload.coupon_code = aData.couponCode;
+    if (aData.platform) payload.platform = aData.platform;
+    if (aData.whatsappNumber) payload.whatsapp_number = aData.whatsappNumber;
+    // domain, address, dob, qualification pass through via ...data copy
+  }
+
+  // Generic Mapping
+  if (data.regId) {
+    payload.reg_id = data.regId;
+    delete payload.regId;
+  }
+
+  if (data.role === 'tutor') {
+    const tData = data as any;
+    if (tData.topics) payload.topics = tData.topics;
+  }
+
+  // Generic Mapping
+  if (data.isProfileComplete !== undefined) {
+    payload.is_profile_complete = data.isProfileComplete;
+    delete payload.isProfileComplete;
+  }
+
+  return payload;
+};
 
 export const userService = {
+  // 1. GET ALL USERS
   getAll: async (): Promise<User[]> => {
-    await delay(800); 
-    const stored = localStorage.getItem(STORAGE_KEY);
-    
-    if (stored) {
-      return JSON.parse(stored);
+    try {
+      const response = await api.get<User[]>('/users/');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch users", error);
+      // Suppressed global toast to avoid race-condition confusion on UI load
+      // toast.error("Could not load users from server"); 
+      return [];
     }
-    
-    const generatedStudents = generateMockStudents();
-    // Combine static test users with generated ones
-    const allUsers = [...MOCK_OTHERS, ...generatedStudents];
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allUsers));
-    return allUsers;
   },
 
+  // 2. GET USERS BY ROLE
+  getElementsByRole: async (role: UserRole): Promise<User[]> => {
+    try {
+      const response = await api.get<User[]>(`/users/?role=${role}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch ${role}s`, error);
+      return [];
+    }
+  },
+
+  // 2.5 PUBLIC DIRECTORY (For Home Page Showcase)
+  getPublicDirectory: async (): Promise<User[]> => {
+    try {
+      const response = await api.get<User[]>('/users/public_directory/');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch public directory", error);
+      return [];
+    }
+  },
+
+  // 3. GET SINGLE USER
   getById: async (id: string): Promise<User | undefined> => {
-    const users = await userService.getAll();
-    return users.find(u => u.id === id);
+    try {
+      const response = await api.get<User>(`/users/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error("User not found", error);
+      return undefined;
+    }
   },
 
-  getElementsByRole: async (role: UserRole) => {
-    const allUsers = await userService.getAll();
-    return allUsers.filter((u) => u.role === role);
+  // 4. CREATE USER
+  create: async (user: Partial<User>): Promise<any> => {
+    try {
+      // Use the JSON Helper to ensure consistent flattening!
+      // The previous implementation wrongly nested simple fields into 'student_profile',
+      // which the backend read_only field ignored.
+      const payload = buildUserJsonPayload(user);
+
+      const response = await api.post('/users/', payload);
+      return response.data;
+    } catch (error) {
+      console.error("Create failed", error);
+      throw error;
+    }
   },
 
-  create: async (user: any): Promise<void> => {
-    await delay(600);
-    const allUsers = await userService.getAll();
-    const newUser = {
-      ...user,
-      id: user.id || `USR-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [newUser, ...allUsers];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  // 5. UPDATE USER
+  update: async (id: string, data: Partial<User> & { avatarFile?: File; resumeFile?: File }): Promise<void> => {
+    try {
+      const isMultipart = !!data.avatarFile || !!data.resumeFile;
+      let payload: any;
+      let headers = {};
+
+      if (isMultipart) {
+        payload = buildUserFormData(data);
+        headers = { 'Content-Type': 'multipart/form-data' };
+      } else {
+        payload = buildUserJsonPayload(data);
+      }
+
+      await api.patch(`/users/${id}/`, payload, { headers });
+
+    } catch (error) {
+      console.error("Update failed", error);
+      throw error;
+    }
   },
 
-  update: async (id: string, data: any): Promise<void> => {
-    await delay(400);
-    const allUsers = await userService.getAll();
-    const updated = allUsers.map((u) => (u.id === id ? { ...u, ...data } : u));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  },
-
+  // 6. DELETE USER
   delete: async (id: string): Promise<void> => {
-    await delay(400);
-    const allUsers = await userService.getAll();
-    const updated = allUsers.filter((u) => u.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    try {
+      await api.delete(`/users/${id}/`);
+    } catch (error) {
+      console.error("Delete failed", error);
+      throw error;
+    }
   },
 };

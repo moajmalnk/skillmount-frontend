@@ -54,7 +54,7 @@ export default defineConfig({
     },
     headers: {
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Permissions-Policy': 'camera=(), microphone=(), payment=(), usb=(), geolocation=(), magnetometer=(), midi=(), sync-xhr=(), xr-spatial-tracking=(), autoplay=(), display-capture=(), hid=(), idle-detection=(), local-fonts=(), otp-credentials=(), publickey-credentials-create=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), shared-storage=(), storage-access=(), unload=(), web-share=(), window-management=()',
+      'Permissions-Policy': 'camera=(), microphone=(self), payment=(), usb=(), geolocation=(), magnetometer=(), midi=(), sync-xhr=(), xr-spatial-tracking=(), autoplay=(), display-capture=(), hid=(), idle-detection=(), local-fonts=(), otp-credentials=(), publickey-credentials-create=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), shared-storage=(), storage-access=(), unload=(), web-share=(), window-management=()',
     },
     // Handle redirects for common file name issues
     middlewareMode: false,

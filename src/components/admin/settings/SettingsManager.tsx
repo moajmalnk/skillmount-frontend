@@ -57,6 +57,7 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
 
   const handleAdd = () => {
     if (!newItem.trim()) return;
+    // Prevent duplicates (Case insensitive check optional, keeping exact for now)
     if (items.includes(newItem.trim())) {
       toast.error("This item already exists.");
       return;
@@ -79,7 +80,6 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
       onEdit(itemToEdit, editValue.trim());
       setItemToEdit(null);
       setEditValue("");
-      toast.success("Item updated successfully");
     }
   };
 
@@ -87,7 +87,6 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
     if (itemToDelete) {
       onRemove(itemToDelete);
       setItemToDelete(null);
-      toast.success("Item deleted");
     }
   };
 
@@ -175,8 +174,8 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
                 Confirm Deletion
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <strong>"{itemToDelete}"</strong> from the list? 
-              This action cannot be undone and may affect users currently using this option.
+              Are you sure you want to remove <strong>"{itemToDelete}"</strong>? 
+              This may affect users currently assigned to this option.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -194,7 +193,7 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
             <DialogDescription>
-              Make changes to the item below. Click save when you're done.
+              Update the name of this configuration option.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -209,7 +208,7 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setItemToEdit(null)}>Cancel</Button>
-            <Button onClick={confirmEdit}>Save changes</Button>
+            <Button onClick={confirmEdit}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -238,22 +237,27 @@ export const SettingsManager = () => {
     loadSettings();
   }, []);
 
-  // 2. Generic Update Handler
+  // 2. Generic Update Handler (Backend Integrated)
   const updateList = async (key: keyof SystemSettings, newList: string[]) => {
     if (!settings) return;
 
+    // A. Optimistic Update (Instant UI feedback)
+    const previousSettings = { ...settings };
     const newSettings = { ...settings, [key]: newList };
-    setSettings(newSettings); // Optimistic UI update
+    setSettings(newSettings); 
 
-    // Save to backend (silent save)
+    // B. Save to Backend (Silent Sync)
     try {
       await systemService.updateSettings(newSettings);
+      // Optional: toast.success("Saved"); // Keeping it silent for better UX on small edits
     } catch (error) {
-      toast.error("Failed to save changes");
+      // C. Revert on Failure
+      setSettings(previousSettings);
+      toast.error("Failed to save changes. Reverting...");
     }
   };
 
-  // Helper wrappers
+  // Helper wrappers for SettingCard
   const createHandlers = (key: keyof SystemSettings) => ({
     onAdd: (item: string) => {
       if (!settings) return;
@@ -273,12 +277,13 @@ export const SettingsManager = () => {
     }
   });
 
+  // Manual "Save All" (Force Sync)
   const handleSaveAll = async () => {
     if (!settings) return;
     setIsSaving(true);
     try {
       await systemService.updateSettings(settings);
-      toast.success("All settings saved successfully");
+      toast.success("All settings synced successfully");
     } catch (error) {
       toast.error("Failed to save settings");
     } finally {
@@ -289,8 +294,10 @@ export const SettingsManager = () => {
   if (isLoading || !settings) {
     return (
       <div className="flex justify-center items-center h-64">
-        {/* <Loader2 className="w-8 h-8 animate-spin text-primary" /> */}
-        <div className="animate-pulse">Loading settings...</div>
+        <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="text-sm text-muted-foreground animate-pulse">Loading configurations...</div>
+        </div>
       </div>
     );
   }
@@ -308,7 +315,7 @@ export const SettingsManager = () => {
           disabled={isSaving}
         >
           {isSaving ? <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"/> : <Save className="w-4 h-4 mr-2" />} 
-          Save All Changes
+          Sync Changes
         </Button>
       </div>
 
@@ -376,7 +383,7 @@ export const SettingsManager = () => {
             <SettingCard 
               title="Ticket Macros" 
               description="Pre-defined replies for faster support."
-              icon={Settings} // Changed icon to Settings generic or MessageSquare
+              icon={Settings} 
               items={settings.macros || []}
               {...createHandlers('macros')}
               placeholder="e.g. Please check your internet..."
