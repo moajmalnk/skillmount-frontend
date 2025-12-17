@@ -4,13 +4,13 @@ import { ChartData } from "@/services/statsService";
 
 export const GrowthChart = ({ data }: { data: ChartData[] }) => {
   return (
-    <Card className="col-span-4 lg:col-span-3 border-border/50">
+    <Card className="col-span-1 md:col-span-12 lg:col-span-8 border-border/50 shadow-sm">
       <CardHeader>
         <CardTitle>Revenue & Growth</CardTitle>
         <CardDescription>Monthly performance overview.</CardDescription>
       </CardHeader>
       <CardContent className="pl-2">
-        <div className="h-[300px] w-full">
+        <div className="h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data}>
               <defs>

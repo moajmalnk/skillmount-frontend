@@ -24,18 +24,19 @@ const Contact = () => {
   const { toast } = useToast();
   const [isVisible, setIsVisible] = useState(false);
   const { user, isAuthenticated } = useAuth();
-  
+
   useEffect(() => {
     setIsVisible(true);
   }, []);
-  
+
   const [contactForm, setContactForm] = useState({
     name: "",
     email: "",
     phone: "",
+    subject: "",
     message: ""
   });
-  
+
   const [ticketForm, setTicketForm] = useState({
     name: "",
     email: "",
@@ -43,31 +44,32 @@ const Contact = () => {
     priority: "medium",
     description: ""
   });
-  
+
   const [feedbackForm, setFeedbackForm] = useState({
     name: "",
     email: "",
     rating: 5,
     feedback: ""
   });
-  
-  const handleContactSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  await inquiryService.create({
-    name: contactForm.name,
-    email: contactForm.email,
-    phone: contactForm.phone,
-    message: contactForm.message
-  });
 
-  toast({
-    title: "Message Sent!",
-    description: "We'll get back to you within 24 hours.",
-  });
-  setContactForm({ name: "", email: "", phone: "", message: "" });
-};
-  
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    await inquiryService.create({
+      name: contactForm.name,
+      email: contactForm.email,
+      phone: contactForm.phone,
+      subject: contactForm.subject,
+      message: contactForm.message
+    });
+
+    toast({
+      title: "Message Sent!",
+      description: "We'll get back to you within 24 hours.",
+    });
+    setContactForm({ name: "", email: "", phone: "", subject: "", message: "" });
+  };
+
   const handleTicketSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
@@ -76,7 +78,7 @@ const Contact = () => {
     });
     setTicketForm({ name: "", email: "", subject: "", priority: "medium", description: "" });
   };
-  
+
   const handleFeedbackSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
@@ -133,7 +135,7 @@ const Contact = () => {
           {/* Professional Background Layers */}
           <div className="absolute inset-0">
             {/* Primary Background Image */}
-            <div 
+            <div
               className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.03]"
               style={{
                 backgroundImage: 'url("/tutor-hero.jpg")',
@@ -142,18 +144,18 @@ const Contact = () => {
                 backgroundAttachment: 'fixed'
               }}
             ></div>
-            
+
             {/* Professional Gradient Overlays */}
             <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/90"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/60"></div>
-            
+
             {/* Ultra-subtle professional texture */}
             <div className="absolute inset-0 opacity-[0.015]" style={{
               backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
               backgroundSize: '32px 32px'
             }}></div>
           </div>
-          
+
           <div className="container mx-auto px-6 max-w-7xl relative z-10">
             <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 md:gap-16 lg:gap-20 items-center min-h-[70vh] sm:min-h-[75vh] md:min-h-[80vh]">
@@ -164,18 +166,18 @@ const Contact = () => {
                     <MessageSquare className="w-3.5 h-3.5 text-primary" />
                     <span className="text-xs font-medium text-foreground tracking-wide">Get Support</span>
                   </div>
-                  
+
                   <div className="space-y-8">
                     <div className="space-y-4">
-                      <TextGenerateEffect 
-                        words="Get In Touch" 
+                      <TextGenerateEffect
+                        words="Get In Touch"
                         className="text-5xl md:text-7xl lg:text-8xl font-bold leading-tight text-foreground tracking-tight max-w-4xl"
                         duration={2}
                       />
                       <div className="text-center">
-                        <a 
-                          href="https://moajmalnk.in" 
-                          target="_blank" 
+                        <a
+                          href="https://moajmalnk.in"
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="relative inline-block cursor-pointer hover:scale-105 transition-transform duration-500"
                         >
@@ -186,23 +188,23 @@ const Contact = () => {
                         </a>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-4">
                       <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-light">
-                        Led by <a 
-                          href="https://moajmalnk.in" 
-                          target="_blank" 
+                        Led by <a
+                          href="https://moajmalnk.in"
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="font-semibold text-foreground hover:text-primary transition-colors duration-300 cursor-pointer"
                         >
                           Mohammed Ajmal NK
                         </a>
                       </p>
-                      
+
                       <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl">
                         We're here to help! Reach out for WordPress, No-Code training inquiries, or any support you need.
-          </p>
-        </div>
+                      </p>
+                    </div>
                   </div>
 
                   {/* Response Time Stats */}
@@ -244,14 +246,14 @@ const Contact = () => {
                           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse"></div>
                           <span className="text-xs sm:text-sm font-medium text-gray-700 tracking-wide">Available Now</span>
                         </div>
-                        
+
                         {/* Professional Contact Card */}
                         <div className="bg-white/90 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl border border-white/40 hover:shadow-3xl transition-all duration-500">
                           <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 flex items-center justify-center mx-auto mb-3 sm:mb-4">
                           </div>
                           <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">Quick Contact</h3>
                           <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-4 sm:mb-6 leading-relaxed">Get instant support</p>
-                          <a 
+                          <a
                             href="mailto:moajmalnk@gmail.com"
                             className="inline-block"
                           >
@@ -263,12 +265,12 @@ const Contact = () => {
                       </div>
                     </div>
                   </ProfessionalBackground>
-                  
+
                   {/* Professional Floating Contact Card */}
                   <div className="absolute -bottom-3 sm:-bottom-4 md:-bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-xl border border-white/30 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 shadow-2xl hover:shadow-3xl transition-all duration-500 group">
-                    <a 
-                      href="https://moajmalnk.in" 
-                      target="_blank" 
+                    <a
+                      href="https://moajmalnk.in"
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 sm:gap-3 hover:scale-105 transition-transform duration-300 cursor-pointer"
                     >
@@ -294,21 +296,21 @@ const Contact = () => {
             </div>
           </div>
         </section>
-        
+
         {/* Contact Methods Section - Enhanced with Scroll Animation */}
         <ContainerScrollAnimation direction="up" speed="normal">
           <section className="pt-4 sm:pt-16 bg-background relative overflow-hidden">
             {/* Minimal ambient lighting */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/[0.015] rounded-full blur-3xl pointer-events-none"></div>
-            
+
             <div className="container mx-auto px-6 max-w-7xl relative">
               <div className="text-center mb-24">
                 <div className="inline-flex items-center gap-2.5 bg-primary/[0.03] border border-primary/10 rounded-full px-5 py-2 mb-8">
                   <Sparkles className="w-3.5 h-3.5 text-primary" />
                   <span className="text-xs font-medium text-foreground tracking-wide">Contact Methods</span>
                 </div>
-                <TextGenerateEffect 
-                  words="Get In Touch" 
+                <TextGenerateEffect
+                  words="Get In Touch"
                   className="text-5xl md:text-7xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]"
                   duration={1.5}
                 />
@@ -316,12 +318,12 @@ const Contact = () => {
                   Multiple ways to reach us for support and inquiries
                 </p>
               </div>
-              
+
               <div className="grid lg:grid-cols-3 gap-8 mb-16">
                 {/* Email Contact Card */}
-                <div 
+                <div
                   className="animate-elegant-entrance"
-                  style={{ 
+                  style={{
                     animationDelay: '0ms',
                     animationFillMode: 'both'
                   }}
@@ -335,10 +337,10 @@ const Contact = () => {
                         Email Us
                       </h3>
                       <p className="text-base md:text-lg text-muted-foreground leading-relaxed font-light mb-6">
-                We'll respond within 24 hours
-              </p>
-              <a 
-                href="mailto:moajmalnk@gmail.com" 
+                        We'll respond within 24 hours
+                      </p>
+                      <a
+                        href="mailto:moajmalnk@gmail.com"
                         className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors duration-300 font-semibold group/link"
                       >
                         <span>moajmalnk@gmail.com</span>
@@ -347,11 +349,11 @@ const Contact = () => {
                     </div>
                   </WobbleCard>
                 </div>
-                
+
                 {/* Phone Contact Card */}
-                <div 
+                <div
                   className="animate-elegant-entrance"
-                  style={{ 
+                  style={{
                     animationDelay: '100ms',
                     animationFillMode: 'both'
                   }}
@@ -360,15 +362,15 @@ const Contact = () => {
                     <div className="p-8 text-center">
                       <div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-br from-primary/8 to-primary/4 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg shadow-primary/5">
                         <Phone className="w-10 h-10 text-primary group-hover:scale-110 transition-transform duration-300" strokeWidth={1.2} />
-              </div>
+                      </div>
                       <h3 className="text-xl md:text-2xl font-bold mb-4 text-foreground group-hover:text-primary transition-colors duration-300">
                         Call Us
                       </h3>
                       <p className="text-base md:text-lg text-muted-foreground leading-relaxed font-light mb-6">
-                Mon-Fri from 9am to 6pm
-              </p>
-              <a 
-                        href="tel:+918848676627" 
+                        Mon-Fri from 9am to 6pm
+                      </p>
+                      <a
+                        href="tel:+918848676627"
                         className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors duration-300 font-semibold group/link"
                       >
                         <span>+91 8848676627</span>
@@ -377,11 +379,11 @@ const Contact = () => {
                     </div>
                   </WobbleCard>
                 </div>
-                
+
                 {/* Location Contact Card */}
-                <div 
+                <div
                   className="animate-elegant-entrance"
-                  style={{ 
+                  style={{
                     animationDelay: '200ms',
                     animationFillMode: 'both'
                   }}
@@ -390,25 +392,25 @@ const Contact = () => {
                     <div className="p-8 text-center">
                       <div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-br from-primary/8 to-primary/4 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg shadow-primary/5">
                         <MapPin className="w-10 h-10 text-primary group-hover:scale-110 transition-transform duration-300" strokeWidth={1.2} />
-              </div>
+                      </div>
                       <h3 className="text-xl md:text-2xl font-bold mb-4 text-foreground group-hover:text-primary transition-colors duration-300">
                         Visit Us
                       </h3>
                       <p className="text-base md:text-lg text-muted-foreground leading-relaxed font-light mb-6">
-                Come say hello at our office
-              </p>
+                        Come say hello at our office
+                      </p>
                       <address className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors duration-300 font-semibold group/link not-italic">
                         <span>Malappuram, Kerala, India, 676507</span>
                         <ExternalLink className="w-4 h-4 group-hover/link:translate-x-1 transition-transform duration-300" />
-              </address>
+                      </address>
                     </div>
                   </WobbleCard>
                 </div>
               </div>
-        </div>
+            </div>
           </section>
         </ContainerScrollAnimation>
-        
+
         {/* Forms Section - Enhanced with Scroll Animation */}
         <ContainerScrollAnimation direction="up" speed="slow">
           <section className="pt-4 sm:pt-16 bg-background relative overflow-hidden">
@@ -417,27 +419,27 @@ const Contact = () => {
               backgroundImage: 'linear-gradient(45deg, transparent 25%, currentColor 25%, currentColor 50%, transparent 50%, transparent 75%, currentColor 75%)',
               backgroundSize: '30px 30px'
             }}></div>
-            
+
             <div className="container mx-auto px-6 max-w-4xl relative">
               <div className="text-center mb-24">
                 <div className="inline-flex items-center gap-2.5 bg-primary/[0.03] border border-primary/10 rounded-full px-5 py-2 mb-8">
                   <MessageSquare className="w-3.5 h-3.5 text-primary" />
                   <span className="text-xs font-medium text-foreground tracking-wide">Contact Forms</span>
                 </div>
-                <TextGenerateEffect 
-                  words="Send Us Message" 
+                <TextGenerateEffect
+                  words="Send Us Message"
                   className="text-5xl md:text-7xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]"
                   duration={1.5}
                 />
                 <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-light">
-                  {canRaiseTicket 
-                    ? "Choose the best way to get in touch with us" 
+                  {canRaiseTicket
+                    ? "Choose the best way to get in touch with us"
                     : "Have a question? Send us a general inquiry below."}
                 </p>
               </div>
-              
-          <Tabs defaultValue="contact" className="w-full">
-              {canRaiseTicket ? (
+
+              <Tabs defaultValue="contact" className="w-full">
+                {canRaiseTicket ? (
                   <TabsList className="grid w-full grid-cols-3 mb-8 bg-card/30 backdrop-blur-sm border border-border/30 rounded-2xl p-1">
                     <TabsTrigger value="contact" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">
                       General Inquiry
@@ -459,9 +461,9 @@ const Contact = () => {
                     </p> */}
                   </div>
                 )}
-            
-            {/* Contact Form */}
-            <TabsContent value="contact">
+
+                {/* Contact Form */}
+                <TabsContent value="contact">
                   <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 bg-card/30 backdrop-blur-sm overflow-hidden">
                     <div className="p-8 md:p-10">
                       <div className="text-center mb-8">
@@ -471,125 +473,136 @@ const Contact = () => {
                         <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Send us a message</h3>
                         <p className="text-muted-foreground">We'll get back to you within 24 hours</p>
                       </div>
-                      
-                  <form onSubmit={handleContactSubmit} className="space-y-6">
+
+                      <form onSubmit={handleContactSubmit} className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-6">
                           <div className="space-y-3">
                             <Label htmlFor="contact-name" className="text-sm font-semibold text-foreground">Full Name *</Label>
-                        <Input
-                          id="contact-name"
-                          placeholder="John Doe"
-                          value={contactForm.name}
-                          onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                          required
+                            <Input
+                              id="contact-name"
+                              placeholder="John Doe"
+                              value={contactForm.name}
+                              onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                              required
                               className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                        />
-                      </div>
-                      
+                            />
+                          </div>
+
                           <div className="space-y-3">
                             <Label htmlFor="contact-email" className="text-sm font-semibold text-foreground">Email *</Label>
-                        <Input
-                          id="contact-email"
-                          type="email"
-                          placeholder="john@example.com"
-                          value={contactForm.email}
-                          onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                          required
+                            <Input
+                              id="contact-email"
+                              type="email"
+                              placeholder="john@example.com"
+                              value={contactForm.email}
+                              onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                              required
                               className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                        />
-                      </div>
-                    </div>
-                    
+                            />
+                          </div>
+                        </div>
+
                         <div className="space-y-3">
                           <Label htmlFor="contact-phone" className="text-sm font-semibold text-foreground">Phone Number</Label>
-                      <Input
-                        id="contact-phone"
-                        type="tel"
-                        placeholder="+91 8848676627"
-                        value={contactForm.phone}
-                        onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                          <Input
+                            id="contact-phone"
+                            type="tel"
+                            placeholder="+91 8848676627"
+                            value={contactForm.phone}
+                            onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
                             className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                      />
-                    </div>
-                    
+                          />
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label htmlFor="contact-subject" className="text-sm font-semibold text-foreground">Subject</Label>
+                          <Input
+                            id="contact-subject"
+                            placeholder="Course details / Partnership / Other"
+                            value={contactForm.subject}
+                            onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
+                            className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
+                          />
+                        </div>
+
                         <div className="space-y-3">
                           <Label htmlFor="contact-message" className="text-sm font-semibold text-foreground">Message *</Label>
-                      <Textarea
-                        id="contact-message"
-                        placeholder="Tell us how we can help you..."
-                        rows={6}
-                        value={contactForm.message}
-                        onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                        required
+                          <Textarea
+                            id="contact-message"
+                            placeholder="Tell us how we can help you..."
+                            rows={6}
+                            value={contactForm.message}
+                            onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                            required
                             className="rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300 resize-none"
-                      />
-                    </div>
-                    
-                        <Button 
-                          type="submit" 
-                          size="lg" 
+                          />
+                        </div>
+
+                        <Button
+                          type="submit"
+                          size="lg"
                           className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/20"
                         >
                           <Send className="w-5 h-5 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
-                      Send Message
+                          Send Message
                           <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                    </Button>
-                  </form>
+                        </Button>
+                      </form>
                     </div>
                   </WobbleCard>
-            </TabsContent>
-            
-            {/* Ticket Form */}
-            {canRaiseTicket && (
-  <TabsContent value="ticket">
-    <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 bg-card/30 backdrop-blur-sm overflow-hidden">
-      <div className="p-8 md:p-10">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary/8 to-primary/4 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/5">
-            <AlertCircle className="w-8 h-8 text-primary" strokeWidth={1.2} />
-          </div>
-          <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Create a Support Ticket</h3>
-          <p className="text-muted-foreground">Get priority support for technical issues</p>
-        </div>
-        
-        <TicketForm />
-        
-      </div>
-    </WobbleCard>
-  </TabsContent>
-)}
+                </TabsContent>
 
-            {/* Feedback Form */}
-           {canRaiseTicket && (
-              <TabsContent value="feedback">
-                <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 bg-card/30 backdrop-blur-sm overflow-hidden">
-                  <div className="p-8 md:p-10">
-                    <div className="text-center mb-8">
-                      <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary/8 to-primary/4 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/5">
-                        <Star className="w-8 h-8 text-primary" strokeWidth={1.2} />
+                {/* Ticket Form */}
+                {canRaiseTicket && (
+                  <TabsContent value="ticket">
+                    <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 bg-card/30 backdrop-blur-sm overflow-hidden">
+                      <div className="p-8 md:p-10">
+                        <div className="text-center mb-8">
+                          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary/8 to-primary/4 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/5">
+                            <AlertCircle className="w-8 h-8 text-primary" strokeWidth={1.2} />
+                          </div>
+                          <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Create a Support Ticket</h3>
+                          <p className="text-muted-foreground">Get priority support for technical issues</p>
+                        </div>
+
+                        <TicketForm />
+
                       </div>
-                      <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Share Your Feedback</h3>
-                      <p className="text-muted-foreground">Help us improve by sharing your experience</p>
-                    </div>
-                    
-                    <FeedbackForm />
-                    
-                  </div>
-                </WobbleCard>
-              </TabsContent>
-            )}
+                    </WobbleCard>
+                  </TabsContent>
+                )}
 
-          </Tabs>
-        </div>
+                {/* Feedback Form */}
+                {canRaiseTicket && (
+                  <TabsContent value="feedback">
+                    <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 bg-card/30 backdrop-blur-sm overflow-hidden">
+                      <div className="p-8 md:p-10">
+                        <div className="text-center mb-8">
+                          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary/8 to-primary/4 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/5">
+                            <Star className="w-8 h-8 text-primary" strokeWidth={1.2} />
+                          </div>
+                          <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Share Your Feedback</h3>
+                          <p className="text-muted-foreground">Help us improve by sharing your experience</p>
+                        </div>
+
+                        <FeedbackForm />
+
+                      </div>
+                    </WobbleCard>
+                  </TabsContent>
+                )}
+
+              </Tabs>
+            </div>
           </section>
         </ContainerScrollAnimation>
-        
+
         {/* FAQ CTA Section - Enhanced with Scroll Animation */}
         <ContainerScrollAnimation direction="up" speed="normal">
           <section className="pt-4 sm:pt-16 bg-background relative overflow-hidden">
             {/* Minimal ambient lighting */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/[0.015] rounded-full blur-3xl pointer-events-none"></div>
-            
+
             <div className="container mx-auto px-6 max-w-4xl relative">
               <WobbleCard className="border border-border/30 rounded-3xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-700">
                 <div className="p-8 sm:p-12 md:p-16 text-center">
@@ -597,26 +610,26 @@ const Contact = () => {
                     <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     <span className="text-xs sm:text-sm font-medium text-primary tracking-wide">Quick Help</span>
                   </div>
-                  
+
                   <div className="text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-6 sm:mb-8 tracking-tight leading-[0.9]">
-                    <TextGenerateEffect 
-                      words="Looking for Quick" 
+                    <TextGenerateEffect
+                      words="Looking for Quick"
                       className="block"
                       duration={1.5}
                     />
-                    <TextGenerateEffect 
-                      words="Answers?" 
+                    <TextGenerateEffect
+                      words="Answers?"
                       className="block bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent"
                       duration={1.5}
                     />
                   </div>
-                  
+
                   <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-8 sm:mb-10 md:mb-12 font-light px-4 sm:px-0">
                     Check out our FAQ section for instant answers to common questions about WordPress, No-Code training, and our programs.
                   </p>
-                  
-                  <Button 
-                    variant="outline" 
+
+                  <Button
+                    variant="outline"
                     size="lg"
                     className="rounded-full px-8 sm:px-10 md:px-12 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg font-semibold border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 group shadow-sm hover:shadow-lg hover:shadow-primary/10"
                     asChild
@@ -625,8 +638,8 @@ const Contact = () => {
                       <span>Visit FAQ</span>
                       <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform duration-300" />
                     </a>
-          </Button>
-        </div>
+                  </Button>
+                </div>
               </WobbleCard>
             </div>
           </section>

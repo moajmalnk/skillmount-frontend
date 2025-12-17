@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { 
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
+import {
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,48 +12,43 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowRight, ArrowLeft, Upload, Loader2, CheckCircle2, Camera, Link as LinkIcon 
+import {
+  ArrowRight, ArrowLeft, Upload, Loader2, CheckCircle2, Camera, Link as LinkIcon, CalendarIcon
 } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { FileInput } from "@/components/ui/file-input"; // Assuming user meant a custom file input or we style the existing one nicely
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
-import { Label } from "recharts";
 
-// --- MOCK DATA ---
-const MENTORS = ["Dr. Smith", "Prof. Jane Doe", "Mr. Alex Johnson"];
-const COORDINATORS = ["Sarah Wilson", "Mike Ross", "Rachel Green"];
-const TOPICS = ["WordPress Development", "Full Stack Dev", "Digital Marketing", "UI/UX Design"];
-const REFERRING_PLATFORMS = ["YouTube", "Instagram", "LinkedIn", "Blog", "Word of Mouth"];
+// API Services
+import { userService } from "@/services/userService";
+import { systemService } from "@/services/systemService";
+import { Label } from "@/components/ui/label";
 
-// --- ZOD SCHEMA DEFINITION ---
+// --- ZOD SCHEMA (Kept mostly same, adjusted optionality) ---
 const onboardingSchema = z.object({
   // Step 1: Personal
   whatsapp: z.string().min(10, "WhatsApp number must be at least 10 digits"),
-  dob: z.string().min(1, "Date of birth is required"),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
   address: z.string().min(10, "Address is too short"),
-  pincode: z.string().length(6, "Pincode must be exactly 6 digits"),
+  pincode: z.string().regex(/^\d{6}$/, "Pincode must be exactly 6 digits"),
 
-  // Step 2: Professional (Common)
+  // Step 2: Professional
   qualification: z.string().min(2, "Qualification is required"),
-  domain: z.string().url("Please enter a valid URL").or(z.literal("")), // Optional but verified if present
+  domain: z.string().optional().or(z.literal("")),
 
-  // Step 2: Student Specific
+  // Role Specifics (All optional as they depend on role)
   mentor: z.string().optional(),
   coordinator: z.string().optional(),
   aim: z.string().optional(),
   skills: z.string().optional(),
   socialMedia: z.string().optional(),
   awards: z.string().optional(),
-
-  // Step 2: Tutor Specific
   topic: z.string().optional(),
-
-  // Step 2: Affiliate Specific
   referringPlatform: z.string().optional(),
-
-  // Step 3: Photo
-  // Note: File validation is tricky in Zod/RHF, usually handled manually in the render or via custom check
 });
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
@@ -63,8 +58,18 @@ export default function Onboarding() {
   const { user, login } = useAuth();
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(33);
+
+  // File State
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null); // To send to backend
+
   const [isLoading, setIsLoading] = useState(false);
+
+  // Dynamic Data State
+  const [mentors, setMentors] = useState<string[]>([]);
+  const [coordinators, setCoordinators] = useState<string[]>([]);
+  const [topics, setTopics] = useState<string[]>([]);
+  const [platforms, setPlatforms] = useState<string[]>([]);
 
   // Initialize Form
   const form = useForm<OnboardingFormValues>({
@@ -75,15 +80,41 @@ export default function Onboarding() {
       aim: "", skills: "", socialMedia: "", awards: "",
       topic: "", referringPlatform: ""
     },
-    mode: "onChange" 
+    mode: "onChange"
   });
 
-  // Redirect if already completed
+  // 1. Redirect if already completed
   useEffect(() => {
     if (user?.isProfileComplete) navigate("/");
   }, [user, navigate]);
 
-  // --- NAVIGATION HANDLERS ---
+  // 2. Fetch Data (Settings & Tutors)
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [settings, tutorsData] = await Promise.all([
+          systemService.getSettings(),
+          userService.getElementsByRole('tutor') // Fetch real tutors
+        ]);
+
+        const realTutorNames = tutorsData.map((t: any) => t.name);
+        const manualMentors = settings.mentors || [];
+        setMentors([...new Set([...realTutorNames, ...manualMentors])]);
+
+        setCoordinators(settings.coordinators || []);
+
+        setTopics(settings.topics || []);
+        setPlatforms(settings.platforms || []);
+
+      } catch (error) {
+        console.error("Failed to load onboarding data", error);
+        setMentors([]);
+        setCoordinators([]);
+      }
+    };
+    loadData();
+  }, []);
+
 
   const handleNext = async () => {
     let fieldsToValidate: (keyof OnboardingFormValues)[] = [];
@@ -91,10 +122,10 @@ export default function Onboarding() {
     if (step === 1) {
       fieldsToValidate = ["whatsapp", "dob", "address", "pincode"];
     } else if (step === 2) {
-      fieldsToValidate = ["qualification", "domain"]; // Common
-      
+      fieldsToValidate = ["qualification", "domain"];
       if (user?.role === "student") {
-        fieldsToValidate.push("mentor", "coordinator", "aim", "skills", "socialMedia");
+        fieldsToValidate.push("mentor", "coordinator", "aim", "skills");
+        // Note: socialMedia is optional, so not validating it
       } else if (user?.role === "tutor") {
         fieldsToValidate.push("topic");
       } else if (user?.role === "affiliate") {
@@ -102,7 +133,6 @@ export default function Onboarding() {
       }
     }
 
-    // Trigger validation only for current step fields
     const isValid = await form.trigger(fieldsToValidate);
 
     if (isValid) {
@@ -127,6 +157,7 @@ export default function Onboarding() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setPhotoFile(file); // Save file for upload
       const reader = new FileReader();
       reader.onloadend = () => setPhotoPreview(reader.result as string);
       reader.readAsDataURL(file);
@@ -134,43 +165,89 @@ export default function Onboarding() {
   };
 
   const onSubmit = async (data: OnboardingFormValues) => {
-    if (!photoPreview) {
-      toast.error("Please upload a profile photo to complete registration.");
+    if (!user) return;
+
+    // Validate Photo
+    if (!photoFile) {
+      toast.error("Please upload a profile photo.");
       return;
     }
 
     setIsLoading(true);
-    
-    // Simulate API Call
-    setTimeout(() => {
-      if (user) {
-        const updatedUser = { 
-          ...user, 
-          isProfileComplete: true,
-          ...data,
-          avatar: photoPreview || user.avatar 
-        };
-        
-        login(updatedUser);
-        
-        toast.success("Profile Setup Complete!", {
-          description: `Welcome to SkillMount, ${user.name}!`,
-        });
 
-        if (user.role === 'tutor') navigate('/tickets/manage');
-        else navigate('/');
+    try {
+      const payload: any = {
+        role: user.role,
+        phone: data.whatsapp,
+
+        // Direct Mapping
+        dob: data.dob,
+        address: data.address,
+        pincode: data.pincode,
+        qualification: data.qualification,
+        aim: data.aim, // Now maps to 'aim' column, not headline
+
+        // Keep headline/bio for display
+        headline: data.aim || data.qualification,
+        bio: `Professional Goal: ${data.aim}`,
+
+        isProfileComplete: true,
+        avatarFile: photoFile
+      };
+
+      // Preserve batch information from the existing user profile
+      // The backend expects batch_id, but the frontend uses batch
+      if (user.role === 'student') {
+        // Check for batch in different possible locations
+        const batchId = (user as any).batch || (user as any).batch_id ||
+          ((user as any).student_profile?.batch_id);
+        if (batchId) {
+          payload.batch_id = batchId;
+        }
       }
-      setIsLoading(false);
-    }, 1500);
-  };
 
-  // --- RENDER STEPS ---
+      if (user.role === 'student') {
+        payload.skills = data.skills ? data.skills.split(',').map(s => s.trim()) : [];
+        if (data.mentor) payload.mentor = data.mentor;
+        if (data.coordinator) payload.coordinator = data.coordinator;
+
+        // Construct Socials JSON
+        payload.socials = JSON.stringify({
+          website: data.domain || '',
+          linkedin: data.socialMedia || ''
+        });
+      }
+
+      if (user.role === 'tutor' && data.topic) {
+        payload.topics = [data.topic];
+      }
+
+      if (user.role === 'affiliate' && data.referringPlatform) {
+        payload.platform = data.referringPlatform;
+      }
+
+      // Send data to backend
+      const response = await userService.update(user.id, payload);
+
+      // Update user in context
+      const updatedUser = { ...user, isProfileComplete: true };
+      login(updatedUser);
+
+      toast.success("Profile completed successfully!");
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save profile. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const renderStep1 = () => (
     <div className="space-y-6 animate-fade-in">
       <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg mb-6">
         <h3 className="font-semibold text-primary mb-1">Personal Details</h3>
-        <p className="text-xs text-muted-foreground">Admin-set fields are read-only.</p>
+        <p className="text-xs text-muted-foreground">Confirm your contact information.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -185,16 +262,46 @@ export default function Onboarding() {
 
         <FormField control={form.control} name="whatsapp" render={({ field }) => (
           <FormItem>
-            <FormLabel>WhatsApp Number <span className="text-red-500">*</span></FormLabel>
-            <FormControl><Input placeholder="+91 98765 43210" {...field} /></FormControl>
+            <FormLabel>Phone Number <span className="text-red-500">*</span></FormLabel>
+            <FormControl><Input placeholder="+91..." {...field} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />
 
         <FormField control={form.control} name="dob" render={({ field }) => (
-          <FormItem>
+          <FormItem className="flex flex-col">
             <FormLabel>Date of Birth <span className="text-red-500">*</span></FormLabel>
-            <FormControl><Input type="date" {...field} /></FormControl>
+            <Popover>
+              <PopoverTrigger asChild>
+                <FormControl>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "pl-3 text-left font-normal",
+                      !field.value && "text-muted-foreground"
+                    )}
+                  >
+                    {field.value ? (
+                      format(new Date(field.value), "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </FormControl>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={field.value ? new Date(field.value) : undefined}
+                  onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
+                  disabled={(date) =>
+                    date > new Date() || date < new Date("1900-01-01")
+                  }
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
             <FormMessage />
           </FormItem>
         )} />
@@ -202,16 +309,16 @@ export default function Onboarding() {
 
       <FormField control={form.control} name="address" render={({ field }) => (
         <FormItem>
-          <FormLabel>Full Address <span className="text-red-500">*</span></FormLabel>
-          <FormControl><Textarea placeholder="House No, Street..." className="resize-none" {...field} /></FormControl>
+          <FormLabel>Address</FormLabel>
+          <FormControl><Textarea {...field} /></FormControl>
           <FormMessage />
         </FormItem>
       )} />
 
       <FormField control={form.control} name="pincode" render={({ field }) => (
         <FormItem>
-          <FormLabel>Pincode <span className="text-red-500">*</span></FormLabel>
-          <FormControl><Input placeholder="676507" {...field} /></FormControl>
+          <FormLabel>Pincode</FormLabel>
+          <FormControl><Input {...field} maxLength={6} /></FormControl>
           <FormMessage />
         </FormItem>
       )} />
@@ -220,17 +327,12 @@ export default function Onboarding() {
 
   const renderStep2 = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center gap-2 mb-6">
-        <Badge variant="outline" className="capitalize">{user?.role} Profile</Badge>
-        <span className="text-sm text-muted-foreground">Professional details</span>
-      </div>
-
       {/* Common Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField control={form.control} name="qualification" render={({ field }) => (
           <FormItem>
             <FormLabel>Qualification <span className="text-red-500">*</span></FormLabel>
-            <FormControl><Input placeholder="e.g. BCA, B.Tech" {...field} /></FormControl>
+            <FormControl><Input placeholder="e.g. B.Tech" {...field} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />
@@ -247,27 +349,31 @@ export default function Onboarding() {
         )} />
       </div>
 
-      {/* Role Specific */}
+      {/* Student Specifics - Using Dynamic Data */}
       {user?.role === 'student' && (
         <>
           <div className="grid md:grid-cols-2 gap-6">
             <FormField control={form.control} name="mentor" render={({ field }) => (
               <FormItem>
-                <FormLabel>Mentor <span className="text-red-500">*</span></FormLabel>
+                <FormLabel>Mentor</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                  <SelectContent>{MENTORS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {mentors.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
             )} />
-            
+
             <FormField control={form.control} name="coordinator" render={({ field }) => (
               <FormItem>
-                <FormLabel>Coordinator <span className="text-red-500">*</span></FormLabel>
+                <FormLabel>Coordinator</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                  <SelectContent>{COORDINATORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {coordinators.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
@@ -276,50 +382,48 @@ export default function Onboarding() {
 
           <FormField control={form.control} name="aim" render={({ field }) => (
             <FormItem>
-              <FormLabel>Professional Aim <span className="text-red-500">*</span></FormLabel>
-              <FormControl><Textarea placeholder="Career goals..." {...field} /></FormControl>
+              <FormLabel>Professional Aim</FormLabel>
+              <FormControl><Textarea placeholder="What are your career goals?" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />
 
           <FormField control={form.control} name="skills" render={({ field }) => (
             <FormItem>
-              <FormLabel>Skills <span className="text-red-500">*</span></FormLabel>
-              <FormControl><Input placeholder="Java, React..." {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField control={form.control} name="socialMedia" render={({ field }) => (
-            <FormItem>
-              <FormLabel>LinkedIn/GitHub <span className="text-red-500">*</span></FormLabel>
-              <FormControl><Input placeholder="Profile URL" {...field} /></FormControl>
+              <FormLabel>Skills (Comma separated)</FormLabel>
+              <FormControl><Input placeholder="Java, React, Design..." {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />
         </>
       )}
 
+      {/* Tutor Specifics */}
       {user?.role === 'tutor' && (
         <FormField control={form.control} name="topic" render={({ field }) => (
           <FormItem>
-            <FormLabel>Primary Topic <span className="text-red-500">*</span></FormLabel>
+            <FormLabel>Primary Topic</FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
               <FormControl><SelectTrigger><SelectValue placeholder="Select Topic" /></SelectTrigger></FormControl>
-              <SelectContent>{TOPICS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {topics.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
             </Select>
             <FormMessage />
           </FormItem>
         )} />
       )}
 
+      {/* Affiliate Specifics */}
       {user?.role === 'affiliate' && (
         <FormField control={form.control} name="referringPlatform" render={({ field }) => (
           <FormItem>
-            <FormLabel>Platform <span className="text-red-500">*</span></FormLabel>
+            <FormLabel>Platform</FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
               <FormControl><SelectTrigger><SelectValue placeholder="Select Platform" /></SelectTrigger></FormControl>
-              <SelectContent>{REFERRING_PLATFORMS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {platforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
             </Select>
             <FormMessage />
           </FormItem>
@@ -330,26 +434,30 @@ export default function Onboarding() {
 
   const renderStep3 = () => (
     <div className="flex flex-col items-center justify-center py-8 animate-fade-in space-y-6">
-      <div className="relative group cursor-pointer">
-        <div className={cn(
-          "w-40 h-40 rounded-full border-4 border-dashed border-muted-foreground/20 flex items-center justify-center overflow-hidden transition-all",
-          photoPreview ? "border-primary" : "hover:border-primary/50 hover:bg-muted/50"
-        )}>
-          {photoPreview ? (
-            <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-          ) : (
-            <div className="text-center p-4">
-              <Camera className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-              <span className="text-xs text-muted-foreground">Click to upload</span>
-            </div>
-          )}
+      <div className="w-full max-w-sm">
+        <div className="flex flex-col items-center gap-4 mb-6">
+          <div className={cn(
+            "w-40 h-40 rounded-full border-4 border-dashed border-muted-foreground/20 flex items-center justify-center overflow-hidden transition-all",
+            photoPreview ? "border-primary" : "bg-muted/30"
+          )}>
+            {photoPreview ? (
+              <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+            ) : (
+              <Camera className="w-12 h-12 text-muted-foreground/50" />
+            )}
+          </div>
+          <div className="text-center">
+            <h3 className="font-semibold text-lg">Profile Photo</h3>
+            <p className="text-xs text-muted-foreground">This will be used for your ID card.</p>
+          </div>
         </div>
-        <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handlePhotoChange} />
-        {photoPreview && <div className="absolute bottom-2 right-2 bg-primary text-white p-2 rounded-full shadow-lg"><Upload className="w-4 h-4" /></div>}
-      </div>
-      <div className="text-center">
-        <h3 className="font-semibold text-lg">Upload Profile Photo</h3>
-        <p className="text-xs text-muted-foreground mt-1">Required for ID Card generation.</p>
+
+        <FileInput
+          id="photo-upload"
+          accept="image/*"
+          onChange={handlePhotoChange}
+          className="w-full"
+        />
       </div>
     </div>
   );
@@ -398,11 +506,11 @@ export default function Onboarding() {
                 <Button variant="outline" onClick={handleBack} disabled={step === 1 || isLoading} className="w-32">
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back
                 </Button>
-                
+
                 <Button onClick={handleNext} disabled={isLoading} className="w-40">
-                  {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 
-                   step === 3 ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Finish</> : 
-                   <><ArrowRight className="w-4 h-4 mr-2" /> Next</>}
+                  {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> :
+                    step === 3 ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Finish</> :
+                      <><ArrowRight className="w-4 h-4 mr-2" /> Next</>}
                 </Button>
               </CardFooter>
             </form>

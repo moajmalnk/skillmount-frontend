@@ -13,37 +13,38 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
+import {
+  Card,
+  CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Pencil, Trash2, Eye, Loader2, Search, Filter, X, 
-  Star, GraduationCap, CheckCircle2, AlertCircle, Plus 
+import {
+  Pencil, Trash2, EyeIcon, Loader2, Search, X,
+  Star, GraduationCap, CheckCircle2, AlertCircle, Plus
 } from "lucide-react";
 import { toast } from "sonner";
-import { BATCHES, formatBatchForDisplay } from "@/lib/batches"; 
 import { UserDetailSheet } from "./UserDetailSheet";
 import { userService } from "@/services/userService";
+import { systemService } from "@/services/systemService"; // Added System Service
 import { Student } from "@/types/user";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
+import { Copy } from "lucide-react";
+
 
 export const StudentManager = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [batches, setBatches] = useState<string[]>([]); // Dynamic Batches State
+
   // --- FILTERS STATE ---
   const [searchQuery, setSearchQuery] = useState("");
   const [filterBatch, setFilterBatch] = useState("all");
@@ -55,47 +56,87 @@ export const StudentManager = () => {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", batch: "" });
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // 1. Fetch Data
-  const loadStudents = async () => {
+  // 1. Fetch Data (Students + Batches)
+  const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = (await userService.getElementsByRole("student")) as Student[];
-      setStudents(data);
+      // Parallel fetch for efficiency
+      const [usersData, settingsData] = await Promise.all([
+        userService.getElementsByRole("student"),
+        systemService.getSettings()
+      ]);
+
+      // Update Batches
+      setBatches(settingsData.batches || []);
+
+
+
+      const formattedStudents: Student[] = usersData.map((u: any) => ({
+        ...u,
+        createdAt: u.date_joined || u.created_at || new Date().toISOString(),
+
+        role: "student",
+        batch: u.student_profile?.batch_id || "Unassigned",
+        regId: u.student_profile?.reg_id || "PENDING",
+
+        mentor: u.student_profile?.mentor || "Not Assigned",
+        coordinator: u.student_profile?.coordinator || "Not Assigned",
+
+        headline: u.student_profile?.headline || "",
+        bio: u.student_profile?.bio || "",
+        skills: u.student_profile?.skills || [],
+
+        dob: u.student_profile?.dob || "",
+        address: u.student_profile?.address || "",
+        pincode: u.student_profile?.pincode || "",
+        qualification: u.student_profile?.qualification || "",
+        aim: u.student_profile?.aim || "",
+        socials: u.student_profile?.socials || {},
+
+        isTopPerformer: u.student_profile?.is_top_performer || false,
+        isFeatured: u.student_profile?.is_featured_graduate || false,
+        isProfileComplete: u.is_profile_complete,
+        status: u.status || "Active",
+        projects: u.student_profile?.projects || [],
+      }));
+      setStudents(formattedStudents);
     } catch (error) {
-      toast.error("Failed to load students");
+      console.error(error);
+      toast.error("Failed to load data");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadStudents();
+    loadData();
   }, []);
 
   // 2. Filter Logic
   const filteredStudents = students.filter(student => {
     // Search
     const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       student.name.toLowerCase().includes(searchLower) ||
       student.email.toLowerCase().includes(searchLower) ||
-      student.regId?.toLowerCase().includes(searchLower);
+      (student.regId && student.regId.toLowerCase().includes(searchLower));
 
     // Batch
     const matchesBatch = filterBatch === "all" || student.batch === filterBatch;
 
     // Profile Status
-    const matchesProfile = 
+    const matchesProfile =
       filterProfileStatus === "all" ? true :
-      filterProfileStatus === "complete" ? student.isProfileComplete :
-      !student.isProfileComplete;
+        filterProfileStatus === "complete" ? student.isProfileComplete :
+          !student.isProfileComplete;
 
     // Type (Top Performer / Graduated)
-    const matchesType = 
-        filterType === "all" ? true :
+    const matchesType =
+      filterType === "all" ? true :
         filterType === "top" ? student.isTopPerformer :
-        filterType === "featured" ? student.isFeatured : true;
+          filterType === "featured" ? student.isFeatured : true;
 
     return matchesSearch && matchesBatch && matchesProfile && matchesType;
   });
@@ -103,14 +144,19 @@ export const StudentManager = () => {
   // 3. Quick Actions (Toggles)
   const toggleAttribute = async (student: Student, field: 'isTopPerformer' | 'isFeatured') => {
     const newValue = !student[field];
-    
+
     // Optimistic Update
     setStudents(prev => prev.map(s => s.id === student.id ? { ...s, [field]: newValue } : s));
 
     try {
-      await userService.update(student.id, { [field]: newValue });
+      // Backend expects specific profile field names
+      await userService.update(student.id, {
+        role: 'student',
+        [field]: newValue
+      } as any);
+
       toast.success(`Updated ${student.name}`, {
-        description: newValue 
+        description: newValue
           ? (field === 'isTopPerformer' ? "Marked as Top Performer" : "Marked as Featured Graduate")
           : "Status removed"
       });
@@ -127,8 +173,21 @@ export const StudentManager = () => {
     setIsSheetOpen(true);
   };
 
-  const generateRegId = (count: number) => 
-    `STU-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
+
+
+  // 1. Password Generator Helper
+  const generateTempPassword = (email: string, phone: string) => {
+    if (!email || !phone) return "password123"; // Fallback
+
+    // Rule: First 3 chars of email + "@" + Last 4 digits of phone
+    const username = email.split('@')[0];
+    const namePart = username.substring(0, 3).toLowerCase();
+
+    const phoneDigits = phone.replace(/\D/g, ''); // Remove spaces, dashes, brackets
+    const phonePart = phoneDigits.slice(-4);
+
+    return `${namePart}@${phonePart}`;
+  };
 
   const handleCreate = async () => {
     if (!formData.name || !formData.email || !formData.phone || !formData.batch) {
@@ -136,39 +195,100 @@ export const StudentManager = () => {
       return;
     }
 
+    // Generate Password
+    const tempPassword = generateTempPassword(formData.email, formData.phone);
+
     try {
-      const newStudent: Partial<Student> = {
-        regId: generateRegId(students.length),
+      const newStudent: any = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        batch: formData.batch,
         role: "student",
-        status: "Pending",
-        isProfileComplete: false
+        batch: formData.batch,
+        status: "Active",
+        isProfileComplete: false,
+        password: tempPassword, // <--- Sending generated password
+        // Default values for new student profile fields
+        dob: null,
+        address: "",
+        pincode: "",
+        qualification: "",
+        aim: "",
+        headline: "",
+        bio: "",
+        skills: [],
+        socials: {}
       };
 
-      await userService.create(newStudent);
-      toast.success(`Student Created!`);
+      const result = await userService.create(newStudent);
+
+      // Parse Notification Status
+      const notifStatus = result?.meta?.notification_status || {};
+      const emailStatus = notifStatus.email === 'ok';
+      const wappStatus = notifStatus.whatsapp === 'ok';
+
+      // Show Password in Toast with Copy button & Notification Status
+      toast.success(
+        <div className="flex flex-col gap-2 min-w-[200px]">
+          <span className="font-semibold">Student Created!</span>
+
+          {/* 1. Credentials */}
+          <div className="flex items-center justify-between bg-muted/50 p-2 rounded text-xs">
+            <span>Pass: <code className="font-mono font-bold">{tempPassword}</code></span>
+            <button onClick={() => navigator.clipboard.writeText(tempPassword)} title="Copy Password" className="hover:bg-background p-1 rounded">
+              <Copy className="w-3 h-3" />
+            </button>
+          </div>
+
+          {/* 2. Notification Status */}
+          <div className="space-y-1 pt-1 border-t border-border/50">
+            <div className="flex items-center justify-between text-xs">
+              <span className="opacity-70">Email:</span>
+              {emailStatus
+                ? <span className="text-green-600 flex items-center gap-1">Sent <CheckCircle2 className="w-3 h-3" /></span>
+                : <span className="text-red-500 flex items-center gap-1">Failed <AlertCircle className="w-3 h-3" /></span>
+              }
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="opacity-70">WhatsApp:</span>
+              {wappStatus
+                ? <span className="text-green-600 flex items-center gap-1">Sent <CheckCircle2 className="w-3 h-3" /></span>
+                : <span className="text-red-500 flex items-center gap-1">Failed <AlertCircle className="w-3 h-3" /></span>
+              }
+            </div>
+          </div>
+        </div>
+      );
+
       setIsCreateOpen(false);
       setFormData({ name: "", email: "", phone: "", batch: "" });
-      loadStudents();
+      loadData();
     } catch (error) {
-      toast.error("Failed to create student");
+      toast.error("Failed to create student. Email might exist.");
     }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const initiateDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if(!confirm("Are you sure you want to delete this student?")) return;
+    setDeleteId(id);
+  };
+
+  // Confirm Handler (Executes Logic)
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await userService.delete(id);
-      toast.success("Student deleted");
-      loadStudents();
+      await userService.delete(deleteId);
+      toast.success("Student deleted successfully");
+      loadData();
     } catch (error) {
-      toast.error("Failed to delete");
+      toast.error("Failed to delete student");
+    } finally {
+      setDeleteId(null);
     }
   };
+
+  // Helper to get name for popup
+  const studentToDelete = students.find(s => s.id === deleteId);
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -179,7 +299,7 @@ export const StudentManager = () => {
 
   return (
     <div className="space-y-4">
-      
+
       {/* 1. Header & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -198,8 +318,8 @@ export const StudentManager = () => {
             {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search by name, email, or ID..." 
+              <Input
+                placeholder="Search by name, email, or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -214,8 +334,8 @@ export const StudentManager = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Batches</SelectItem>
-                  {BATCHES.map((batch) => (
-                    <SelectItem key={batch.id} value={batch.id}>{formatBatchForDisplay(batch.id)}</SelectItem>
+                  {batches.map((batch) => (
+                    <SelectItem key={batch} value={batch}>{batch}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -237,35 +357,35 @@ export const StudentManager = () => {
 
             {/* Clear Button */}
             {(searchQuery || filterBatch !== 'all' || filterProfileStatus !== 'all' || filterType !== 'all') && (
-                <Button variant="ghost" size="icon" onClick={clearFilters} title="Reset Filters">
-                    <X className="w-4 h-4" />
-                </Button>
+              <Button variant="ghost" size="icon" onClick={clearFilters} title="Reset Filters">
+                <X className="w-4 h-4" />
+              </Button>
             )}
           </div>
-          
+
           {/* Secondary Filters (Tabs style) */}
           <div className="flex gap-2 mt-4">
-             <Badge 
-                variant={filterType === 'all' ? 'default' : 'outline'} 
-                className="cursor-pointer"
-                onClick={() => setFilterType('all')}
-             >
-                All Students
-             </Badge>
-             <Badge 
-                variant={filterType === 'top' ? 'default' : 'outline'} 
-                className="cursor-pointer border-amber-200 text-amber-700 hover:bg-amber-100"
-                onClick={() => setFilterType('top')}
-             >
-                <Star className="w-3 h-3 mr-1" /> Top Performers
-             </Badge>
-             <Badge 
-                variant={filterType === 'featured' ? 'default' : 'outline'} 
-                className="cursor-pointer border-blue-200 text-blue-700 hover:bg-blue-100"
-                onClick={() => setFilterType('featured')}
-             >
-                <GraduationCap className="w-3 h-3 mr-1" /> Graduates
-             </Badge>
+            <Badge
+              variant={filterType === 'all' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setFilterType('all')}
+            >
+              All Students
+            </Badge>
+            <Badge
+              variant={filterType === 'top' ? 'default' : 'outline'}
+              className="cursor-pointer border-amber-200 text-amber-700 hover:bg-amber-100"
+              onClick={() => setFilterType('top')}
+            >
+              <Star className="w-3 h-3 mr-1" /> Top Performers
+            </Badge>
+            <Badge
+              variant={filterType === 'featured' ? 'default' : 'outline'}
+              className="cursor-pointer border-blue-200 text-blue-700 hover:bg-blue-100"
+              onClick={() => setFilterType('featured')}
+            >
+              <GraduationCap className="w-3 h-3 mr-1" /> Graduates
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -302,102 +422,100 @@ export const StudentManager = () => {
                   </TableRow>
                 ) : (
                   filteredStudents.map((student) => (
-                    <TableRow 
-                      key={student.id} 
+                    <TableRow
+                      key={student.id}
                       className="group hover:bg-muted/50 transition-colors"
                     >
                       {/* 1. Student Info */}
                       <TableCell>
                         <div className="flex flex-col">
-                            <span className="font-semibold text-foreground">{student.name}</span>
-                            <span className="text-xs text-muted-foreground">{student.email}</span>
-                            <span className="text-[10px] font-mono text-muted-foreground/70">{student.regId}</span>
+                          <span className="font-semibold text-foreground">{student.name}</span>
+                          <span className="text-xs text-muted-foreground">{student.email}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground/70">{student.regId}</span>
                         </div>
                       </TableCell>
 
                       {/* 2. Batch */}
                       <TableCell>
                         <Badge variant="outline" className="font-normal text-muted-foreground">
-                            {formatBatchForDisplay(student.batch, false)}
+                          {student.batch}
                         </Badge>
                       </TableCell>
 
                       {/* 3. Profile Status */}
                       <TableCell>
                         {student.isProfileComplete ? (
-                            <div className="flex items-center gap-1.5 text-green-600 bg-green-50 w-fit px-2 py-1 rounded-md border border-green-100">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">Complete</span>
-                            </div>
+                          <div className="flex items-center gap-1.5 text-green-600 bg-green-50 w-fit px-2 py-1 rounded-md border border-green-100">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium">Complete</span>
+                          </div>
                         ) : (
-                            <div className="flex items-center gap-1.5 text-orange-600 bg-orange-50 w-fit px-2 py-1 rounded-md border border-orange-100">
-                                <AlertCircle className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">Incomplete</span>
-                            </div>
+                          <div className="flex items-center gap-1.5 text-orange-600 bg-orange-50 w-fit px-2 py-1 rounded-md border border-orange-100">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium">Incomplete</span>
+                          </div>
                         )}
                       </TableCell>
 
                       {/* 4. Highlights (Interactive) */}
                       <TableCell>
                         <div className="flex items-center gap-2">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon"
-                                            onClick={(e) => { e.stopPropagation(); toggleAttribute(student, 'isTopPerformer'); }}
-                                            className={`h-8 w-8 rounded-full transition-all ${
-                                                student.isTopPerformer 
-                                                ? 'bg-amber-100 text-amber-500 hover:bg-amber-200' 
-                                                : 'text-muted-foreground hover:text-amber-500 hover:bg-amber-50'
-                                            }`}
-                                        >
-                                            <Star className={`w-4 h-4 ${student.isTopPerformer ? 'fill-current' : ''}`} />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Toggle Top Performer</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => { e.stopPropagation(); toggleAttribute(student, 'isTopPerformer'); }}
+                                  className={`h-8 w-8 rounded-full transition-all ${student.isTopPerformer
+                                      ? 'bg-amber-100 text-amber-500 hover:bg-amber-200'
+                                      : 'text-muted-foreground hover:text-amber-500 hover:bg-amber-50'
+                                    }`}
+                                >
+                                  <Star className={`w-4 h-4 ${student.isTopPerformer ? 'fill-current' : ''}`} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Toggle Top Performer</p></TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
 
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon"
-                                            onClick={(e) => { e.stopPropagation(); toggleAttribute(student, 'isFeatured'); }}
-                                            className={`h-8 w-8 rounded-full transition-all ${
-                                                student.isFeatured 
-                                                ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' 
-                                                : 'text-muted-foreground hover:text-blue-600 hover:bg-blue-50'
-                                            }`}
-                                        >
-                                            <GraduationCap className="w-4 h-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Toggle Graduate / Featured</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => { e.stopPropagation(); toggleAttribute(student, 'isFeatured'); }}
+                                  className={`h-8 w-8 rounded-full transition-all ${student.isFeatured
+                                      ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                                      : 'text-muted-foreground hover:text-blue-600 hover:bg-blue-50'
+                                    }`}
+                                >
+                                  <GraduationCap className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Toggle Graduate / Featured</p></TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
 
                       {/* 5. Actions */}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-primary"
                             onClick={() => handleViewDetails(student)}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <EyeIcon className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={(e) => handleDelete(student.id, e)}
+                            onClick={(e) => initiateDelete(student.id, e)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -412,7 +530,16 @@ export const StudentManager = () => {
         </CardContent>
       </Card>
 
-      {/* Create Dialog (Kept same logic) */}
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={confirmDelete}
+        itemName={studentToDelete?.name}
+        description="This will remove the student, their profile, and all associated project data."
+      />
+
+      {/* Create Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -422,23 +549,23 @@ export const StudentManager = () => {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+              <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+              <Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="batch">Batch</Label>
-              <Select value={formData.batch} onValueChange={(val) => setFormData({...formData, batch: val})}>
+              <Select value={formData.batch} onValueChange={(val) => setFormData({ ...formData, batch: val })}>
                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
-                  {BATCHES.map((batch) => (
-                    <SelectItem key={batch.id} value={batch.id}>{batch.displayName}</SelectItem>
+                  {batches.map((batch) => (
+                    <SelectItem key={batch} value={batch}>{batch}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -452,11 +579,11 @@ export const StudentManager = () => {
       </Dialog>
 
       {/* Detail Sheet */}
-      <UserDetailSheet 
-        isOpen={isSheetOpen} 
-        onClose={() => setIsSheetOpen(false)} 
-        user={selectedStudent} 
-        type="student" 
+      <UserDetailSheet
+        isOpen={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+        user={selectedStudent}
+        type="student"
       />
     </div>
   );

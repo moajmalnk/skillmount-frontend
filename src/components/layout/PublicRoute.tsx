@@ -7,10 +7,17 @@ export const PublicRoute = () => {
   if (isLoading) return null;
 
   // SAFETY TRAP: 
-  // If user is logged in BUT has an incomplete profile, 
-  // they are NOT allowed to browse public pages (Home, Students, etc).
-  // They must go to Onboarding first.
-  if (isAuthenticated && user && !user.isProfileComplete) {
+  // Normally, if a user is logged in but has an incomplete profile, 
+  // we force them to Onboarding so they can't browse the landing page.
+  
+  // FIX: We added (user.role !== 'super_admin') condition here.
+  // Now, if it's an Admin, we ignore the profile status and let them pass.
+  if (
+    isAuthenticated && 
+    user && 
+    user.role !== 'super_admin' && 
+    !user.isProfileComplete
+  ) {
     return <Navigate to="/onboarding" replace />;
   }
 

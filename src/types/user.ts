@@ -1,26 +1,27 @@
 export type UserRole = "student" | "tutor" | "affiliate" | "super_admin";
-export type UserStatus = "Active" | "Inactive" | "Pending";
+export type UserStatus = "Active" | "Inactive" | "Pending" | "Suspended";
 
 export interface BaseUser {
   id: string;
   regId?: string;
   name: string;
   email: string;
-  phone?: string; // Often used as WhatsApp
+  phone?: string;
   role: UserRole;
   status: UserStatus;
   createdAt: string;
   avatar?: string;
   isProfileComplete?: boolean;
+  password?: string;
 }
 
-// ... (StudentProject, SocialLinks, PlacementData interfaces remain same) ...
 export interface StudentProject {
   id: string;
   title: string;
   description: string;
   technologies: string[];
-  imageUrl: string;
+  imageUrl: string; // Kept for backward compatibility (Main/Cover Image)
+  images?: string[];
   demoUrl?: string;
   repoUrl?: string;
   featured?: boolean;
@@ -46,43 +47,61 @@ export interface Student extends BaseUser {
   batch: string;
   mentor?: string;
   coordinator?: string;
-  
-  // -- Onboarding Specific Fields (Added these) --
+
   dob?: string;
   address?: string;
   pincode?: string;
   qualification?: string;
   aim?: string;
-  
-  // -- Enhanced Profile Fields --
+
   headline?: string;
   bio?: string;
-  location?: string; // Public display location (e.g. "City, Country")
-  
+  location?: string;
+
   socials?: SocialLinks;
-  
+
   skills: string[];
   projects: StudentProject[];
   experience?: string;
-  
-  // -- Admin Controls --
+
   isTopPerformer?: boolean;
   isFeatured?: boolean;
   achievements?: string[];
   placement?: PlacementData;
+  resume?: string; // URL to resume file
 }
 
-// ... (Tutor and Affiliate interfaces remain same) ...
 export interface Tutor extends BaseUser {
   role: "tutor";
   topics: string[];
+  dob?: string;
+  address?: string;
+  pincode?: string;
+  qualification?: string;
 }
 
 export interface Affiliate extends BaseUser {
   role: "affiliate";
-  couponCode: string;
-  platform: string;
+  // Nested profile data from Backend
+  affiliate_profile?: {
+    coupon_code: string;
+    total_earnings: number;
+    total_referrals: number;
+    platform: string;
+  };
+
+  // Deprecated/Frontend-only aliases
+  couponCode?: string;
+  platform?: string;
   earnings?: number;
+
+  // Onboarding Data
+  whatsappNumber?: string;
+  domain?: string;
+  address?: string;
+  pincode?: string;
+  dob?: string;
+  qualification?: string;
 }
 
 export type User = Student | Tutor | Affiliate | BaseUser;

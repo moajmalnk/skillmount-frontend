@@ -9,10 +9,11 @@ interface ManagementTableProps {
   description?: string;
   columns: string[];
   onAddNew?: () => void;
-  children?: ReactNode; // <--- ADD THIS
+  filters?: ReactNode; // New prop for filter bar
+  children?: ReactNode;
 }
 
-export const ManagementTable = ({ title, description, columns, onAddNew, children }: ManagementTableProps) => {
+export const ManagementTable = ({ title, description, columns, onAddNew, filters, children }: ManagementTableProps) => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -20,12 +21,15 @@ export const ManagementTable = ({ title, description, columns, onAddNew, childre
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description || `Manage your ${title.toLowerCase()}`}</CardDescription>
         </div>
-        <Button onClick={onAddNew}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add New
-        </Button>
+        {onAddNew && (
+          <Button onClick={onAddNew}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add New
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
+        {filters && <div className="mb-4">{filters}</div>}
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -37,7 +41,7 @@ export const ManagementTable = ({ title, description, columns, onAddNew, childre
               </TableRow>
             </TableHeader>
             <TableBody>
-              {children} 
+              {children}
             </TableBody>
           </Table>
         </div>

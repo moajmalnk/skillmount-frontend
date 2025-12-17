@@ -3,10 +3,11 @@ export type TicketStatus = "Open" | "Closed" | "Pending";
 
 export interface TicketMessage {
   id: string;
-  sender: "student" | "tutor" | "admin";
-  text: string;
-  time: string;
-  attachments?: string[];
+  sender_name: string;
+  message: string;
+  timestamp: string;
+  attachment?: string | null;
+  voice_note?: string | null;
 }
 
 export interface Ticket {
@@ -16,7 +17,7 @@ export interface Ticket {
   category: string;
   priority: TicketPriority;
   status: TicketStatus;
-  date: string;
+  created_at: string;
   student: {
     id: string;
     name: string;

@@ -1,23 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
-import { 
-  Card, 
-  CardContent, 
+import {
+  Card,
+  CardContent,
 } from "@/components/ui/card";
-import { 
-  Pencil, Trash2, Video, Palette, Package, FileCode, FolderOpen, 
-  Link as LinkIcon, Loader2, Code as CodeIcon, Plus, Search, Filter, X 
+import {
+  Pencil, Trash2, Video, Palette, Package, FileCode, FolderOpen,
+  Link as LinkIcon, Loader2, Code as CodeIcon, Plus, Search, Filter, X,
+  Upload, FileText
 } from "lucide-react";
 import {
   Dialog,
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
 
 // Import Service & Types
 import { materialService } from "@/services/materialService";
@@ -54,7 +56,7 @@ export const MaterialsManager = () => {
 
   // --- MODAL STATE ---
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  
+
   // Extended Form State
   const [formData, setFormData] = useState<Partial<Material>>({
     title: "",
@@ -68,6 +70,16 @@ export const MaterialsManager = () => {
     version: "",
     size: ""
   });
+
+  // File Upload State
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- DELETE STATE ---
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // --- EDIT STATE ---
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // 1. Load Data
   const loadMaterials = async () => {
@@ -92,10 +104,10 @@ export const MaterialsManager = () => {
   // 3. Filter Logic
   const filteredMaterials = materials.filter((item) => {
     const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       item.title.toLowerCase().includes(searchLower) ||
       item.description?.toLowerCase().includes(searchLower);
-    
+
     const matchesType = filterType === "all" || item.type === filterType;
     const matchesCategory = filterCategory === "all" || item.category === filterCategory;
 
@@ -118,15 +130,59 @@ export const MaterialsManager = () => {
     }
   };
 
-  const handleCreate = async () => {
-    if (!formData.title || !formData.type || !formData.url) {
-      toast.error("Title, Type, and Main URL are mandatory.");
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+      // Auto-fill size if empty
+      if (!formData.size) {
+        const sizeInMB = (e.target.files[0].size / (1024 * 1024)).toFixed(2);
+        setFormData(prev => ({ ...prev, size: `${sizeInMB} MB` }));
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "", type: "Video", category: "", url: "", description: "",
+      embedUrl: "", code: "", language: "PHP", version: "", size: ""
+    });
+    setSelectedFile(null);
+    setEditingId(null);
+    setIsCreateOpen(false);
+  };
+
+  const initiateEdit = (material: Material) => {
+    setEditingId(material.id);
+    setFormData({
+      title: material.title,
+      type: material.type,
+      category: material.category,
+      url: material.url || "",
+      description: material.description || "",
+      embedUrl: material.embedUrl || "",
+      code: material.code || "", // Should be mapped from code_snippet by service but checking
+      language: material.language || "PHP",
+      version: material.version || "",
+      size: material.size || ""
+    });
+    setIsCreateOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.title || !formData.type) {
+      toast.error("Title and Type are mandatory.");
+      return;
+    }
+
+    // Validation: Require either URL OR File (Only allow skip if editing existing and URL is present or if Snippet)
+    if (!formData.url && !selectedFile && formData.type !== 'Snippet' && !editingId) {
+      toast.error("Please provide a URL or upload a file.");
       return;
     }
 
     if (formData.type === 'Snippet' && !formData.code) {
-        toast.error("Code content is required for Snippets");
-        return;
+      toast.error("Code content is required for Snippets");
+      return;
     }
 
     try {
@@ -134,41 +190,57 @@ export const MaterialsManager = () => {
         title: formData.title,
         type: formData.type as MaterialType,
         category: formData.category || "General",
-        url: formData.url,
+        url: formData.url || "", // Backend handles file url generation
         description: formData.description,
         ...(formData.type === 'Video' && { embedUrl: formData.embedUrl || formData.url }),
         ...(formData.type === 'Snippet' && { code: formData.code, language: formData.language }),
-        ...((formData.type === 'Theme' || formData.type === 'Plugin' || formData.type === 'Asset') && { 
-            version: formData.version, 
-            size: formData.size 
+        ...((formData.type === 'Theme' || formData.type === 'Plugin' || formData.type === 'Asset') && {
+          version: formData.version,
+          size: formData.size
         }),
       };
 
-      await materialService.create(payload);
+      // If file exists, pass it along
+      if (selectedFile) {
+        payload.file = selectedFile;
+      }
 
-      toast.success("Material added successfully!");
-      setIsCreateOpen(false);
-      setFormData({ 
-        title: "", type: "Video", category: "", url: "", description: "", 
-        embedUrl: "", code: "", language: "PHP", version: "", size: "" 
-      });
+      if (editingId) {
+        await materialService.update(editingId, payload);
+        toast.success("Material updated successfully!");
+      } else {
+        await materialService.create(payload);
+        toast.success("Material added successfully!");
+      }
+
+      resetForm();
       loadMaterials();
 
     } catch (error) {
-      toast.error("Failed to add material");
+      console.error(error);
+      toast.error(editingId ? "Failed to update material" : "Failed to add material");
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if(!confirm("Are you sure you want to delete this resource?")) return;
+  // --- DELETE HANDLERS ---
+  const initiateDelete = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await materialService.delete(id);
-      toast.success("Material deleted");
+      await materialService.delete(deleteId);
+      toast.success("Material deleted successfully");
       loadMaterials();
     } catch (error) {
       toast.error("Failed to delete material");
+    } finally {
+      setDeleteId(null);
     }
   };
+
+  const materialToDelete = materials.find(m => m.id === deleteId);
 
   return (
     <div className="space-y-4">
@@ -190,8 +262,8 @@ export const MaterialsManager = () => {
             {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search by title or description..." 
+              <Input
+                placeholder="Search by title or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -231,9 +303,9 @@ export const MaterialsManager = () => {
 
             {/* Clear Button */}
             {(searchQuery || filterType !== 'all' || filterCategory !== 'all') && (
-                <Button variant="ghost" size="icon" onClick={clearFilters} title="Reset Filters">
-                    <X className="w-4 h-4" />
-                </Button>
+              <Button variant="ghost" size="icon" onClick={clearFilters} title="Reset Filters">
+                <X className="w-4 h-4" />
+              </Button>
             )}
           </div>
         </CardContent>
@@ -285,15 +357,28 @@ export const MaterialsManager = () => {
                       </TableCell>
                       <TableCell><Badge variant="outline">{item.category}</Badge></TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {item.type === 'Video' && <span className="flex items-center gap-1"><LinkIcon className="w-3 h-3"/> Video</span>}
-                        {item.type === 'Snippet' && <span className="flex items-center gap-1"><CodeIcon className="w-3 h-3"/> {item.language}</span>}
+                        {item.type === 'Video' && <span className="flex items-center gap-1"><LinkIcon className="w-3 h-3" /> Video</span>}
+                        {item.type === 'Snippet' && <span className="flex items-center gap-1"><CodeIcon className="w-3 h-3" /> {item.language}</span>}
                         {(item.type === 'Theme' || item.type === 'Plugin') && <span>v{item.version || '1.0'} • {item.size || 'N/A'}</span>}
                         {item.type === 'Asset' && <span>{item.size || 'N/A'}</span>}
                       </TableCell>
                       <TableCell className="text-xs">{item.lastUpdated}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(item.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            onClick={() => initiateEdit(item)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => initiateDelete(item.id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -308,107 +393,148 @@ export const MaterialsManager = () => {
       </Card>
 
       {/* Create Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={(open) => !open && resetForm()}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Material</DialogTitle>
-            <DialogDescription>Add a resource for students. Fields change based on type.</DialogDescription>
+            <DialogTitle>{editingId ? "Edit Material" : "Add New Material"}</DialogTitle>
+            <DialogDescription>{editingId ? "Update material details." : "Add a resource for students. Fields change based on type."}</DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             {/* Common Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={formData.type} onValueChange={(val: MaterialType) => setFormData({...formData, type: val})}>
+                <Select value={formData.type} onValueChange={(val: MaterialType) => setFormData({ ...formData, type: val })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{MATERIAL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Input placeholder="e.g. WordPress" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} />
+                <Input placeholder="e.g. WordPress" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Title</Label>
-              <Input placeholder="Resource Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+              <Input placeholder="Resource Title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
             </div>
 
+            {/* Dynamic Source Input: URL vs File */}
             <div className="space-y-2">
-              <Label>Main URL (Download/View)</Label>
-              <Input placeholder="https://..." value={formData.url} onChange={(e) => setFormData({...formData, url: e.target.value})} />
+              <Label>Source (File or URL)</Label>
+              <div className="flex flex-col gap-3">
+                {/* Option 1: File Upload */}
+                {['Theme', 'Plugin', 'Asset'].includes(formData.type as string) && (
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${selectedFile ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Upload className="w-4 h-4" />
+                      {selectedFile ? selectedFile.name : (editingId && formData.url ? "Replace existing file" : "Click to upload file")}
+                    </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                  </div>
+                )}
+
+                {/* Option 2: External URL */}
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-xs text-muted-foreground font-medium">OR</span>
+                  <Input
+                    placeholder="https://example.com/download"
+                    className="pl-10"
+                    value={formData.url}
+                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                    disabled={!!selectedFile}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* --- CONDITIONAL FIELDS BASED ON TYPE --- */}
-            
+
             {/* 1. Video Specific */}
             {formData.type === 'Video' && (
-                <div className="space-y-2 bg-blue-50/50 p-3 rounded-md border border-blue-100">
-                    <Label className="text-blue-700">Embed URL (For Player)</Label>
-                    <Input 
-                        placeholder="https://www.youtube.com/embed/..." 
-                        value={formData.embedUrl} 
-                        onChange={(e) => setFormData({...formData, embedUrl: e.target.value})} 
-                    />
-                    <p className="text-[10px] text-muted-foreground">The link used inside the iframe player.</p>
-                </div>
+              <div className="space-y-2 bg-blue-50/50 p-3 rounded-md border border-blue-100">
+                <Label className="text-blue-700">Embed URL (For Player)</Label>
+                <Input
+                  placeholder="https://www.youtube.com/embed/..."
+                  value={formData.embedUrl}
+                  onChange={(e) => setFormData({ ...formData, embedUrl: e.target.value })}
+                />
+                <p className="text-[10px] text-muted-foreground">The link used inside the iframe player.</p>
+              </div>
             )}
 
             {/* 2. Snippet Specific */}
             {formData.type === 'Snippet' && (
-                <div className="space-y-3 bg-slate-50/50 p-3 rounded-md border border-slate-100">
-                    <div className="space-y-2">
-                        <Label>Language</Label>
-                        <Select value={formData.language} onValueChange={(val) => setFormData({...formData, language: val})}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="PHP">PHP</SelectItem>
-                                <SelectItem value="CSS">CSS</SelectItem>
-                                <SelectItem value="JavaScript">JavaScript</SelectItem>
-                                <SelectItem value="HTML">HTML</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Code Content</Label>
-                        <Textarea 
-                            className="font-mono text-xs h-32" 
-                            placeholder="Paste code here..."
-                            value={formData.code}
-                            onChange={(e) => setFormData({...formData, code: e.target.value})}
-                        />
-                    </div>
+              <div className="space-y-3 bg-slate-50/50 p-3 rounded-md border border-slate-100">
+                <div className="space-y-2">
+                  <Label>Language</Label>
+                  <Select value={formData.language} onValueChange={(val) => setFormData({ ...formData, language: val })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PHP">PHP</SelectItem>
+                      <SelectItem value="CSS">CSS</SelectItem>
+                      <SelectItem value="JavaScript">JavaScript</SelectItem>
+                      <SelectItem value="HTML">HTML</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Code Content</Label>
+                  <Textarea
+                    className="font-mono text-xs h-32"
+                    placeholder="Paste code here..."
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  />
+                </div>
+              </div>
             )}
 
             {/* 3. Theme/Plugin/Asset Specific */}
             {(formData.type === 'Theme' || formData.type === 'Plugin' || formData.type === 'Asset') && (
-                <div className="grid grid-cols-2 gap-4 bg-orange-50/50 p-3 rounded-md border border-orange-100">
-                    <div className="space-y-2">
-                        <Label>Version</Label>
-                        <Input placeholder="e.g. 1.0.4" value={formData.version} onChange={(e) => setFormData({...formData, version: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Size</Label>
-                        <Input placeholder="e.g. 12 MB" value={formData.size} onChange={(e) => setFormData({...formData, size: e.target.value})} />
-                    </div>
+              <div className="grid grid-cols-2 gap-4 bg-orange-50/50 p-3 rounded-md border border-orange-100">
+                <div className="space-y-2">
+                  <Label>Version</Label>
+                  <Input placeholder="e.g. 1.0.4" value={formData.version} onChange={(e) => setFormData({ ...formData, version: e.target.value })} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Size</Label>
+                  <Input placeholder="e.g. 12 MB" value={formData.size} onChange={(e) => setFormData({ ...formData, size: e.target.value })} />
+                </div>
+              </div>
             )}
 
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea placeholder="Brief description..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+              <Textarea placeholder="Brief description..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate}>Add Material</Button>
+            <Button variant="outline" onClick={resetForm}>Cancel</Button>
+            <Button onClick={handleSave}>{editingId ? "Update Material" : "Add Material"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={confirmDelete}
+        itemName={materialToDelete?.title}
+        description="This will permanently delete the resource. Students will no longer be able to access or download it."
+      />
     </div>
   );
 };

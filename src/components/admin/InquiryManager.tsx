@@ -3,7 +3,7 @@ import { ManagementTable } from "@/components/admin/ManagementTable";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Mail, CheckCircle2, Loader2, MessageSquare } from "lucide-react";
+import { Trash2, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { inquiryService, Inquiry } from "@/services/inquiryService";
 import {
@@ -13,11 +13,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog"; // Import the delete dialog
 
 export const InquiryManager = () => {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // View Modal State
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+
+  // Delete State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -35,12 +41,23 @@ export const InquiryManager = () => {
     loadData();
   }, []);
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  // --- DELETE HANDLERS ---
+  const initiateDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if(!confirm("Are you sure?")) return;
-    await inquiryService.delete(id);
-    toast.success("Inquiry deleted");
-    loadData();
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await inquiryService.delete(deleteId);
+      toast.success("Inquiry deleted successfully");
+      loadData();
+    } catch (error) {
+      toast.error("Failed to delete inquiry");
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   const handleMarkRead = async (id: string, e: React.MouseEvent) => {
@@ -52,38 +69,38 @@ export const InquiryManager = () => {
 
   const handleView = (inq: Inquiry) => {
     setSelectedInquiry(inq);
-    if(inq.status === 'New') {
-        inquiryService.markAsRead(inq.id).then(loadData);
+    if (inq.status === 'New') {
+      inquiryService.markAsRead(inq.id).then(loadData);
     }
   };
 
   const getStatusBadge = (status: string) => {
-    switch(status) {
-        case 'New': return <Badge variant="destructive" className="animate-pulse">New</Badge>;
-        case 'Replied': return <Badge variant="default" className="bg-green-600 hover:bg-green-700">Replied</Badge>;
-        default: return <Badge variant="secondary">Read</Badge>;
+    switch (status) {
+      case 'New': return <Badge variant="destructive" className="animate-pulse">New</Badge>;
+      case 'Replied': return <Badge variant="default" className="bg-green-600 hover:bg-green-700">Replied</Badge>;
+      default: return <Badge variant="secondary">Read</Badge>;
     }
   };
 
+  const inquiryToDelete = inquiries.find(i => i.id === deleteId);
+
   return (
     <>
-      <ManagementTable 
-        title="General Inquiries" 
+      <ManagementTable
+        title="General Inquiries"
         description="Messages from the public contact form."
-        // FIXED: Removed "Actions" from this array because ManagementTable adds it automatically
         columns={["Date", "Name", "Subject", "Message", "Status"]}
-        onAddNew={() => {}} // Hide Add Button
       >
         {isLoading ? (
-          <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary"/></TableCell></TableRow>
+          <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
         ) : inquiries.length === 0 ? (
           <TableRow><TableCell colSpan={6} className="text-center py-8">No inquiries yet.</TableCell></TableRow>
         ) : (
           inquiries.map((inq) => (
-            <TableRow 
-                key={inq.id} 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => handleView(inq)}
+            <TableRow
+              key={inq.id}
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => handleView(inq)}
             >
               <TableCell className="whitespace-nowrap text-xs text-muted-foreground font-mono">{inq.date}</TableCell>
               <TableCell>
@@ -97,15 +114,32 @@ export const InquiryManager = () => {
               <TableCell>{getStatusBadge(inq.status)}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); window.location.href=`mailto:${inq.email}`; }}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                    onClick={(e) => { e.stopPropagation(); window.location.href = `mailto:${inq.email}`; }}
+                  >
                     <Mail className="w-4 h-4" />
                   </Button>
+
                   {inq.status === 'New' && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={(e) => handleMarkRead(inq.id, e)}>
-                        <CheckCircle2 className="w-4 h-4" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-green-600 hover:bg-green-50"
+                      onClick={(e) => handleMarkRead(inq.id, e)}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={(e) => handleDelete(inq.id, e)}>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    onClick={(e) => initiateDelete(inq.id, e)}
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -120,44 +154,53 @@ export const InquiryManager = () => {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex justify-between items-center">
-                <span>Inquiry Details</span>
-                {selectedInquiry && getStatusBadge(selectedInquiry.status)}
+              <span>Inquiry Details</span>
+              {selectedInquiry && getStatusBadge(selectedInquiry.status)}
             </DialogTitle>
             <DialogDescription>Received on {selectedInquiry?.date}</DialogDescription>
           </DialogHeader>
-          
+
           {selectedInquiry && (
             <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <span className="text-muted-foreground text-xs block">Name</span>
-                        <span className="font-medium">{selectedInquiry.name}</span>
-                    </div>
-                    <div>
-                        <span className="text-muted-foreground text-xs block">Phone</span>
-                        <span className="font-medium">{selectedInquiry.phone}</span>
-                    </div>
-                    <div className="col-span-2">
-                        <span className="text-muted-foreground text-xs block">Email</span>
-                        <span className="font-medium">{selectedInquiry.email}</span>
-                    </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground text-xs block">Name</span>
+                  <span className="font-medium">{selectedInquiry.name}</span>
                 </div>
-                
-                <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
-                    <span className="text-muted-foreground text-xs block mb-1">Message</span>
-                    <p className="text-sm leading-relaxed">{selectedInquiry.message}</p>
+                <div>
+                  <span className="text-muted-foreground text-xs block">Phone</span>
+                  <span className="font-medium">{selectedInquiry.phone}</span>
                 </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground text-xs block">Email</span>
+                  <span className="font-medium">{selectedInquiry.email}</span>
+                </div>
+              </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline" onClick={() => setSelectedInquiry(null)}>Close</Button>
-                    <Button onClick={() => window.location.href=`mailto:${selectedInquiry.email}`}>
-                        <Mail className="w-4 h-4 mr-2" /> Reply via Email
-                    </Button>
-                </div>
+              <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
+                <span className="text-muted-foreground text-xs block mb-1">Message</span>
+                <p className="text-sm leading-relaxed">{selectedInquiry.message}</p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setSelectedInquiry(null)}>Close</Button>
+                <Button onClick={() => window.location.href = `mailto:${selectedInquiry.email}`}>
+                  <Mail className="w-4 h-4 mr-2" /> Reply via Email
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={confirmDelete}
+        itemName={`Message from ${inquiryToDelete?.name}`}
+        description="This will permanently delete this inquiry message."
+      />
     </>
   );
 };

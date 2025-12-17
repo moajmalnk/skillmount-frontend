@@ -12,24 +12,38 @@ import { Affiliate } from "@/types/user"; // Import the type
 
 export default function AffiliateHub() {
   const { user } = useAuth();
-  
+
   // 1. Cast the generic user to Affiliate type to access 'couponCode'
   // In a real app, you might want to fetch the latest stats from the backend here
-  const affiliateUser = user as Affiliate; 
+  const affiliateUser = user as Affiliate;
 
-  // 2. Use real data or fallback
-  const couponCode = affiliateUser?.couponCode || "PENDING"; 
+  // 2. Real Data Binding from User Context
+  const earnings = affiliateUser?.affiliate_profile?.total_earnings || 0;
+  const referrals = affiliateUser?.affiliate_profile?.total_referrals || 0;
+  const couponCode = affiliateUser?.affiliate_profile?.coupon_code || "PENDING";
+
   const referralLink = `${window.location.origin}/?ref=${couponCode}`;
-  
-  // Mock Stats (These should eventually come from an API endpoint like /api/affiliate/stats)
+
+  // Calculate specific metrics
+  // Mock conversion rate for now as we don't track clicks yet, but referrals/earnings are real
+  const conversionRate = referrals > 0 ? "5.2%" : "0%";
+
   const stats = [
-    { 
-      label: "Total Earnings", 
-      value: affiliateUser?.earnings ? `$${affiliateUser.earnings}` : "$0.00", 
-      icon: DollarSign, color: "text-green-500", bg: "bg-green-500/10" 
+    {
+      label: "Total Earnings",
+      value: `$${earnings}`,
+      icon: DollarSign, color: "text-green-500", bg: "bg-green-500/10"
     },
-    { label: "Referrals", value: "0", icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Conversion Rate", value: "0%", icon: TrendingUp, color: "text-purple-500", bg: "bg-purple-500/10" },
+    {
+      label: "Referrals",
+      value: referrals.toString(),
+      icon: Users, color: "text-blue-500", bg: "bg-blue-500/10"
+    },
+    {
+      label: "Conversion Rate",
+      value: conversionRate,
+      icon: TrendingUp, color: "text-purple-500", bg: "bg-purple-500/10"
+    },
   ];
 
   const copyToClipboard = (text: string, type: string) => {
@@ -62,8 +76,8 @@ export default function AffiliateHub() {
             <Sparkles className="w-4 h-4" />
             <span className="text-sm font-medium">Partner Program</span>
           </div>
-          <TextGenerateEffect 
-            words={`Welcome, ${user?.name}`} 
+          <TextGenerateEffect
+            words={`Welcome, ${user?.name}`}
             className="text-4xl md:text-5xl font-bold mb-4"
           />
           <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -73,7 +87,7 @@ export default function AffiliateHub() {
 
         {/* Dashboard Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
-          
+
           {/* Left: Quick Stats */}
           <div className="lg:col-span-2 space-y-8">
             <ContainerScrollAnimation direction="up" speed="fast">
@@ -146,7 +160,7 @@ export default function AffiliateHub() {
                       No activity yet. Start sharing your link!
                     </div>
                   </div>
-                  
+
                   <div className="mt-8 pt-6 border-t border-border/50">
                     <Button className="w-full" variant="outline">
                       <ExternalLink className="w-4 h-4 mr-2" /> View Detailed Report

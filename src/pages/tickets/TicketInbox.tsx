@@ -1,70 +1,63 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import ProfessionalBackground from "@/components/ProfessionalBackground";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 // Import the shared components
 import { TicketList } from "@/components/tickets/TicketList";
 import { TicketDetailModal } from "@/components/tickets/TicketDetailModal";
 
-// Import the shared Type
+// Import Service & Type
+import { ticketService } from "@/services/ticketService";
 import { Ticket } from "@/types/ticket";
 
-// Mock Data: Specific to the logged-in Tutor
-const TUTOR_TICKETS: Ticket[] = [
-  {
-    id: "TKT-2024-001",
-    title: "Elementor Mobile Menu Issue",
-    description: "The mobile menu is not collapsing when I click the link on the home page. I've tried changing the Z-index but it didn't help.",
-    date: "2025-10-20",
-    category: "Technical Support",
-    priority: "Medium",
-    status: "Open",
-    student: { 
-      id: "STU-00571", 
-      name: "Zareena", 
-      email: "zareena@example.com",
-      avatar: "", // Add URL if available
-      batch: "Batch 14"
-    }
-  },
-  {
-    id: "TKT-2024-002",
-    title: "Clarification on React Props",
-    description: "I am confused about how to pass props from child to parent component. Can you explain the concept of 'Lifting State Up'?",
-    date: "2025-10-29",
-    category: "Course Doubt",
-    priority: "High",
-    status: "Open",
-    student: { 
-      id: "STU-00715", 
-      name: "Anju Aravind", 
-      email: "anju@example.com",
-      batch: "Batch 15"
-    }
-  }
-];
-
 export default function TicketInbox() {
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Handler when a tutor clicks a ticket in the list
+  // 1. Fetch Real Data
+  const loadTickets = async () => {
+    setIsLoading(true);
+    try {
+      const data = await ticketService.getAll();
+      setTickets(data);
+    } catch (error) {
+      console.error("Failed to load tickets", error);
+      toast.error("Failed to load tickets");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTickets();
+  }, []);
+
+  // 2. Handler when a tutor clicks a ticket
   const handleOpenTicket = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setIsModalOpen(true);
   };
 
-  // Filter logic (Optional: You can add more complex filters here)
-  const openTickets = TUTOR_TICKETS.filter(t => t.status === "Open");
-  const closedTickets = TUTOR_TICKETS.filter(t => t.status === "Closed");
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    loadTickets(); // Refresh data to see new messages/status changes
+  };
+
+  // Active tickets are those still open (tutors/admins give a final reply which closes the ticket).
+  const openTickets = tickets.filter(t => t.status === "Open");
+  const closedTickets = tickets.filter(t => t.status === "Closed");
 
   return (
     <div className="min-h-screen bg-background relative">
       {/* Subtle Professional Background */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <ProfessionalBackground
-          src="/assets/img/hero/tutor-bg.webp" // Ensure you have a valid image path here
+          src="/assets/img/hero/tutor-bg.webp" // Ensure path exists
           alt="Background"
           className="w-full h-full opacity-[0.02]"
           overlay={true}
@@ -77,7 +70,7 @@ export default function TicketInbox() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Tutor Inbox</h1>
             <p className="text-muted-foreground">
-              Manage student queries and provide expert support.
+              Review student tickets and send a clear, final reply for each one.
             </p>
           </div>
         </div>
@@ -87,7 +80,7 @@ export default function TicketInbox() {
           <div className="flex items-center justify-between mb-4">
             <TabsList className="bg-muted/50 p-1 rounded-lg">
               <TabsTrigger value="open" className="px-6">
-                Assigned to Me ({openTickets.length})
+                Active Tickets ({openTickets.length})
               </TabsTrigger>
               <TabsTrigger value="closed" className="px-6">
                 Resolved History ({closedTickets.length})
@@ -95,14 +88,20 @@ export default function TicketInbox() {
             </TabsList>
           </div>
 
-          {/* OPEN TICKETS TAB */}
+          {/* OPEN / PENDING TICKETS TAB */}
           <TabsContent value="open">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm">
               <CardContent className="p-0">
-                <TicketList 
-                  tickets={openTickets} 
-                  onSelectTicket={handleOpenTicket} 
-                />
+                {isLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <TicketList 
+                    tickets={openTickets} 
+                    onSelectTicket={handleOpenTicket} 
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -111,7 +110,11 @@ export default function TicketInbox() {
           <TabsContent value="closed">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm">
               <CardContent className="p-0">
-                {closedTickets.length > 0 ? (
+                {isLoading ? (
+                   <div className="flex justify-center py-12">
+                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                   </div>
+                ) : closedTickets.length > 0 ? (
                   <TicketList 
                     tickets={closedTickets} 
                     onSelectTicket={handleOpenTicket} 
@@ -127,11 +130,10 @@ export default function TicketInbox() {
         </Tabs>
 
         {/* Ticket Detail Modal */}
-        {/* Important: Pass role="tutor" to hide Admin-only features like Delete */}
         <TicketDetailModal 
           ticket={selectedTicket} 
           isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)}
+          onClose={handleCloseModal}
           role="tutor" 
         />
       </div>
