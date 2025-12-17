@@ -1,58 +1,49 @@
+import api from "@/lib/api";
 import { FAQ } from "@/types/faq";
-import { defaultFAQs } from "@/lib/faq-data"; // Keep your mock data source
-
-const STORAGE_KEY = 'skillmount_faqs';
-
-// Simulate API delay
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+import { toast } from "sonner";
 
 export const faqService = {
-  // GET ALL (Student & Admin)
+  // 1. GET ALL FAQs (Public)
   getAll: async (): Promise<FAQ[]> => {
-    await delay(500); // Fake loading
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-    
-    // Initialize with defaults if empty
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultFAQs));
-    return defaultFAQs;
+    try {
+      const response = await api.get<FAQ[]>('/faqs/');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to load FAQs", error);
+      return [];
+    }
   },
 
-  // CREATE (Admin)
-  create: async (faq: Omit<FAQ, 'id' | 'createdAt' | 'updatedAt'>): Promise<FAQ> => {
-    await delay(800);
-    const newFaq: FAQ = {
-      ...faq,
-      id: `faq-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    const current = await faqService.getAll();
-    const updated = [newFaq, ...current];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    return newFaq;
+  // 2. CREATE FAQ (Admin)
+  create: async (data: Partial<FAQ>): Promise<void> => {
+    try {
+      await api.post('/faqs/', data);
+      toast.success("FAQ created successfully");
+    } catch (error) {
+      console.error("Create failed", error);
+      throw error;
+    }
   },
 
-  // UPDATE (Admin)
-  update: async (id: string, data: Partial<FAQ>): Promise<FAQ> => {
-    await delay(800);
-    const current = await faqService.getAll();
-    const updated = current.map(item => 
-      item.id === id 
-        ? { ...item, ...data, updatedAt: new Date().toISOString() } 
-        : item
-    );
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    return updated.find(i => i.id === id)!;
+  // 3. UPDATE FAQ (Admin)
+  update: async (id: string, data: Partial<FAQ>): Promise<void> => {
+    try {
+      await api.patch(`/faqs/${id}/`, data);
+      toast.success("FAQ updated");
+    } catch (error) {
+      console.error("Update failed", error);
+      throw error;
+    }
   },
 
-  // DELETE (Admin)
-  delete: async (id: string): Promise<boolean> => {
-    await delay(500);
-    const current = await faqService.getAll();
-    const updated = current.filter(item => item.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    return true;
+  // 4. DELETE FAQ (Admin)
+  delete: async (id: string): Promise<void> => {
+    try {
+      await api.delete(`/faqs/${id}/`);
+      toast.success("FAQ deleted");
+    } catch (error) {
+      console.error("Delete failed", error);
+      throw error;
+    }
   }
 };

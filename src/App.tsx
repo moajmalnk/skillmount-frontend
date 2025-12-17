@@ -15,6 +15,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollProgressBar from "./components/ScrollProgressBar";
 import { ScrollToTop } from "@/components/ScrollToTop"; // <-- Import the new component
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 // Pages
 import Home from "./pages/Home";
@@ -89,6 +90,7 @@ const AppContent = () => {
           </Routes>
         </main>
         <Footer />
+        <ChatWidget />
       </div>
     </>
   );

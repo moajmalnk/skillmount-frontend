@@ -18,5 +18,6 @@ export interface BlogPost {
   readTime: string; // e.g., "5 min read"
   isFeatured?: boolean; // For the big hero card
   isEditorsPick?: boolean; // For the special badge
+  isPublished?: boolean; // Visibility status
   views?: number;
 }

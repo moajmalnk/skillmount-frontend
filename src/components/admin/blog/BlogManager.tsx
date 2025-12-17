@@ -15,7 +15,7 @@ export const BlogManager = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
-  
+
   // Delete State
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -48,8 +48,11 @@ export const BlogManager = () => {
   // --- DELETE HANDLERS ---
   const confirmDelete = async () => {
     if (!deleteId) return;
+    const blogToDelete = blogs.find(b => b.id === deleteId);
+    if (!blogToDelete) return; // Should not happen
+
     try {
-      await blogService.delete(deleteId);
+      await blogService.delete(blogToDelete.slug);
       toast.success("Post deleted successfully");
       loadBlogs();
     } catch (error) {
@@ -114,9 +117,15 @@ export const BlogManager = () => {
               </TableCell>
               <TableCell>{blog.author.name}</TableCell>
               <TableCell>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Published
-                </span>
+                {blog.isPublished ? (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Published
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    Draft
+                  </span>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
@@ -126,10 +135,10 @@ export const BlogManager = () => {
                   <Button variant="ghost" size="icon" onClick={() => handleEdit(blog)}>
                     <Edit2 className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-destructive hover:bg-destructive/10" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:bg-destructive/10"
                     onClick={() => setDeleteId(blog.id)}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -141,15 +150,15 @@ export const BlogManager = () => {
         )}
       </ManagementTable>
 
-      <BlogEditorSheet 
-        isOpen={isSheetOpen} 
-        onClose={() => setIsSheetOpen(false)} 
+      <BlogEditorSheet
+        isOpen={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
         blog={selectedBlog}
         onSave={handleSave}
       />
 
-      <DeleteConfirmationDialog 
-        open={!!deleteId} 
+      <DeleteConfirmationDialog
+        open={!!deleteId}
         onOpenChange={(open) => !open && setDeleteId(null)}
         onConfirm={confirmDelete}
         itemName={blogToDelete?.title}

@@ -18,7 +18,7 @@ const Students = () => {
   const [selectedBatch, setSelectedBatch] = useState<string>("all");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [isVisible, setIsVisible] = useState(false);
-  
+
   // Data State
   const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,9 +27,9 @@ const Students = () => {
     const fetchStudents = async () => {
       setIsLoading(true);
       try {
-        // 1. Fetch raw student data from service
-        const rawData = await userService.getElementsByRole("student") as Student[];
-        
+        // 1. Fetch raw student data from service (Use Public Directory for non-admins)
+        const rawData = await userService.getPublicDirectory() as Student[];
+
         // 2. Transform data for the UI (StudentCard expects specific props)
         const formattedData = rawData.map(s => ({
           ...s,
@@ -37,7 +37,7 @@ const Students = () => {
           batch: formatBatchForDisplay(s.batch, true),
           batchId: s.batch, // Keep original ID for filtering
           // Map nested socials to top-level for Card if needed, or just ensure Card handles it
-          domain: s.socials?.website, 
+          domain: s.socials?.website,
           github: s.socials?.github,
         }));
 
@@ -52,28 +52,28 @@ const Students = () => {
 
     fetchStudents();
   }, []);
-  
+
   // Filter Logic
   const toggleSkill = (skill: string) => {
-    setSelectedSkills(prev => 
-      prev.includes(skill) 
+    setSelectedSkills(prev =>
+      prev.includes(skill)
         ? prev.filter(s => s !== skill)
         : [...prev, skill]
     );
   };
-  
+
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedBatch("all");
     setSelectedSkills([]);
   };
-  
+
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesBatch = selectedBatch === "all" || student.batchId === selectedBatch;
-    const matchesSkills = selectedSkills.length === 0 || 
+    const matchesSkills = selectedSkills.length === 0 ||
       selectedSkills.some((skill: string) => student.skills?.includes(skill));
-    
+
     return matchesSearch && matchesBatch && matchesSkills;
   });
 
@@ -105,12 +105,12 @@ const Students = () => {
       />
 
       <div className="min-h-screen bg-background">
-        <StudentsHero 
-          isVisible={isVisible} 
-          filteredCount={filteredStudents.length} 
+        <StudentsHero
+          isVisible={isVisible}
+          filteredCount={filteredStudents.length}
         />
-        
-        <StudentsFilter 
+
+        <StudentsFilter
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           selectedBatch={selectedBatch}
@@ -121,13 +121,13 @@ const Students = () => {
           filteredCount={filteredStudents.length}
           totalCount={students.length}
         />
-        
+
         {isLoading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-10 h-10 animate-spin text-primary" />
           </div>
         ) : (
-          <StudentsGrid 
+          <StudentsGrid
             students={filteredStudents}
             clearFilters={clearFilters}
           />

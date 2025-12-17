@@ -26,14 +26,14 @@ const Login = () => {
     try {
       const response = await authService.login(email, password);
       const user = response.user;
-      
+
       // 1. UPDATE GLOBAL STATE (This fixes the redirect loop/lag)
-      login(user); 
-      
+      login(user);
+
       toast.success(`Welcome back, ${user.name}`);
 
       // 2. THE TRAFFIC CONTROLLER LOGIC
-      
+
       // Scenario A: Super Admin -> Always goes to Admin Dashboard
       if (user.role === 'super_admin') {
         navigate('/admin');
@@ -41,7 +41,7 @@ const Login = () => {
       }
 
       // Scenario B: Profile Incomplete -> FORCE REDIRECT to Onboarding
-      if (!user.isProfileComplete) {
+      if (['student', 'tutor', 'affiliate'].includes(user.role) && !user.isProfileComplete) {
         navigate('/onboarding');
         return;
       }
@@ -49,9 +49,9 @@ const Login = () => {
       // Scenario C: Profile Complete -> Go to Role Specific Dashboard (Home)
       // Since we use conditional rendering, we send them to Home or specific route
       if (user.role === 'tutor') {
-         navigate('/tickets/manage'); // Tutors might want to see tickets first
+        navigate('/tickets/manage'); // Tutors might want to see tickets first
       } else {
-         navigate('/');
+        navigate('/');
       }
 
     } catch (err) {
@@ -68,7 +68,7 @@ const Login = () => {
       {/* Background Visuals */}
       <div className="absolute inset-0 z-0">
         <ProfessionalBackground
-          src="https://moajmalnk.in/assets/img/hero/moajmalnk.webp" 
+          src="https://moajmalnk.in/assets/img/hero/moajmalnk.webp"
           alt="Background"
           className="w-full h-full opacity-5"
           overlay={true}
@@ -86,7 +86,7 @@ const Login = () => {
               Enter the credentials sent to your email/WhatsApp
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               {error && (
@@ -95,15 +95,15 @@ const Login = () => {
                   {error}
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="name@example.com" 
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
                     className="pl-9"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -111,7 +111,7 @@ const Login = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
@@ -121,10 +121,10 @@ const Login = () => {
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="••••••••" 
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
                     className="pl-9"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -145,7 +145,7 @@ const Login = () => {
               </Button>
             </form>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col gap-4 text-center text-sm text-muted-foreground">
             <p>
               Don't have an account? <span className="text-foreground font-medium">Contact your administrator.</span>

@@ -1,3 +1,6 @@
+import api from "@/lib/api";
+import { toast } from "sonner";
+
 export interface SystemSettings {
   batches: string[];
   mentors: string[];
@@ -5,69 +8,62 @@ export interface SystemSettings {
   topics: string[];
   platforms: string[];
   macros: string[];
-  faqCategories: string[];
+  faqCategories: string[]; // Note: Backend sends 'faq_categories', we might need to map it or align naming
 }
 
-// UPDATED: Changed key to 'v2' to force fresh data load
-const STORAGE_KEY = "skillmount_settings_v2";
-
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
+// Fallback defaults in case DB is empty
 const DEFAULT_SETTINGS: SystemSettings = {
-  // The list you provided
-  batches: [
-    "Sep 2025", 
-    "Aug 2025", 
-    "July 2025", 
-    "June 2025", 
-    "May 2025", 
-    "April 2025", 
-    "March 2025"
-  ],
-  mentors: ["Dr. Smith", "Prof. Jane Doe"],
-  coordinators: ["Sarah Wilson", "Mike Ross"],
-  topics: ["WordPress", "React", "SEO", "Digital Marketing", "UI/UX Design", "E-commerce", "Python"],
-  platforms: ["YouTube", "Instagram", "LinkedIn", "Facebook", "Twitter"],
-  macros: [
-    "We are looking into your issue.",
-    "Please clear your browser cache and try again.",
-    "Can you please provide a screenshot?",
-    "This issue has been resolved.",
-    "Thank you for your patience."
-  ],
-  faqCategories: [
-    "WordPress Setup & Hosting",
-    "Elementor Page Builder",
-    "Divi Page Builder",
-    "Theme Customization",
-    "Responsive Design",
-    "Plugin Management",
-    "WooCommerce & E-commerce",
-    "SEO & Performance",
-    "Course Information",
-    "Certification & Placement"
-  ]
+  batches: ["Sep 2025", "Aug 2025", "July 2025"],
+  mentors: ["Dr. Alan Grant"],
+  coordinators: ["Sarah Wilson"],
+  topics: ["WordPress", "React", "SEO"],
+  platforms: ["YouTube", "Instagram"],
+  macros: ["Please clear your cache."],
+  faqCategories: ["General", "Technical"]
 };
 
 export const systemService = {
+  // 1. GET SETTINGS
   getSettings: async (): Promise<SystemSettings> => {
-    await delay(500);
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-        const parsed = JSON.parse(stored);
-        // Fallback: If stored batches is empty, use default
-        if(!parsed.batches || parsed.batches.length === 0) {
-            return { ...parsed, batches: DEFAULT_SETTINGS.batches };
-        }
-        return parsed;
+    try {
+      const response = await api.get('/admin/settings/');
+      
+      // The backend returns snake_case (faq_categories), frontend wants camelCase (faqCategories)
+      // We map the response manually to keep types safe
+      const data = response.data;
+      
+      return {
+        batches: data.batches || [],
+        mentors: data.mentors || [],
+        coordinators: data.coordinators || [],
+        topics: data.topics || [],
+        platforms: data.platforms || [],
+        macros: data.macros || [],
+        faqCategories: data.faq_categories || [] // Mapping backend 'faq_categories' to frontend 'faqCategories'
+      };
+    } catch (error) {
+      console.error("Failed to load settings from server", error);
+      // Fallback to defaults to prevent app crash
+      return DEFAULT_SETTINGS;
     }
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SETTINGS));
-    return DEFAULT_SETTINGS;
   },
 
+  // 2. UPDATE SETTINGS
   updateSettings: async (newSettings: SystemSettings): Promise<void> => {
-    await delay(500);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+    try {
+        // Map back to snake_case for Django
+        const payload = {
+            ...newSettings,
+            faq_categories: newSettings.faqCategories
+        };
+      
+      await api.post('/admin/settings/', payload);
+      // Toast is usually handled by the component, but we can log success here
+      console.log("Settings synced with server");
+    } catch (error) {
+      console.error("Failed to save settings", error);
+      toast.error("Could not save settings to server.");
+      throw error;
+    }
   }
 };

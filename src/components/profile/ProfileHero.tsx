@@ -26,31 +26,31 @@ export const ProfileHero = ({ student }: ProfileHeroProps) => {
                   <div className="flex items-center gap-2.5 bg-primary/[0.05] border border-primary/10 rounded-full px-4 py-2 w-fit">
                     <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                     <span className="text-xs font-medium text-primary tracking-wide">
-                        {student.placement ? "Placed" : "Active Student"}
+                      {student.placement ? "Placed" : "Active Student"}
                     </span>
                   </div>
                   {student.placement && (
                     <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
-                        Hired by {student.placement.company}
+                      Hired by {student.placement.company} {student.placement.role ? `as ${student.placement.role}` : ''}
                     </Badge>
                   )}
                 </div>
-                
+
                 {/* Name and Title */}
                 <div className="space-y-4">
-                  <TextGenerateEffect 
-                    words={student.name} 
+                  <TextGenerateEffect
+                    words={student.name}
                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground tracking-tight leading-[0.9]"
                     duration={2}
                   />
                   <div className="space-y-2">
                     {student.headline && (
-                        <p className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                            {student.headline}
-                        </p>
+                      <p className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                        {student.headline}
+                      </p>
                     )}
                     <p className="text-lg text-muted-foreground font-medium">
-                        {formatBatchForDisplay(student.batch)}
+                      {formatBatchForDisplay(student.batch)}
                     </p>
                     {student.isTopPerformer && (
                       <Badge className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-amber-600 px-4 py-2 mt-2">
@@ -60,7 +60,7 @@ export const ProfileHero = ({ student }: ProfileHeroProps) => {
                     )}
                   </div>
                 </div>
-          
+
                 {/* Bio */}
                 {student.bio && (
                   <p className="text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed font-light">
@@ -86,12 +86,20 @@ export const ProfileHero = ({ student }: ProfileHeroProps) => {
 
                 {/* Social Buttons */}
                 <div className="flex flex-wrap gap-3">
-                  {student.socials?.website && (
+                  {student.resume && (
                     <Button size="sm" className="rounded-full px-6 h-10 bg-primary hover:bg-primary/90 transition-all duration-300 group shadow-lg hover:shadow-xl">
+                      <a href={student.resume} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                        <Briefcase className="w-4 h-4 mr-2" />
+                        Download CV
+                        <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+                      </a>
+                    </Button>
+                  )}
+                  {student.socials?.website && (
+                    <Button size="sm" variant="outline" className="rounded-full px-6 h-10 border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300">
                       <a href={student.socials.website} target="_blank" rel="noopener noreferrer" className="flex items-center">
                         <Globe className="w-4 h-4 mr-2" />
                         Portfolio
-                        <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                       </a>
                     </Button>
                   )}

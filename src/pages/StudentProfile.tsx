@@ -1,10 +1,12 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, Pencil } from "lucide-react";
 import SEO from "@/components/SEO";
 import { FollowingPointer } from "@/components/ui/following-pointer";
 import { ContainerScrollAnimation } from "@/components/ui/container-scroll-animation";
+import { Button } from "@/components/ui/button";
 import { userService } from "@/services/userService";
+import { useAuth } from "@/context/AuthContext";
 import { Student } from "@/types/user";
 
 // Import Modular Components
@@ -13,30 +15,38 @@ import { ProfileSkills } from "@/components/profile/ProfileSkills";
 import { ProfileAchievements } from "@/components/profile/ProfileAchievements";
 import { ProfileProjects } from "@/components/profile/ProfileProjects";
 import { ProfileContact } from "@/components/profile/ProfileContact";
+import { ProfileExperience } from "@/components/profile/ProfileExperience";
+// Import Editor Modal (reuse admin component)
+import { ProfileEditorModal } from "@/components/admin/user/profile-editor/ProfileEditorModal";
 
 const StudentProfile = () => {
   const { id } = useParams();
+  const { user: currentUser } = useAuth();
   const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const fetchStudent = async () => {
+    // Keep loading state minimal for re-fetches
+    if (!student) setIsLoading(true);
+    try {
+      if (!id) return;
+      const user = await userService.getById(id);
+      if (user && user.role === 'student') {
+        setStudent(user as Student);
+      }
+    } catch (error) {
+      console.error("Failed to load student", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStudent = async () => {
-      setIsLoading(true);
-      try {
-        if (!id) return;
-        const user = await userService.getById(id);
-        if (user && user.role === 'student') {
-          setStudent(user as Student);
-        }
-      } catch (error) {
-        console.error("Failed to load student", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchStudent();
   }, [id]);
+
+  const canEdit = currentUser && student && (currentUser.id === student.id || currentUser.role === 'super_admin');
 
   if (isLoading) {
     return (
@@ -98,21 +108,29 @@ const StudentProfile = () => {
         </div>
 
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative z-10">
-          {/* Back Navigation */}
+          {/* Navigation & Actions */}
           <ContainerScrollAnimation direction="up" speed="fast">
-            <div className="pt-8 sm:pt-12 mb-8 sm:mb-12">
-              <Link 
-                to="/students" 
+            <div className="pt-8 sm:pt-12 mb-8 sm:mb-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <Link
+                to="/students"
                 className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-300 group"
               >
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-300" />
                 <span className="text-sm sm:text-base font-medium">Back to Students</span>
               </Link>
+
+              {canEdit && (
+                <Button onClick={() => setIsEditModalOpen(true)} className="shadow-lg">
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              )}
             </div>
           </ContainerScrollAnimation>
 
           {/* Sections - Each handles its own visibility */}
           <ProfileHero student={student} />
+          <ProfileExperience experience={student.experience} />
           <ProfileSkills skills={student.skills} />
           <ProfileAchievements achievements={student.achievements} />
           <ProfileProjects projects={student.projects} />
@@ -120,6 +138,18 @@ const StudentProfile = () => {
 
         </div>
       </div>
+
+      {/* Profile Editor Modal */}
+      {canEdit && (
+        <ProfileEditorModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            fetchStudent(); // Refresh data on close
+          }}
+          student={student}
+        />
+      )}
     </FollowingPointer>
   );
 };
