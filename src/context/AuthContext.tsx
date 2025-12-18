@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, authService } from '@/lib/auth';
+import { authService } from '@/lib/auth';
+import { User } from '@/types/user';
 
 interface AuthContextType {
   user: User | null;
@@ -44,12 +45,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
-      isLoading, 
-      isAuthenticated: !!user 
+    <AuthContext.Provider value={{
+      user,
+      login,
+      logout,
+      isLoading,
+      isAuthenticated: !!user
     }}>
       {children}
     </AuthContext.Provider>

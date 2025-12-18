@@ -36,6 +36,7 @@ const Login = () => {
 
       // Scenario A: Super Admin -> Always goes to Admin Dashboard
       if (user.role === 'super_admin') {
+        console.log("Redirecting Super Admin:", user);
         navigate('/admin');
         return;
       }

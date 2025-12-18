@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  LayoutDashboard, LogOut, GraduationCap, Users, Share2, 
-  FileText, MessageSquare, Ticket, Star, BookOpen, 
+import {
+  LayoutDashboard, LogOut, GraduationCap, Users, Share2,
+  FileText, MessageSquare, Ticket, Star, BookOpen,
   Settings, Newspaper
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -47,11 +47,21 @@ const Admin = () => {
 
     if (!isAuthenticated) {
       navigate("/login");
-    } else if (user?.role !== "super_admin") {
+    }
+    /* 
+    else if (user?.role !== "super_admin") {
       toast.error("Access Denied: Super Admin privileges required.");
       navigate("/");
-    }
+    } 
+    */
   }, [isAuthenticated, isLoading, user, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      console.log("Admin Page User State:", user);
+      console.log("Role Check:", user.role === 'super_admin');
+    }
+  }, [user]);
 
   const handleLogoutConfirm = () => {
     logout();
@@ -60,13 +70,21 @@ const Admin = () => {
     toast.info("Logged out successfully");
   };
 
-  if (isLoading || !isAuthenticated || user?.role !== "super_admin") {
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user || user.role !== 'super_admin') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-muted-foreground animate-pulse">Verifying Admin Access...</p>
-        </div>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <h1 className="text-2xl font-bold text-red-500">Access Denied</h1>
+        <p>Debug Information:</p>
+        <pre className="bg-gray-100 p-4 rounded text-xs text-black">
+          {JSON.stringify(user, null, 2)}
+        </pre>
+        <p className="text-muted-foreground">Required Role: super_admin</p>
+        <Button onClick={() => logout()}>Logout</Button>
+        <Button variant="outline" onClick={() => navigate('/')}>Go Home</Button>
       </div>
     );
   }
@@ -79,11 +97,11 @@ const Admin = () => {
     { value: "affiliates", icon: Share2, label: "Affiliates", component: <AffiliateManager /> },
     { value: "materials", icon: FileText, label: "Materials", component: <MaterialsManager /> },
     { value: "inquiries", icon: MessageSquare, label: "Inquiries", component: <InquiryManager /> },
-    { value: "tickets", icon: Ticket, label: "Tickets", component: <TicketManager />  },
+    { value: "tickets", icon: Ticket, label: "Tickets", component: <TicketManager /> },
     { value: "feedbacks", icon: Star, label: "Feedbacks", component: <FeedbackManager /> },
     { value: "faqs", icon: BookOpen, label: "FAQs", component: <FAQManager /> },
     { value: "blog", icon: Newspaper, label: "Blog", component: <BlogManager /> },
-    { value: "settings", icon: Settings, label: "Settings", component: <SettingsManager />  },
+    { value: "settings", icon: Settings, label: "Settings", component: <SettingsManager /> },
   ];
 
   return (
@@ -118,9 +136,9 @@ const Admin = () => {
           <div className="overflow-x-auto pb-2">
             <TabsList className="inline-flex h-auto w-auto gap-2 bg-transparent p-0 justify-start">
               {tabConfig.map((tab) => (
-                <TabsTrigger 
+                <TabsTrigger
                   key={tab.value}
-                  value={tab.value} 
+                  value={tab.value}
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-border px-4 py-2"
                 >
                   <tab.icon className="w-4 h-4 mr-2" /> {tab.label}
