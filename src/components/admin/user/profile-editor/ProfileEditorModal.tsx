@@ -79,8 +79,8 @@ export const ProfileEditorModal = ({ isOpen, onClose, student }: ProfileEditorMo
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <div className="px-6 pt-4 border-b bg-muted/20">
-              <TabsList className="grid w-[400px] grid-cols-2">
+            <div className="px-4 sm:px-6 pt-4 border-b bg-muted/20">
+              <TabsList className="grid w-full sm:w-[400px] grid-cols-2">
                 <TabsTrigger value="basic">Personal & Academic</TabsTrigger>
                 <TabsTrigger value="projects">Projects & Portfolio</TabsTrigger>
               </TabsList>

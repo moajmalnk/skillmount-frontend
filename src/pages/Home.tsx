@@ -74,11 +74,8 @@ const Home = () => {
         const top = students.filter(s => s.isTopPerformer);
         setTopPerformers(top);
 
-        // Filter Latest Graduates
-        const latest = students.filter(s => s.isFeatured);
-        const finalLatest = latest.length > 0
-          ? latest
-          : students.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 8);
+        // Filter Latest Graduates (Strictly Featured Only)
+        const finalLatest = students.filter(s => s.isFeatured);
 
         setLatestGraduates(finalLatest);
 

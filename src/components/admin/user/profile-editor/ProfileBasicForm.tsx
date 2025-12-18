@@ -77,14 +77,14 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
     };
 
     return (
-        <div className="space-y-8 py-4 animate-in fade-in slide-in-from-bottom-2">
+        <div className="space-y-8 py-2 md:py-4 px-1 animate-in fade-in slide-in-from-bottom-2">
 
-            {/* 0. Academic Details (NEW SECTION) */}
-            <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+            {/* 0. Academic Details */}
+            <div className="bg-muted/10 p-4 rounded-lg border border-border/40 space-y-4">
+                <h4 className="text-sm font-semibold text-primary/80 uppercase tracking-wide flex items-center gap-2 border-b pb-2">
                     Academic Information
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="regId">Register ID / Roll No</Label>
                         <Input
@@ -92,12 +92,13 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                             value={data.regId || ""}
                             onChange={(e) => onChange({ regId: e.target.value })}
                             placeholder="STU-2024-001"
+                            className="bg-background"
                         />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="batch">Batch</Label>
-                        <Select value={data.batch} onValueChange={(val) => onChange({ batch: val })}>
-                            <SelectTrigger>
+                        <Select value={data.batch || ""} onValueChange={(val) => onChange({ batch: val })}>
+                            <SelectTrigger className="bg-background">
                                 <SelectValue placeholder={loadingOptions ? "Loading..." : "Select Batch"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -107,8 +108,8 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="mentor">Mentor</Label>
-                        <Select value={data.mentor} onValueChange={(val) => onChange({ mentor: val })}>
-                            <SelectTrigger>
+                        <Select value={data.mentor || ""} onValueChange={(val) => onChange({ mentor: val })}>
+                            <SelectTrigger className="bg-background">
                                 <SelectValue placeholder={loadingOptions ? "Loading..." : "Select Mentor"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -119,8 +120,8 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="coordinator">Coordinator</Label>
-                        <Select value={data.coordinator} onValueChange={(val) => onChange({ coordinator: val })}>
-                            <SelectTrigger>
+                        <Select value={data.coordinator || ""} onValueChange={(val) => onChange({ coordinator: val })}>
+                            <SelectTrigger className="bg-background">
                                 <SelectValue placeholder={loadingOptions ? "Loading..." : "Select Coordinator"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -132,16 +133,14 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 </div>
             </div>
 
-            <Separator />
-
             {/* 1. Personal Details */}
             <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
                     Personal Details
                 </h4>
 
                 {/* Name & Phone */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
                         <Input
@@ -162,9 +161,9 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 </div>
 
                 {/* DOB & Pincode */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2 flex flex-col">
-                        <Label>Date of Birth <span className="text-red-500">*</span></Label>
+                        <Label className="mb-2">Date of Birth <span className="text-red-500">*</span></Label>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -221,13 +220,13 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
             <Separator />
 
-            {/* 2. Professional / Academic (Renamed to Professional Profile) */}
+            {/* 2. Professional Profile */}
             <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
                     Professional Profile
                 </h4>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="headline">Professional Headline</Label>
                         <Input
@@ -274,7 +273,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
             {/* 3. Skills & Achievements */}
             <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
                     Skills & Awards
                 </h4>
 
@@ -302,9 +301,9 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
             <Separator />
 
-            {/* 3.5. Professional Experience & Resume */}
+            {/* 3.5. Career & Resume */}
             <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
                     Career & Resume
                 </h4>
 
@@ -319,21 +318,22 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                     />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="resume">Resume / CV</Label>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             <Input
                                 id="resume"
                                 type="file"
                                 accept=".pdf,.doc,.docx"
+                                className="cursor-pointer file:text-foreground"
                                 onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) onChange({ resumeFile: file });
                                 }}
                             />
                             {data.resume && !data.resumeFile && (
-                                <Button variant="outline" size="sm" asChild>
+                                <Button variant="secondary" size="sm" asChild className="shrink-0">
                                     <a href={data.resume} target="_blank" rel="noopener noreferrer">View Current</a>
                                 </Button>
                             )}
@@ -343,7 +343,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
                 <div className="space-y-2 pt-2">
                     <Label>Placement Details <span className="text-xs text-muted-foreground font-normal">(if applicable)</span></Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <Input
                             placeholder="Company Name"
                             value={data.placement?.company || ""}
@@ -367,10 +367,10 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
             {/* 4. Social Links */}
             <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
                     Social Presence
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="linkedin" className="text-xs font-medium">LinkedIn URL</Label>
                         <Input
