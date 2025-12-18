@@ -43,5 +43,13 @@ export const authService = {
   getSession: (): User | null => {
     const data = localStorage.getItem('skillmount_user');
     return data ? JSON.parse(data) : null;
+  },
+
+  requestPasswordReset: async (email: string) => {
+    return await api.post('/auth/password-reset/', { email });
+  },
+
+  resetPassword: async (uid: string, token: string, password: string) => {
+    return await api.post('/auth/password-reset-confirm/', { uid, token, password });
   }
 };

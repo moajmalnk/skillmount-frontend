@@ -20,6 +20,7 @@ import { ChatWidget } from "@/components/chat/ChatWidget";
 // Pages
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import Students from "./pages/Students";
 import StudentProfile from "./pages/StudentProfile";
@@ -53,16 +54,17 @@ const AppContent = () => {
         <Navbar />
         <main className="flex-1 relative">
           <Routes>
-            
+
             {/* === PUBLIC ROUTES (With Safety Trap) === */}
             <Route element={<PublicRoute />}>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
               <Route path="/students" element={<Students />} />
               <Route path="/students/:id" element={<StudentProfile />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/skelui" element={<SkelUI />} />
-              
+
               {/* Blog Routes */}
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
@@ -83,10 +85,10 @@ const AppContent = () => {
             <Route path="/student/dashboard" element={<Navigate to="/" replace />} />
             <Route path="/tutor/dashboard" element={<Navigate to="/" replace />} />
             <Route path="/affiliate/dashboard" element={<Navigate to="/" replace />} />
-            
+
             {/* === 404 === */}
             <Route path="*" element={<NotFound />} />
-            
+
           </Routes>
         </main>
         <Footer />
