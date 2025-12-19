@@ -21,10 +21,18 @@ import { ProfileEditorModal } from "@/components/admin/user/profile-editor/Profi
 
 const StudentProfile = () => {
   const { id } = useParams();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isAuthenticated, isLoading: isAuthLoading } = useAuth(); // Enhanced Auth Check
   const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // 1. Auth Guard - Effect
+  useEffect(() => {
+    // Only redirect if auth check is complete and user is NOT authenticated
+    if (!isAuthLoading && !isAuthenticated) {
+      window.location.href = `/login?redirect=/students/${id}`;
+    }
+  }, [isAuthenticated, isAuthLoading, id]);
 
   const fetchStudent = async () => {
     // Keep loading state minimal for re-fetches
@@ -43,12 +51,23 @@ const StudentProfile = () => {
   };
 
   useEffect(() => {
-    fetchStudent();
-  }, [id]);
+    if (isAuthenticated) {
+      fetchStudent();
+    }
+  }, [id, isAuthenticated]);
+
+  // 2. Auth Guard - Render Loading or Null
+  if (isAuthLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const canEdit = currentUser && student && (currentUser.id === student.id || currentUser.role === 'super_admin');
 
-  if (isLoading) {
+  if (isLoading && !student) { // Only show full loader if no student data yet
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

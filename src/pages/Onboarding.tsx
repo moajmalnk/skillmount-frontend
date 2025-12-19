@@ -299,6 +299,9 @@ export default function Onboarding() {
                     date > new Date() || date < new Date("1900-01-01")
                   }
                   initialFocus
+                  captionLayout="dropdown-buttons"
+                  fromYear={1960}
+                  toYear={new Date().getFullYear()}
                 />
               </PopoverContent>
             </Popover>

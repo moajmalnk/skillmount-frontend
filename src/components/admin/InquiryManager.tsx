@@ -74,6 +74,18 @@ export const InquiryManager = () => {
     }
   };
 
+  // Filter Logic
+  const [filter, setFilter] = useState<'All' | 'New' | 'Read' | 'Replied'>('All');
+
+  const filteredInquiries = inquiries.filter((inq) => {
+    if (filter === 'All') return true;
+    if (filter === 'New') return inq.status === 'New';
+    if (filter === 'Replied') return inq.status === 'Replied';
+    // 'Read' is essentially anything not New or Replied (assuming explicit Read status or default)
+    if (filter === 'Read') return inq.status !== 'New' && inq.status !== 'Replied';
+    return true;
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'New': return <Badge variant="destructive" className="animate-pulse">New</Badge>;
@@ -86,68 +98,90 @@ export const InquiryManager = () => {
 
   return (
     <>
-      <ManagementTable
-        title="General Inquiries"
-        description="Messages from the public contact form."
-        columns={["Date", "Name", "Subject", "Message", "Status"]}
-      >
-        {isLoading ? (
-          <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-        ) : inquiries.length === 0 ? (
-          <TableRow><TableCell colSpan={6} className="text-center py-8">No inquiries yet.</TableCell></TableRow>
-        ) : (
-          inquiries.map((inq) => (
-            <TableRow
-              key={inq.id}
-              className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => handleView(inq)}
+      <div className="space-y-4">
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-2 bg-background/50 p-1 rounded-lg border w-fit">
+          {(['All', 'New', 'Read', 'Replied'] as const).map((f) => (
+            <Button
+              key={f}
+              variant={filter === f ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setFilter(f)}
+              className={`h-8 px-3 text-xs ${filter === f ? 'bg-white shadow-sm dark:bg-zinc-800' : 'text-muted-foreground'}`}
             >
-              <TableCell className="whitespace-nowrap text-xs text-muted-foreground font-mono">{inq.date}</TableCell>
-              <TableCell>
-                <div className="font-medium">{inq.name}</div>
-                <div className="text-[10px] text-muted-foreground">{inq.email}</div>
-              </TableCell>
-              <TableCell className="font-medium text-sm text-primary">{inq.subject || "General Inquiry"}</TableCell>
-              <TableCell className="max-w-[200px]">
-                <p className="truncate text-sm text-muted-foreground">{inq.message}</p>
-              </TableCell>
-              <TableCell>{getStatusBadge(inq.status)}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-blue-600 hover:bg-blue-50"
-                    onClick={(e) => { e.stopPropagation(); window.location.href = `mailto:${inq.email}`; }}
-                  >
-                    <Mail className="w-4 h-4" />
-                  </Button>
+              {f === 'New' ? 'Unread' : f}
+              {f === 'New' && inquiries.some(i => i.status === 'New') && (
+                <span className="ml-1.5 flex h-1.5 w-1.5 rounded-full bg-red-500" />
+              )}
+            </Button>
+          ))}
+        </div>
 
-                  {inq.status === 'New' && (
+        <ManagementTable
+          title="General Inquiries"
+          description="Messages from the public contact form."
+          columns={["Date", "Name", "Subject", "Message", "Status"]}
+        >
+          {isLoading ? (
+            <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+          ) : filteredInquiries.length === 0 ? (
+            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+              {filter === 'All' ? "No inquiries yet." : `No ${filter.toLowerCase()} inquiries.`}
+            </TableCell></TableRow>
+          ) : (
+            filteredInquiries.map((inq) => (
+              <TableRow
+                key={inq.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => handleView(inq)}
+              >
+                <TableCell className="whitespace-nowrap text-xs text-muted-foreground font-mono">{inq.date}</TableCell>
+                <TableCell>
+                  <div className="font-medium">{inq.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{inq.email}</div>
+                </TableCell>
+                <TableCell className="font-medium text-sm text-primary">{inq.subject || "General Inquiry"}</TableCell>
+                <TableCell className="max-w-[200px]">
+                  <p className="truncate text-sm text-muted-foreground">{inq.message}</p>
+                </TableCell>
+                <TableCell>{getStatusBadge(inq.status)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-green-600 hover:bg-green-50"
-                      onClick={(e) => handleMarkRead(inq.id, e)}
+                      className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                      onClick={(e) => { e.stopPropagation(); window.location.href = `mailto:${inq.email}`; }}
                     >
-                      <CheckCircle2 className="w-4 h-4" />
+                      <Mail className="w-4 h-4" />
                     </Button>
-                  )}
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                    onClick={(e) => initiateDelete(inq.id, e)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </ManagementTable>
+                    {inq.status === 'New' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-green-600 hover:bg-green-50"
+                        onClick={(e) => handleMarkRead(inq.id, e)}
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      onClick={(e) => initiateDelete(inq.id, e)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </ManagementTable>
+      </div>
 
       {/* Detail Modal */}
       <Dialog open={!!selectedInquiry} onOpenChange={() => setSelectedInquiry(null)}>

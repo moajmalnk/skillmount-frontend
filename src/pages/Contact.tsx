@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Phone, MapPin, Send, AlertCircle, ArrowRight, Sparkles, MessageSquare, Clock, Users, ExternalLink, Star } from "lucide-react";
+import { Mail, Phone, MapPin, Send, AlertCircle, ArrowRight, Sparkles, MessageSquare, Clock, Users, ExternalLink, Star, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/SEO";
 import OptimizedImage from "@/components/OptimizedImage";
@@ -30,12 +30,24 @@ const Contact = () => {
   }, []);
 
   const [contactForm, setContactForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
     subject: "",
     message: ""
   });
+
+  // Auto-fill form when user data loads
+  useEffect(() => {
+    if (user) {
+      setContactForm(prev => ({
+        ...prev,
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || ""
+      }));
+    }
+  }, [user]);
 
   const [ticketForm, setTicketForm] = useState({
     name: "",
@@ -52,22 +64,39 @@ const Contact = () => {
     feedback: ""
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await inquiryService.create({
+        name: contactForm.name,
+        email: contactForm.email,
+        phone: contactForm.phone,
+        subject: contactForm.subject,
+        message: contactForm.message
+      });
 
-    await inquiryService.create({
-      name: contactForm.name,
-      email: contactForm.email,
-      phone: contactForm.phone,
-      subject: contactForm.subject,
-      message: contactForm.message
-    });
-
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you within 24 hours.",
-    });
-    setContactForm({ name: "", email: "", phone: "", subject: "", message: "" });
+      toast({
+        title: "Message Sent!",
+        description: "We'll get back to you within 24 hours.",
+      });
+      // Don't clear name/email/phone if user is logged in
+      setContactForm(prev => ({
+        ...prev,
+        subject: "",
+        message: ""
+      }));
+    } catch (error) {
+      toast({
+        title: "Submission Failed",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleTicketSubmit = (e: React.FormEvent) => {
@@ -541,11 +570,16 @@ const Contact = () => {
                         <Button
                           type="submit"
                           size="lg"
+                          disabled={isSubmitting}
                           className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/20"
                         >
-                          <Send className="w-5 h-5 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
-                          Send Message
-                          <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+                          {isSubmitting ? (
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          ) : (
+                            <Send className="w-5 h-5 mr-2 group-hover:translate-x-1 transition-transform duration-300" />
+                          )}
+                          {isSubmitting ? "Sending..." : "Send Message"}
+                          {!isSubmitting && <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />}
                         </Button>
                       </form>
                     </div>

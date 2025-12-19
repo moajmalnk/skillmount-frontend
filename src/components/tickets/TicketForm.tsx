@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, ArrowRight, Paperclip, X } from "lucide-react";
+import { AlertCircle, ArrowRight, Paperclip, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { ticketService } from "@/services/ticketService";
@@ -12,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export const TicketForm = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formKey, setFormKey] = useState(0); // Used to reset non-controlled components like VoiceRecorder
 
@@ -46,6 +48,10 @@ export const TicketForm = () => {
         description: ticketId
           ? `Your support request has been received. Ticket ID: ${ticketId}`
           : "Your support request has been received.",
+        action: {
+          label: "View Tickets",
+          onClick: () => navigate("/student/tickets"),
+        },
       });
 
       // Reset
@@ -211,7 +217,11 @@ export const TicketForm = () => {
         className="w-full h-12 shadow-md "
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Submitting..." : (
+        {isSubmitting ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...
+          </>
+        ) : (
           <>
             Submit Ticket <ArrowRight className="w-4 h-4 ml-2" />
           </>

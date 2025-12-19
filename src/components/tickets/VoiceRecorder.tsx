@@ -14,9 +14,10 @@ import {
 interface VoiceRecorderProps {
   onRecordingComplete: (blob: Blob) => void;
   onDelete: () => void;
+  variant?: "default" | "compact";
 }
 
-export const VoiceRecorder = ({ onRecordingComplete, onDelete }: VoiceRecorderProps) => {
+export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "default" }: VoiceRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -90,7 +91,7 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete }: VoiceRecorderPr
       const mimeType = getSupportedMimeType();
       const options = mimeType ? { mimeType } : undefined;
       const mediaRecorder = new MediaRecorder(stream, options);
-      
+
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -104,10 +105,10 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete }: VoiceRecorderPr
         // FIX: Use the actual mimeType used by the recorder to create the Blob
         const actualMimeType = mediaRecorder.mimeType || mimeType || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, { type: actualMimeType });
-        
+
         if (audioBlob.size === 0) {
-            toast.error("Recording failed: Empty audio file.");
-            return;
+          toast.error("Recording failed: Empty audio file.");
+          return;
         }
 
         const url = URL.createObjectURL(audioBlob);
@@ -117,7 +118,7 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete }: VoiceRecorderPr
       };
 
       // Start with 1000ms timeslice to ensure data is saved periodically
-      mediaRecorder.start(1000); 
+      mediaRecorder.start(1000);
       setIsRecording(true);
 
       timerRef.current = setInterval(() => {
@@ -158,7 +159,7 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete }: VoiceRecorderPr
         audioPlayerRef.current.pause();
       } else {
         if (progress === 100) {
-            audioPlayerRef.current.currentTime = 0;
+          audioPlayerRef.current.currentTime = 0;
         }
         audioPlayerRef.current.play().catch(e => toast.error("Playback failed: " + e.message));
       }
@@ -175,6 +176,49 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete }: VoiceRecorderPr
       }
     }
   };
+
+  if (variant === 'compact') {
+    return (
+      <>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-8 w-8 rounded-md transition-all hover:bg-muted",
+            isRecording && "text-destructive hover:text-destructive hover:bg-destructive/10 animate-pulse",
+            audioUrl && "text-primary hover:text-primary hover:bg-primary/10"
+          )}
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={isInitializing}
+          title={isRecording ? "Stop Recording" : "Record Voice Note"}
+        >
+          {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
+        </Button>
+
+        {/* Hidden Audio Player for Compact Mode if needed, or just relying on parent */}
+        {audioUrl && (
+          <audio ref={audioPlayerRef} src={audioUrl} className="hidden" />
+        )}
+
+        <Dialog open={showPermissionHelp} onOpenChange={setShowPermissionHelp}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <X className="w-5 h-5" /> Microphone Access Blocked
+              </DialogTitle>
+              <DialogDescription>
+                Please allow microphone access in your browser settings to record voice notes.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => window.location.reload()}>Reload Page</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
 
   return (
     <>
@@ -206,10 +250,10 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete }: VoiceRecorderPr
             </Button>
 
             <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden relative cursor-pointer mx-2">
-               <div 
-                 className="absolute inset-0 bg-primary/50 transition-all duration-100" 
-                 style={{ width: `${progress}%` }} 
-               />
+              <div
+                className="absolute inset-0 bg-primary/50 transition-all duration-100"
+                style={{ width: `${progress}%` }}
+              />
             </div>
 
             <span className="font-mono text-xs text-muted-foreground w-10 text-right">{formatTime(recordingTime)}</span>
@@ -233,17 +277,17 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete }: VoiceRecorderPr
 
       <Dialog open={showPermissionHelp} onOpenChange={setShowPermissionHelp}>
         <DialogContent className="sm:max-w-md">
-           <DialogHeader>
-             <DialogTitle className="flex items-center gap-2 text-destructive">
-               <X className="w-5 h-5" /> Microphone Access Blocked
-             </DialogTitle>
-             <DialogDescription>
-               Please allow microphone access in your browser settings to record voice notes.
-             </DialogDescription>
-           </DialogHeader>
-           <div className="flex justify-end pt-4">
-             <Button onClick={() => window.location.reload()}>Reload Page</Button>
-           </div>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <X className="w-5 h-5" /> Microphone Access Blocked
+            </DialogTitle>
+            <DialogDescription>
+              Please allow microphone access in your browser settings to record voice notes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end pt-4">
+            <Button onClick={() => window.location.reload()}>Reload Page</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>

@@ -119,12 +119,15 @@ export const AffiliateManager = () => {
   };
 
   // --- SUBMIT HANDLER (Create Only) ---
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleSubmit = async () => {
     if (!formData.name || !formData.email || !formData.phone || !formData.couponCode) {
       toast.error("All fields are mandatory.");
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const newRegId = generateRegId();
       const tempPassword = `${formData.email.substring(0, 3).toLowerCase()}@${formData.phone.slice(-4)}`;
@@ -144,9 +147,13 @@ export const AffiliateManager = () => {
       const result = await userService.create(newAffiliate);
 
       // Parse Notification Status
+      // Parse Notification Status
       const notifStatus = result?.meta?.notification_status || {};
       const emailStatus = notifStatus.email === 'ok';
-      const wappStatus = notifStatus.whatsapp === 'ok';
+      // WhatsApp status might be 'ok', 'skipped...', or 'error...'
+      const waStatusRaw = notifStatus.whatsapp || 'error';
+      const waStatus = waStatusRaw === 'ok';
+      const waSkipped = waStatusRaw.includes('skipped');
 
       toast.success(
         <div className="flex flex-col gap-2 min-w-[200px]">
@@ -174,9 +181,12 @@ export const AffiliateManager = () => {
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="opacity-70">WhatsApp:</span>
-              {wappStatus
+              {waStatus
                 ? <span className="text-green-600 flex items-center gap-1">Sent <CheckCircle2 className="w-3 h-3" /></span>
-                : <span className="text-red-500 flex items-center gap-1">Failed <AlertCircle className="w-3 h-3" /></span>
+                : (waSkipped
+                  ? <span className="text-yellow-600 flex items-center gap-1">Skipped <AlertCircle className="w-3 h-3" /></span>
+                  : <span className="text-red-500 flex items-center gap-1">Failed <AlertCircle className="w-3 h-3" /></span>
+                )
               }
             </div>
           </div>
@@ -188,6 +198,8 @@ export const AffiliateManager = () => {
 
     } catch (error) {
       toast.error("Failed to create affiliate");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -350,8 +362,11 @@ export const AffiliateManager = () => {
 
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit}>Create Partner</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Create Partner
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

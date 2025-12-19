@@ -37,6 +37,7 @@ import { systemService } from "@/services/systemService"; // Added System Servic
 import { Student } from "@/types/user";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
+import { StudentCreateDialog } from "./dialogs/StudentCreateDialog";
 import { Copy } from "lucide-react";
 
 
@@ -53,7 +54,6 @@ export const StudentManager = () => {
 
   // --- MODAL STATES ---
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "", batch: "" });
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -175,98 +175,7 @@ export const StudentManager = () => {
 
 
 
-  // 1. Password Generator Helper
-  const generateTempPassword = (email: string, phone: string) => {
-    if (!email || !phone) return "password123"; // Fallback
 
-    // Rule: First 3 chars of email + "@" + Last 4 digits of phone
-    const username = email.split('@')[0];
-    const namePart = username.substring(0, 3).toLowerCase();
-
-    const phoneDigits = phone.replace(/\D/g, ''); // Remove spaces, dashes, brackets
-    const phonePart = phoneDigits.slice(-4);
-
-    return `${namePart}@${phonePart}`;
-  };
-
-  const handleCreate = async () => {
-    if (!formData.name || !formData.email || !formData.phone || !formData.batch) {
-      toast.error("All fields are mandatory.");
-      return;
-    }
-
-    // Generate Password
-    const tempPassword = generateTempPassword(formData.email, formData.phone);
-
-    try {
-      const newStudent: any = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        role: "student",
-        batch: formData.batch,
-        status: "Active",
-        isProfileComplete: false,
-        password: tempPassword, // <--- Sending generated password
-        // Default values for new student profile fields
-        dob: null,
-        address: "",
-        pincode: "",
-        qualification: "",
-        aim: "",
-        headline: "",
-        bio: "",
-        skills: [],
-        socials: {}
-      };
-
-      const result = await userService.create(newStudent);
-
-      // Parse Notification Status
-      const notifStatus = result?.meta?.notification_status || {};
-      const emailStatus = notifStatus.email === 'ok';
-      const wappStatus = notifStatus.whatsapp === 'ok';
-
-      // Show Password in Toast with Copy button & Notification Status
-      toast.success(
-        <div className="flex flex-col gap-2 min-w-[200px]">
-          <span className="font-semibold">Student Created!</span>
-
-          {/* 1. Credentials */}
-          <div className="flex items-center justify-between bg-muted/50 p-2 rounded text-xs">
-            <span>Pass: <code className="font-mono font-bold">{tempPassword}</code></span>
-            <button onClick={() => navigator.clipboard.writeText(tempPassword)} title="Copy Password" className="hover:bg-background p-1 rounded">
-              <Copy className="w-3 h-3" />
-            </button>
-          </div>
-
-          {/* 2. Notification Status */}
-          <div className="space-y-1 pt-1 border-t border-border/50">
-            <div className="flex items-center justify-between text-xs">
-              <span className="opacity-70">Email:</span>
-              {emailStatus
-                ? <span className="text-green-600 flex items-center gap-1">Sent <CheckCircle2 className="w-3 h-3" /></span>
-                : <span className="text-red-500 flex items-center gap-1">Failed <AlertCircle className="w-3 h-3" /></span>
-              }
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="opacity-70">WhatsApp:</span>
-              {wappStatus
-                ? <span className="text-green-600 flex items-center gap-1">Sent <CheckCircle2 className="w-3 h-3" /></span>
-                : <span className="text-red-500 flex items-center gap-1">Failed <AlertCircle className="w-3 h-3" /></span>
-              }
-            </div>
-          </div>
-        </div>
-      );
-
-      setIsCreateOpen(false);
-      setFormData({ name: "", email: "", phone: "", batch: "" });
-      loadData();
-    } catch (error) {
-      toast.error("Failed to create student. Email might exist.");
-    }
-  };
 
   const initiateDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -468,8 +377,8 @@ export const StudentManager = () => {
                                   size="icon"
                                   onClick={(e) => { e.stopPropagation(); toggleAttribute(student, 'isTopPerformer'); }}
                                   className={`h-8 w-8 rounded-full transition-all ${student.isTopPerformer
-                                      ? 'bg-amber-100 text-amber-500 hover:bg-amber-200'
-                                      : 'text-muted-foreground hover:text-amber-500 hover:bg-amber-50'
+                                    ? 'bg-amber-100 text-amber-500 hover:bg-amber-200'
+                                    : 'text-muted-foreground hover:text-amber-500 hover:bg-amber-50'
                                     }`}
                                 >
                                   <Star className={`w-4 h-4 ${student.isTopPerformer ? 'fill-current' : ''}`} />
@@ -487,8 +396,8 @@ export const StudentManager = () => {
                                   size="icon"
                                   onClick={(e) => { e.stopPropagation(); toggleAttribute(student, 'isFeatured'); }}
                                   className={`h-8 w-8 rounded-full transition-all ${student.isFeatured
-                                      ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-                                      : 'text-muted-foreground hover:text-blue-600 hover:bg-blue-50'
+                                    ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                                    : 'text-muted-foreground hover:text-blue-600 hover:bg-blue-50'
                                     }`}
                                 >
                                   <GraduationCap className="w-4 h-4" />
@@ -539,44 +448,12 @@ export const StudentManager = () => {
         description="This will remove the student, their profile, and all associated project data."
       />
 
-      {/* Create Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Enroll New Student</DialogTitle>
-            <DialogDescription>Enter mandatory details. Profile will be marked incomplete.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="batch">Batch</Label>
-              <Select value={formData.batch} onValueChange={(val) => setFormData({ ...formData, batch: val })}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  {batches.map((batch) => (
-                    <SelectItem key={batch} value={batch}>{batch}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate}>Create</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Create Dialog - Uses dedicated component with Loader */}
+      <StudentCreateDialog
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={() => { loadData(); setIsCreateOpen(false); }}
+      />
 
       {/* Detail Sheet */}
       <UserDetailSheet

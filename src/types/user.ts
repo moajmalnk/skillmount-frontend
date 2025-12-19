@@ -10,6 +10,7 @@ export interface BaseUser {
   role: UserRole;
   status: UserStatus;
   createdAt: string;
+  date_joined?: string; // Backend field
   avatar?: string;
   isProfileComplete?: boolean;
   password?: string;

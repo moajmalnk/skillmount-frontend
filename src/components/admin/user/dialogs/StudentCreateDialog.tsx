@@ -7,10 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { userService } from "@/services/userService";
 import { systemService } from "@/services/systemService";
-import { Loader2 } from "lucide-react";
-
-// Ideally import UserRole from your types if available
-// import { UserRole } from "@/types/user"; 
+import { Loader2, CheckCircle2, AlertCircle, AlertTriangle } from "lucide-react";
 
 interface StudentCreateDialogProps {
     isOpen: boolean;
@@ -18,27 +15,17 @@ interface StudentCreateDialogProps {
     onSuccess: () => void;
 }
 
-interface SelectOption {
-    id: number | string;
-    name: string;
-}
-
 export const StudentCreateDialog = ({ isOpen, onClose, onSuccess }: StudentCreateDialogProps) => {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         phone: "",
-        batch: "",
-        mentor: "",
-        coordinator: ""
+        batch: ""
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingOptions, setIsLoadingOptions] = useState(false);
-
     const [batches, setBatches] = useState<string[]>([]);
-    const [mentors, setMentors] = useState<SelectOption[]>([]);
-    const [coordinators, setCoordinators] = useState<SelectOption[]>([]);
 
     useEffect(() => {
         if (isOpen) {
@@ -49,18 +36,8 @@ export const StudentCreateDialog = ({ isOpen, onClose, onSuccess }: StudentCreat
     const loadOptions = async () => {
         setIsLoadingOptions(true);
         try {
-            // FIX: Cast roles to 'any' for consistent backend communication
-            const [settings, mentorsData, adminsData] = await Promise.all([
-                systemService.getSettings(),
-                userService.getElementsByRole('tutor' as any), // Use 'tutor' as mentors are typically tutors
-                userService.getElementsByRole('super_admin' as any) // Assuming coordinators might be admins
-            ]);
-
+            const settings = await systemService.getSettings();
             setBatches(settings.batches || []);
-
-            setMentors(mentorsData.map((u: any) => ({ id: u.id, name: u.name })));
-            setCoordinators(adminsData.map((u: any) => ({ id: u.id, name: u.name })));
-
         } catch (error) {
             console.error("Failed to load options", error);
             toast.error("Could not load form options.");
@@ -77,29 +54,65 @@ export const StudentCreateDialog = ({ isOpen, onClose, onSuccess }: StudentCreat
 
         setIsSubmitting(true);
         try {
-            // --- FIX: FLATTENED PAYLOAD AND REMOVED NESTED OBJECTS ---
-            // Sending profile fields (batch_id, mentor, coordinator) directly, 
-            // which the backend serializer is configured to handle for creation.
-
-            await userService.create({
+            const response = await userService.create({
                 name: formData.name,
                 email: formData.email,
-                phone: formData.phone, // 'phone' matches the top-level User model field
+                phone: formData.phone,
                 role: "student",
                 status: "Active",
-
-                // ✅ ADDED FLATTENED FIELDS (P1.2 Fix)
-                batch: formData.batch, // Use 'batch' to match Student interface, userService converts to batch_id
-                mentor: formData.mentor || "", // 🛑 SENDING STRING NAME (P1.3 Fix)
-                coordinator: formData.coordinator || "", // 🛑 SENDING STRING NAME (P1.3 Fix)
+                batch: formData.batch,
                 isProfileComplete: false
             });
 
-            toast.success("Student Enrolled Successfully", {
-                description: "Login credentials have been emailed.",
-            });
+            // Parse Notification Status
+            const meta = response.meta || {};
+            const notifyStatus = meta.notification_status || {};
 
-            setFormData({ name: "", email: "", phone: "", batch: "", mentor: "", coordinator: "" });
+            const emailStatus = notifyStatus.email === 'ok';
+            const waStatusRaw = notifyStatus.whatsapp || 'error';
+            const waStatus = waStatusRaw === 'ok';
+            const waSkipped = waStatusRaw.includes('skipped');
+
+            toast.success(
+                <div className="flex flex-col gap-2">
+                    <span className="font-semibold">Enrollment Complete</span>
+                    <div className="text-xs text-muted-foreground">
+                        Student created successfully.
+                    </div>
+                    <div className="space-y-1 pt-2 border-t border-border/50">
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="opacity-70 w-16">Email:</span>
+                            {emailStatus ? (
+                                <span className="text-green-600 flex items-center gap-1">
+                                    Sent <CheckCircle2 className="w-3 h-3" />
+                                </span>
+                            ) : (
+                                <span className="text-red-500 flex items-center gap-1">
+                                    Failed <AlertCircle className="w-3 h-3" />
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="opacity-70 w-16">WhatsApp:</span>
+                            {waStatus ? (
+                                <span className="text-green-600 flex items-center gap-1">
+                                    Sent <CheckCircle2 className="w-3 h-3" />
+                                </span>
+                            ) : waSkipped ? (
+                                <span className="text-yellow-600 flex items-center gap-1">
+                                    Skipped <AlertTriangle className="w-3 h-3" />
+                                </span>
+                            ) : (
+                                <span className="text-red-500 flex items-center gap-1">
+                                    Failed <AlertCircle className="w-3 h-3" />
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            setFormData({ name: "", email: "", phone: "", batch: "" });
             onSuccess();
             onClose();
         } catch (error: any) {
@@ -113,11 +126,11 @@ export const StudentCreateDialog = ({ isOpen, onClose, onSuccess }: StudentCreat
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[400px]">
                 <DialogHeader>
                     <DialogTitle>Enroll New Student</DialogTitle>
                     <DialogDescription>
-                        Enter details below. A secure password will be generated and emailed.
+                        Enter mandatory details. Profile will be marked incomplete.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -125,77 +138,51 @@ export const StudentCreateDialog = ({ isOpen, onClose, onSuccess }: StudentCreat
                     <div className="flex justify-center py-8"><Loader2 className="animate-spin" /></div>
                 ) : (
                     <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Full Name *</Label>
-                                <Input
-                                    id="name"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="John Doe"
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email *</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="john@example.com"
-                                />
-                            </div>
+                        {/* 1. Full Name */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="name">Full Name</Label>
+                            <Input
+                                id="name"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                placeholder=""
+                            />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="phone">Phone *</Label>
-                                <Input
-                                    id="phone"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    placeholder="+91..."
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="batch">Batch *</Label>
-                                <Select value={formData.batch} onValueChange={(val) => setFormData({ ...formData, batch: val })}>
-                                    <SelectTrigger><SelectValue placeholder="Select Batch" /></SelectTrigger>
-                                    <SelectContent>
-                                        {batches.map((batch) => (
-                                            <SelectItem key={batch} value={batch}>{batch}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        {/* 2. Email */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                placeholder=""
+                            />
                         </div>
 
+                        {/* 3. Phone */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="phone">Phone</Label>
+                            <Input
+                                id="phone"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                placeholder=""
+                            />
+                        </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="mentor">Assign Mentor</Label>
-                                <Select value={formData.mentor} onValueChange={(val) => setFormData({ ...formData, mentor: val })}>
-                                    <SelectTrigger><SelectValue placeholder="Select Mentor" /></SelectTrigger>
-                                    <SelectContent>
-                                        {mentors.map((m) => (
-                                            // 🛑 FIX: Use m.name (string) as value instead of m.id (P1.3 Fix)
-                                            <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="coordinator">Assign Coordinator</Label>
-                                <Select value={formData.coordinator} onValueChange={(val) => setFormData({ ...formData, coordinator: val })}>
-                                    <SelectTrigger><SelectValue placeholder="Select Coordinator" /></SelectTrigger>
-                                    <SelectContent>
-                                        {coordinators.map((c) => (
-                                            // 🛑 FIX: Use c.name (string) as value instead of c.id (P1.3 Fix)
-                                            <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        {/* 4. Batch */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="batch">Batch</Label>
+                            <Select value={formData.batch} onValueChange={(val) => setFormData({ ...formData, batch: val })}>
+                                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                <SelectContent>
+                                    {batches.map((batch) => (
+                                        <SelectItem key={batch} value={batch}>{batch}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 )}
@@ -204,7 +191,7 @@ export const StudentCreateDialog = ({ isOpen, onClose, onSuccess }: StudentCreat
                     <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
                     <Button onClick={handleCreate} disabled={isSubmitting || isLoadingOptions}>
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                        Enroll Student
+                        Create
                     </Button>
                 </DialogFooter>
             </DialogContent>

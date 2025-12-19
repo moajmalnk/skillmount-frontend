@@ -129,8 +129,9 @@ export const ChatWidget = () => {
       };
 
       setTurns((prev) => {
-        // ensure only the latest one is typing
+        // Stop any previous typing animations immediately
         const withoutTyping = prev.map((t) => ({ ...t, isTyping: false }));
+        // Add new turn
         const next = [...withoutTyping, newTurn].slice(-6);
         return next;
       });

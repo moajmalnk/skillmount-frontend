@@ -31,14 +31,30 @@ const Students = () => {
         const rawData = await userService.getPublicDirectory() as Student[];
 
         // 2. Transform data for the UI (StudentCard expects specific props)
-        const formattedData = rawData.map(s => ({
+        // Client-side filtering as a safety net for incomplete profiles (e.g. missing bio/avatar)
+        const validData = rawData.filter((s: any) =>
+          s.avatar &&
+          s.headline &&
+          s.bio &&
+          s.bio.trim() !== "" &&
+          s.headline.trim() !== ""
+        );
+
+        const formattedData = validData.map(s => ({
           ...s,
           // Map technical batch ID (e.g., "0925") to Display Name (e.g., "Sep 2025")
           batch: formatBatchForDisplay(s.batch, true),
           batchId: s.batch, // Keep original ID for filtering
-          // Map nested socials to top-level for Card if needed, or just ensure Card handles it
+
+          // Map nested socials to top-level for Card
           domain: s.socials?.website,
           github: s.socials?.github,
+          linkedin: s.socials?.linkedin, // NEW: LinkedIn
+
+          // NEW: Rich Profile Data
+          headline: s.headline,
+          placement: s.placement,
+          projectCount: s.projects ? s.projects.length : 0,
         }));
 
         setStudents(formattedData);

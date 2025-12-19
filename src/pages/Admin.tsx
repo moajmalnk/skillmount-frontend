@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, LogOut, GraduationCap, Users, Share2,
@@ -62,6 +62,25 @@ const Admin = () => {
       console.log("Role Check:", user.role === 'super_admin');
     }
   }, [user]);
+
+  // Handle Tab State via URL Params
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState("stats");
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && tabConfig.some(t => t.value === tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    } else if (!tabFromUrl) {
+      // Default to stats if no param
+      setActiveTab("stats");
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
 
   const handleLogoutConfirm = () => {
     logout();
@@ -132,7 +151,7 @@ const Admin = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="stats" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <div className="overflow-x-auto pb-2">
             <TabsList className="inline-flex h-auto w-auto gap-2 bg-transparent p-0 justify-start">
               {tabConfig.map((tab) => (
@@ -146,6 +165,7 @@ const Admin = () => {
               ))}
             </TabsList>
           </div>
+
 
           {tabConfig.map((tab) => (
             <TabsContent key={tab.value} value={tab.value} className="space-y-6">

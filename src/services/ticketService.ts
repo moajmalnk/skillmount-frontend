@@ -4,13 +4,13 @@ import { toast } from "sonner";
 
 export const ticketService = {
   // 1. GET ALL TICKETS (Filtered by User Role automatically by Backend)
-  getAll: async (): Promise<Ticket[]> => {
+  getAll: async (params?: Record<string, any>): Promise<any> => {
     try {
-      const response = await api.get<Ticket[]>('/tickets/');
+      const response = await api.get('/tickets/', { params });
       return response.data;
     } catch (error) {
       console.error("Failed to load tickets", error);
-      return [];
+      throw error;
     }
   },
 
@@ -110,5 +110,16 @@ export const ticketService = {
       console.error("Delete failed", error);
       throw error;
     }
-  }
+  },
+
+  // 7. ASSIGN TICKET
+  assign: async (ticketId: string, userId: number | null): Promise<void> => {
+    try {
+      await api.post(`/tickets/${ticketId}/assign/`, { user_id: userId });
+      toast.success(userId ? "Ticket assigned" : "Ticket unassigned");
+    } catch (error) {
+      console.error("Assignment failed", error);
+      throw error;
+    }
+  },
 };

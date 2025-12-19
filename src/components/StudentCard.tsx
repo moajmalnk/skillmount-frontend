@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, Github, ExternalLink, Star, Sparkles, User } from "lucide-react";
+import { Mail, Phone, Github, ExternalLink, Star, Sparkles, User, Linkedin } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -13,11 +13,15 @@ interface StudentCardProps {
   batch: string;
   domain?: string;
   github?: string;
+  linkedin?: string; // Added LinkedIn
   email?: string;
   phone?: string;
   skills?: string[];
   isTopPerformer?: boolean;
-  avatar?: string; // Added Avatar Prop
+  avatar?: string;
+  headline?: string; // Added Headline
+  projectCount?: number; // Added Project Count
+  placement?: any; // Added Placement Data
 }
 
 const StudentCard = ({
@@ -26,11 +30,15 @@ const StudentCard = ({
   batch,
   domain,
   github,
+  linkedin,
   email,
   phone,
   skills = [],
   isTopPerformer = false,
-  avatar
+  avatar,
+  headline,
+  projectCount = 0,
+  placement
 }: StudentCardProps) => {
   const { isAuthenticated } = useAuth(); // Check login status
   const [isVisible, setIsVisible] = useState(false);
@@ -64,13 +72,24 @@ const StudentCard = ({
         isLoaded && "opacity-100"
       )}
     >
-      {/* Top Performer Badge */}
-      {isTopPerformer && (
-        <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm animate-badge-pulse">
-          <Star className="w-3 h-3 fill-current" />
-          <span>Top Performer</span>
-        </div>
-      )}
+      {/* Badges Container */}
+      <div className="absolute top-3 right-3 z-20 flex flex-col gap-2 items-end">
+        {/* Top Performer Badge */}
+        {isTopPerformer && (
+          <div className="flex items-center gap-1.5 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-white px-3 py-1.5 rounded-full text-[10px] font-bold shadow-lg backdrop-blur-sm animate-badge-pulse">
+            <Star className="w-3 h-3 fill-current" />
+            <span>Top Performer</span>
+          </div>
+        )}
+
+        {/* Placement Badge */}
+        {placement?.company && (
+          <div className="flex items-center gap-1.5 bg-gradient-to-br from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-full text-[10px] font-bold shadow-lg">
+            <Sparkles className="w-3 h-3" />
+            <span>Placed at {placement.company}</span>
+          </div>
+        )}
+      </div>
 
       {/* Portfolio Preview / Cover Section */}
       <Link
@@ -110,16 +129,33 @@ const StudentCard = ({
 
       {/* Content Section - Flex Grow to push footer down */}
       <CardContent className="flex flex-col flex-grow p-5">
-        {/* Name & Batch */}
+        {/* Name & Headline */}
         <div className="mb-4">
           <Link to={`/students/${id}`} className="group/link block">
-            <h3 className="text-lg font-bold text-foreground mb-1 group-hover/link:text-primary transition-colors duration-300 line-clamp-1">
+            <h3 className="text-lg font-bold text-foreground mb-0.5 group-hover/link:text-primary transition-colors duration-300 line-clamp-1">
               {name}
             </h3>
           </Link>
-          <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase">
-            {batch}
-          </p>
+
+          {/* Headline - NEW */}
+          {headline && (
+            <p className="text-sm text-foreground/80 font-medium mb-1 line-clamp-1" title={headline}>
+              {headline}
+            </p>
+          )}
+
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-[10px] text-muted-foreground font-semibold tracking-wider uppercase bg-muted px-2 py-0.5 rounded">
+              {batch}
+            </p>
+            {/* Project Count Badge */}
+            {projectCount > 0 && (
+              <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+                {projectCount} Project{projectCount !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Skills Tags - Fixed height area or fluid */}
@@ -130,7 +166,7 @@ const StudentCard = ({
                 <Badge
                   key={idx}
                   variant="secondary"
-                  className="text-[10px] px-2 py-0.5 rounded-md bg-muted/50 hover:bg-muted transition-colors duration-300 font-medium"
+                  className="text-[10px] px-2 py-0.5 rounded-md bg-muted/50 hover:bg-muted transition-colors duration-300 font-medium border border-transparent hover:border-border"
                 >
                   {skill}
                 </Badge>
@@ -163,6 +199,13 @@ const StudentCard = ({
                   <Button size="sm" variant="outline" asChild className="h-8 flex-1 text-xs rounded-lg hover:bg-primary/5 hover:text-primary">
                     <a href={github} target="_blank" rel="noopener noreferrer">
                       <Github className="w-3 h-3 mr-1.5" /> GitHub
+                    </a>
+                  </Button>
+                )}
+                {linkedin && (
+                  <Button size="sm" variant="outline" asChild className="h-8 flex-1 text-xs rounded-lg hover:bg-blue-600/10 hover:text-blue-600 border-dashed hover:border-solid hover:border-blue-600/30">
+                    <a href={linkedin} target="_blank" rel="noopener noreferrer">
+                      <Linkedin className="w-3 h-3 mr-1.5" /> LinkedIn
                     </a>
                   </Button>
                 )}

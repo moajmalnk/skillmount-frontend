@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,11 +7,27 @@ import { toast } from "sonner";
 import { VoiceRecorder } from "@/components/tickets/VoiceRecorder";
 import { useAuth } from "@/context/AuthContext";
 import { feedbackService } from "@/services/feedbackService";
+import { systemService } from "@/services/systemService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const FeedbackForm = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [topics, setTopics] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const settings = await systemService.getSettings();
+        if (settings.topics && settings.topics.length > 0) {
+          setTopics(settings.topics);
+        }
+      } catch (error) {
+        console.error("Failed to load topics", error);
+      }
+    };
+    loadTopics();
+  }, []);
 
   const [formData, setFormData] = useState({
     rating: 5,
@@ -122,10 +138,20 @@ export const FeedbackForm = () => {
               <SelectValue placeholder="Select Topic" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Content">Content Quality</SelectItem>
-              <SelectItem value="Platform">Platform UI/UX</SelectItem>
-              <SelectItem value="Support">Support Service</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
+              {topics.length > 0 ? (
+                topics.map((topic) => (
+                  <SelectItem key={topic} value={topic}>
+                    {topic}
+                  </SelectItem>
+                ))
+              ) : (
+                <>
+                  <SelectItem value="Content">Content Quality</SelectItem>
+                  <SelectItem value="Platform">Platform UI/UX</SelectItem>
+                  <SelectItem value="Support">Support Service</SelectItem>
+                </>
+              )}
+              {!topics.includes("Other") && <SelectItem value="Other">Other</SelectItem>}
             </SelectContent>
           </Select>
         </div>
