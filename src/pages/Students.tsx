@@ -6,7 +6,6 @@ import { Loader2 } from "lucide-react";
 // Data Services
 import { userService } from "@/services/userService";
 import { Student } from "@/types/user";
-import { formatBatchForDisplay } from "@/lib/batches";
 
 // Import Reusable Sections
 import { StudentsHero } from "@/components/students/StudentsHero";
@@ -21,17 +20,22 @@ const Students = () => {
 
   // Data State
   const [students, setStudents] = useState<any[]>([]);
+  const [batches, setBatches] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        // 1. Fetch raw student data from service (Use Public Directory for non-admins)
-        const rawData = await userService.getPublicDirectory() as Student[];
+        // 1. Fetch System Settings (for Batches) and Raw Data in parallel
+        const [settings, rawData] = await Promise.all([
+          import("@/services/systemService").then(m => m.systemService.getSettings()),
+          userService.getPublicDirectory() as Promise<Student[]>
+        ]);
 
-        // 2. Transform data for the UI (StudentCard expects specific props)
-        // Client-side filtering as a safety net for incomplete profiles (e.g. missing bio/avatar)
+        setBatches(settings.batches || []);
+
+        // 2. Transform data for the UI
         const validData = rawData.filter((s: any) =>
           s.avatar &&
           s.headline &&
@@ -42,16 +46,15 @@ const Students = () => {
 
         const formattedData = validData.map(s => ({
           ...s,
-          // Map technical batch ID (e.g., "0925") to Display Name (e.g., "Sep 2025")
-          batch: formatBatchForDisplay(s.batch, true),
-          batchId: s.batch, // Keep original ID for filtering
+          // Use raw batch string if possible, or format if needed. 
+          // Since we are using system batches now, we rely on the string match.
+          batch: s.batch,
+          batchId: s.batch,
 
-          // Map nested socials to top-level for Card
           domain: s.socials?.website,
           github: s.socials?.github,
-          linkedin: s.socials?.linkedin, // NEW: LinkedIn
+          linkedin: s.socials?.linkedin,
 
-          // NEW: Rich Profile Data
           headline: s.headline,
           placement: s.placement,
           projectCount: s.projects ? s.projects.length : 0,
@@ -59,14 +62,14 @@ const Students = () => {
 
         setStudents(formattedData);
       } catch (error) {
-        console.error("Failed to fetch students:", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setIsLoading(false);
         setIsVisible(true);
       }
     };
 
-    fetchStudents();
+    fetchData();
   }, []);
 
   // Filter Logic
@@ -136,6 +139,7 @@ const Students = () => {
           clearFilters={clearFilters}
           filteredCount={filteredStudents.length}
           totalCount={students.length}
+          batches={batches}
         />
 
         {isLoading ? (

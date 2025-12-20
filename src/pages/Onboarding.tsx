@@ -49,6 +49,7 @@ const onboardingSchema = z.object({
   awards: z.string().optional(),
   topic: z.string().optional(),
   referringPlatform: z.string().optional(),
+  couponCode: z.string().optional(),
 });
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
@@ -78,7 +79,7 @@ export default function Onboarding() {
       whatsapp: "", dob: "", address: "", pincode: "",
       qualification: "", domain: "", mentor: "", coordinator: "",
       aim: "", skills: "", socialMedia: "", awards: "",
-      topic: "", referringPlatform: ""
+      topic: "", referringPlatform: "", couponCode: ""
     },
     mode: "onChange"
   });
@@ -213,9 +214,10 @@ export default function Onboarding() {
 
         // Construct Socials JSON
         payload.socials = JSON.stringify({
-          website: data.domain || '',
           linkedin: data.socialMedia || ''
         });
+
+        if (data.couponCode) payload.coupon_code = data.couponCode;
       }
 
       if (user.role === 'tutor' && data.topic) {
@@ -395,6 +397,13 @@ export default function Onboarding() {
             <FormItem>
               <FormLabel>Skills (Comma separated)</FormLabel>
               <FormControl><Input placeholder="Java, React, Design..." {...field} /></FormControl>
+            </FormItem>
+          )} />
+
+          <FormField control={form.control} name="couponCode" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Coupon Code (Optional)</FormLabel>
+              <FormControl><Input placeholder="Enter coupon code if you have one" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />

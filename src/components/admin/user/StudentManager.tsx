@@ -59,30 +59,24 @@ export const StudentManager = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // 1. Fetch Data (Students + Batches)
+  // 1. Fetch Data (Students + Batches)
   const loadData = async () => {
     setIsLoading(true);
+
+    // Independent Fetch for Saftey
     try {
-      // Parallel fetch for efficiency
-      const [usersData, settingsData] = await Promise.all([
-        userService.getElementsByRole("student"),
-        systemService.getSettings()
-      ]);
-
-      // Update Batches
-      setBatches(settingsData.batches || []);
-
-
+      const usersData = await userService.getElementsByRole("student");
 
       const formattedStudents: Student[] = usersData.map((u: any) => ({
         ...u,
         createdAt: u.date_joined || u.created_at || new Date().toISOString(),
-
         role: "student",
-        batch: u.student_profile?.batch_id || "Unassigned",
-        regId: u.student_profile?.reg_id || "PENDING",
+        // Prioritize top-level fields (Robust Backend) -> Fallback to nested
+        batch: u.batch || u.student_profile?.batch_id || "Unassigned",
+        regId: u.regId || u.student_profile?.reg_id || "PENDING",
 
-        mentor: u.student_profile?.mentor || "Not Assigned",
-        coordinator: u.student_profile?.coordinator || "Not Assigned",
+        mentor: u.mentor || u.student_profile?.mentor || "Not Assigned",
+        coordinator: u.coordinator || u.student_profile?.coordinator || "Not Assigned",
 
         headline: u.student_profile?.headline || "",
         bio: u.student_profile?.bio || "",
@@ -101,10 +95,19 @@ export const StudentManager = () => {
         status: u.status || "Active",
         projects: u.student_profile?.projects || [],
       }));
+
       setStudents(formattedStudents);
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to load data");
+      console.error("Failed to load students", error);
+      toast.error("Failed to load students");
+    }
+
+    try {
+      const settingsData = await systemService.getSettings();
+      setBatches(settingsData.batches || []);
+    } catch (error) {
+      console.error("Failed to load settings", error);
+      // Do not block student display if settings fail
     } finally {
       setIsLoading(false);
     }

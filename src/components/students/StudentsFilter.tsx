@@ -5,7 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { WobbleCard } from "@/components/ui/wobble-card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { BATCHES, formatBatchForDisplay } from "@/lib/batches";
 import { ALL_SKILLS } from "@/lib/students-data";
 
 interface StudentsFilterProps {
@@ -18,6 +17,7 @@ interface StudentsFilterProps {
   clearFilters: () => void;
   filteredCount: number;
   totalCount: number;
+  batches: string[];
 }
 
 export const StudentsFilter = ({
@@ -29,12 +29,13 @@ export const StudentsFilter = ({
   toggleSkill,
   clearFilters,
   filteredCount,
-  totalCount
+  totalCount,
+  batches
 }: StudentsFilterProps) => {
   return (
     <section className="pt-0 sm:pt-2 bg-background relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.008]" style={{ backgroundImage: 'linear-gradient(45deg, transparent 25%, currentColor 25%, currentColor 50%, transparent 50%, transparent 75%, currentColor 75%)', backgroundSize: '30px 30px' }}></div>
-      
+
       <div className="container mx-auto px-6 max-w-7xl relative">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2.5 bg-primary/[0.03] border border-primary/10 rounded-full px-5 py-2 mb-6">
@@ -44,7 +45,7 @@ export const StudentsFilter = ({
           <TextGenerateEffect words="Filter & Discover" className="text-4xl md:text-6xl font-bold text-foreground mb-4 tracking-tight leading-[0.95]" duration={1.5} />
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-light">Find the perfect match using our advanced filtering system</p>
         </div>
-        
+
         <WobbleCard className="border border-border/30 rounded-3xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-700 mb-4">
           <div className="p-6 md:p-8">
             <div className="grid md:grid-cols-12 gap-6 mb-6">
@@ -58,7 +59,7 @@ export const StudentsFilter = ({
                   className="pl-10 rounded-xl border-border/30 focus:border-primary/50 bg-background/50 backdrop-blur-sm"
                 />
               </div>
-              
+
               {/* Batch Select */}
               <div className="md:col-span-3">
                 <Select value={selectedBatch} onValueChange={setSelectedBatch}>
@@ -67,13 +68,13 @@ export const StudentsFilter = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Batches</SelectItem>
-                    {BATCHES.map((batch) => (
-                      <SelectItem key={batch.id} value={batch.id}>{formatBatchForDisplay(batch.id)}</SelectItem>
+                    {batches.map((batch) => (
+                      <SelectItem key={batch} value={batch}>{batch}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {/* Filter Actions */}
               <div className="md:col-span-4 flex items-center justify-end gap-3">
                 <div className="flex items-center gap-2">
@@ -87,7 +88,7 @@ export const StudentsFilter = ({
                 )}
               </div>
             </div>
-            
+
             {/* Skills Filter */}
             <div className="border-t border-border/20 pt-6">
               <div className="flex items-center gap-3 mb-4">
