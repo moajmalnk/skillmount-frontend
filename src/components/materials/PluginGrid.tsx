@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { WobbleCard } from "@/components/ui/wobble-card";
-import { Package, FileText, Download } from "lucide-react";
+import { Package, Download, ExternalLink } from "lucide-react";
 import { Material } from "@/types/material";
 
 export const PluginGrid = ({ plugins }: { plugins: Material[] }) => {
@@ -18,24 +18,41 @@ export const PluginGrid = ({ plugins }: { plugins: Material[] }) => {
                   <div className="flex flex-col gap-2">
                     <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-medium">{plugin.category}</Badge>
                   </div>
-                  <FileText className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
+                  <Package className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <CardTitle className="text-lg leading-tight mb-3 group-hover:text-primary transition-colors duration-300">{plugin.title}</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground leading-relaxed">{plugin.description}</CardDescription>
+                <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-2" title={plugin.description}>
+                  {plugin.description}
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-8 pt-0">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{plugin.pages ? `${plugin.pages} pages` : 'Documentation'}</span>
+                    <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">v{plugin.version || '1.0'}</span>
                     <span>{plugin.size}</span>
                   </div>
-                  <div className="text-xs text-muted-foreground">Updated: {plugin.lastUpdated}</div>
+
                   <Separator className="bg-border/30" />
-                  <Button size="sm" className="w-full rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105" asChild>
-                    <a href={plugin.url} download>
-                      <Download className="w-4 h-4 mr-2" /> Download Guide
-                    </a>
-                  </Button>
+
+                  <div className="grid gap-2">
+                    {plugin.previewUrl && (
+                      <Button variant="outline" size="sm" className="w-full rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary text-muted-foreground transition-all duration-300" asChild>
+                        <a href={plugin.previewUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-4 h-4 mr-2" /> Live Demo / Details
+                        </a>
+                      </Button>
+                    )}
+
+                    <Button size="sm" className="w-full rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105" asChild>
+                      <a href={plugin.url} download target="_blank" rel="noopener noreferrer">
+                        <Download className="w-4 h-4 mr-2" /> Download Plugin
+                      </a>
+                    </Button>
+                  </div>
+
+                  <div className="text-[10px] text-muted-foreground text-center pt-1">
+                    Updated: {plugin.lastUpdated}
+                  </div>
                 </div>
               </CardContent>
             </WobbleCard>

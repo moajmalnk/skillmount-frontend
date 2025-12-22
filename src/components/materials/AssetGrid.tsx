@@ -38,7 +38,7 @@ export const AssetGrid = ({ assets }: { assets: Material[] }) => {
                   <Separator className="bg-border/30" />
                   <Button size="sm" className="w-full rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105" asChild>
                     <a href={asset.url} download>
-                      <Download className="w-4 h-4 mr-2" /> Download Pack
+                      <Download className="w-4 h-4 mr-2" /> Download Asset
                     </a>
                   </Button>
                 </div>

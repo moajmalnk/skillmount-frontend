@@ -68,7 +68,8 @@ export const MaterialsManager = () => {
     code: "",
     language: "PHP",
     version: "",
-    size: ""
+    size: "",
+    previewUrl: ""
   });
 
   // File Upload State
@@ -133,6 +134,7 @@ export const MaterialsManager = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
+      setFormData(prev => ({ ...prev, url: "" })); // Clear URL as File takes precedence
       // Auto-fill size if empty
       if (!formData.size) {
         const sizeInMB = (e.target.files[0].size / (1024 * 1024)).toFixed(2);
@@ -141,10 +143,36 @@ export const MaterialsManager = () => {
     }
   };
 
+  // Helper to ensure https://
+  const ensureProtocol = (link: string | undefined | null) => {
+    if (!link) return "";
+    if (link.startsWith("http://") || link.startsWith("https://")) return link;
+    return `https://${link}`;
+  };
+
+  const handleEmbedUrlBlur = () => {
+    const url = formData.embedUrl || "";
+    let newUrl = url;
+
+    // Convert Standard YouTube
+    if (url.includes("watch?v=")) {
+      const vId = url.split("watch?v=")[1].split("&")[0];
+      newUrl = `https://www.youtube.com/embed/${vId}`;
+    } else if (url.includes("youtu.be/")) {
+      const vId = url.split("youtu.be/")[1].split("?")[0];
+      newUrl = `https://www.youtube.com/embed/${vId}`;
+    }
+
+    if (newUrl !== url) {
+      setFormData(prev => ({ ...prev, embedUrl: newUrl }));
+      toast.success("Converted to Embed URL format automatically");
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       title: "", type: "Video", category: "", url: "", description: "",
-      embedUrl: "", code: "", language: "PHP", version: "", size: ""
+      embedUrl: "", code: "", language: "PHP", version: "", size: "", previewUrl: ""
     });
     setSelectedFile(null);
     setEditingId(null);
@@ -153,18 +181,24 @@ export const MaterialsManager = () => {
 
   const initiateEdit = (material: Material) => {
     setEditingId(material.id);
+
     setFormData({
-      title: material.title,
-      type: material.type,
-      category: material.category,
-      url: material.url || "",
+      title: material.title || "",
+      type: material.type || "Video",
+      category: material.category || "",
       description: material.description || "",
+
       embedUrl: material.embedUrl || "",
-      code: material.code || "", // Should be mapped from code_snippet by service but checking
+      previewUrl: material.previewUrl || "",
+
+      url: material.is_file ? "" : (material.externalUrl || ""),
+
+      code: material.code || "",
       language: material.language || "PHP",
       version: material.version || "",
       size: material.size || ""
     });
+
     setIsCreateOpen(true);
   };
 
@@ -172,6 +206,18 @@ export const MaterialsManager = () => {
     if (!formData.title || !formData.type) {
       toast.error("Title and Type are mandatory.");
       return;
+    }
+
+    // 1. MANDATORY THEME CHECK: Ensure both links exist
+    if (formData.type === 'Theme') {
+      if (!formData.url && !selectedFile && !editingId) {
+        toast.error("Download source (File or URL) is mandatory for Themes.");
+        return;
+      }
+      if (!formData.previewUrl) {
+        toast.error("Live Preview URL is mandatory for Themes.");
+        return;
+      }
     }
 
     // Validation: Require either URL OR File (Only allow skip if editing existing and URL is present or if Snippet)
@@ -186,21 +232,31 @@ export const MaterialsManager = () => {
     }
 
     try {
+      // 2. CONSTRUCT PAYLOAD (POJO)
       const payload: any = {
         title: formData.title,
         type: formData.type as MaterialType,
         category: formData.category || "General",
-        url: formData.url || "", // Backend handles file url generation
+        externalUrl: ensureProtocol(formData.url) || "",
         description: formData.description,
-        ...(formData.type === 'Video' && { embedUrl: formData.embedUrl || formData.url }),
-        ...(formData.type === 'Snippet' && { code: formData.code, language: formData.language }),
-        ...((formData.type === 'Theme' || formData.type === 'Plugin' || formData.type === 'Asset') && {
-          version: formData.version,
-          size: formData.size
-        }),
       };
 
-      // If file exists, pass it along
+      // Conditional Fields
+      if (formData.type === 'Video') {
+        payload.embedUrl = ensureProtocol(formData.embedUrl) || ensureProtocol(formData.url);
+      }
+
+      if (formData.type === 'Snippet') {
+        payload.code = formData.code;
+        payload.language = formData.language;
+      }
+
+      if (['Theme', 'Plugin', 'Asset'].includes(formData.type || "")) {
+        payload.version = formData.version;
+        payload.size = formData.size;
+        payload.previewUrl = ensureProtocol(formData.previewUrl);
+      }
+
       if (selectedFile) {
         payload.file = selectedFile;
       }
@@ -216,9 +272,19 @@ export const MaterialsManager = () => {
       resetForm();
       loadMaterials();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error(editingId ? "Failed to update material" : "Failed to add material");
+      const serverError = error.response?.data;
+      let errorMsg = editingId ? "Failed to update material" : "Failed to add material";
+
+      if (serverError) {
+        const details = Object.entries(serverError)
+          .map(([key, msgs]) => `${key}: ${(msgs as any).join(", ")}`)
+          .join(" | ");
+        if (details) errorMsg += `: ${details}`;
+      }
+
+      toast.error(errorMsg);
     }
   };
 
@@ -462,14 +528,17 @@ export const MaterialsManager = () => {
 
             {/* 1. Video Specific */}
             {formData.type === 'Video' && (
-              <div className="space-y-2 bg-blue-50/50 p-3 rounded-md border border-blue-100">
-                <Label className="text-blue-700">Embed URL (For Player)</Label>
+              <div className="space-y-2">
+                <Label> Video URL</Label>
                 <Input
-                  placeholder="https://www.youtube.com/embed/..."
-                  value={formData.embedUrl}
+                  placeholder="Paste YouTube link here..."
+                  value={formData.embedUrl || ""}
                   onChange={(e) => setFormData({ ...formData, embedUrl: e.target.value })}
+                  onBlur={handleEmbedUrlBlur}
                 />
-                <p className="text-[10px] text-muted-foreground">The link used inside the iframe player.</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Paste standard links like https://www.youtube.com/watch?v=ID
+                </p>
               </div>
             )}
 
@@ -502,7 +571,7 @@ export const MaterialsManager = () => {
 
             {/* 3. Theme/Plugin/Asset Specific */}
             {(formData.type === 'Theme' || formData.type === 'Plugin' || formData.type === 'Asset') && (
-              <div className="grid grid-cols-2 gap-4 bg-orange-50/50 p-3 rounded-md border border-orange-100">
+              <div className={`grid grid-cols-2 gap-4 p-3 rounded-md border ${formData.type === 'Theme' ? 'bg-purple-50/50 border-purple-100' : formData.type === 'Plugin' ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50/50 border-gray-100'}`}>
                 <div className="space-y-2">
                   <Label>Version</Label>
                   <Input placeholder="e.g. 1.0.4" value={formData.version} onChange={(e) => setFormData({ ...formData, version: e.target.value })} />
@@ -510,6 +579,18 @@ export const MaterialsManager = () => {
                 <div className="space-y-2">
                   <Label>Size</Label>
                   <Input placeholder="e.g. 12 MB" value={formData.size} onChange={(e) => setFormData({ ...formData, size: e.target.value })} />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label>
+                    {formData.type === 'Theme' && "Live Preview URL (Optional)"}
+                    {formData.type === 'Plugin' && "Plugin Homepage / Demo URL (Optional)"}
+                    {formData.type === 'Asset' && "External Details URL (Optional)"}
+                  </Label>
+                  <Input
+                    placeholder="https://..."
+                    value={formData.previewUrl || ""}
+                    onChange={(e) => setFormData({ ...formData, previewUrl: e.target.value })}
+                  />
                 </div>
               </div>
             )}

@@ -5,10 +5,12 @@ export interface Material {
   title: string;
   type: MaterialType;
   category: string;
-  url: string;
+  url: string; // Computed URL (File or External)
+  externalUrl?: string; // Raw generic URL
+  is_file?: boolean;
   description?: string;
   lastUpdated: string;
-  
+
   // Video specific
   embedUrl?: string;
   duration?: string;
@@ -21,6 +23,7 @@ export interface Material {
   // Asset/Theme/Plugin specific
   size?: string;
   version?: string;
+  previewUrl?: string; // For live demo
   features?: string[];
   fileCount?: number;
   formats?: string[];

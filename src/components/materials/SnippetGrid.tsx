@@ -39,17 +39,21 @@ export const SnippetGrid = ({ snippets }: { snippets: Material[] }) => {
                     </pre>
                   </div>
                   <div className="flex gap-3">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => copyToClipboard(snippet.code || "")}
                       className="flex-1 rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300"
                     >
                       <Copy className="w-4 h-4 mr-2" /> Copy Code
                     </Button>
-                    <Button size="sm" variant="outline" className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300">
-                      <Download className="w-4 h-4 mr-2" /> Download
-                    </Button>
+                    {snippet.url && (
+                      <Button size="sm" variant="outline" className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300" asChild>
+                        <a href={snippet.url} download>
+                          <Download className="w-4 h-4 mr-2" /> Download File
+                        </a>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

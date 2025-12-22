@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { WobbleCard } from "@/components/ui/wobble-card";
-import { Palette, Download } from "lucide-react";
+import { Palette, Download, Eye } from "lucide-react";
 import { Material } from "@/types/material";
 
 export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
@@ -37,9 +37,18 @@ export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Size: {theme.size}</span>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" asChild className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300">
-                        <a href={theme.url} target="_blank" rel="noopener noreferrer">Preview</a>
-                      </Button>
+                      {(theme.previewUrl) ? (
+                        <Button size="sm" variant="outline" asChild className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300">
+                          <a href={theme.previewUrl} target="_blank" rel="noopener noreferrer">
+                            <Eye className="w-4 h-4 mr-2" /> Preview
+                          </a>
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="rounded-full border-border/40 opacity-50 cursor-not-allowed" disabled>
+                          <Eye className="w-4 h-4 mr-2" /> Preview
+                        </Button>
+                      )}
+
                       <Button size="sm" asChild className="rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105">
                         <a href={theme.url} download>
                           <Download className="w-4 h-4 mr-2" /> Download

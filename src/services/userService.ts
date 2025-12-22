@@ -58,6 +58,9 @@ const buildUserFormData = (data: Partial<User> & { avatarFile?: File; resumeFile
     if (sData.projects) formData.append('projects', JSON.stringify(sData.projects));
     if (sData.achievements) formData.append('achievements', JSON.stringify(sData.achievements));
     if (sData.placement) formData.append('placement', JSON.stringify(sData.placement));
+
+    // Coupon Code (Critical for Onboarding)
+    appendIfPresent('coupon_code', sData.coupon_code);
   }
 
   if (data.role === 'tutor') {
@@ -120,6 +123,9 @@ const buildUserJsonPayload = (data: Partial<User>) => {
     // Performance Flags
     if (sData.isTopPerformer !== undefined) payload.is_top_performer = sData.isTopPerformer;
     if (sData.isFeatured !== undefined) payload.is_featured_graduate = sData.isFeatured;
+
+    // Coupon Code
+    if (sData.couponCode) payload.coupon_code = sData.couponCode;
   }
 
   // Ensure Flattened Fields for Affiliate

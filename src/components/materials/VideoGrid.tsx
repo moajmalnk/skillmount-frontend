@@ -12,26 +12,26 @@ interface VideoGridProps {
 }
 
 export const VideoGrid = ({ videos }: VideoGridProps) => {
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<Material | null>(null);
 
   return (
     <div className="container mx-auto px-6 max-w-7xl">
       {/* Video Player Modal/Area */}
-      {selectedVideo && (
+      {selectedVideo && (selectedVideo.embedUrl) && (
         <WobbleCard className="mb-12 border border-border/30 rounded-3xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-700">
           <div className="aspect-video w-full">
             <iframe
-              src={selectedVideo}
-              title="Tutorial Video"
-              className="w-full h-full rounded-t-3xl"
+              src={selectedVideo.embedUrl}
+              title={selectedVideo.title}
+              className="w-full h-full rounded-lg"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
           </div>
           <div className="p-6 bg-card/50 backdrop-blur-sm">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setSelectedVideo(null)}
               className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300"
             >
@@ -49,7 +49,19 @@ export const VideoGrid = ({ videos }: VideoGridProps) => {
               <CardHeader className="p-8">
                 <div className="flex items-start justify-between mb-4">
                   <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-medium">{video.category}</Badge>
-                  <PlayCircle className="w-6 h-6 text-primary group-hover:text-primary/80 transition-colors group-hover:scale-110" />
+                  {video.embedUrl ? (
+                    <button
+                      onClick={() => setSelectedVideo(video)}
+                      className="focus:outline-none transition-transform hover:scale-110"
+                      title="Play Video"
+                    >
+                      <PlayCircle className="w-6 h-6 text-primary hover:text-primary/80 transition-colors" />
+                    </button>
+                  ) : (
+                    <div title="No Video Source">
+                      <PlayCircle className="w-6 h-6 text-muted-foreground opacity-50 cursor-not-allowed" />
+                    </div>
+                  )}
                 </div>
                 <CardTitle className="text-lg leading-tight mb-3 group-hover:text-primary transition-colors duration-300">{video.title}</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground leading-relaxed">{video.description}</CardDescription>
@@ -63,20 +75,30 @@ export const VideoGrid = ({ videos }: VideoGridProps) => {
                 <Separator className="my-6 bg-border/30" />
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Video className="w-4 h-4" />
-                    {video.duration || "N/A"}
+                    {/* Only show if duration is real */}
+                    {video.duration ? (
+                      <>
+                        <Video className="w-4 h-4" />
+                        {video.duration}
+                      </>
+                    ) : (
+                      // Helper text if no duration
+                      <span className="text-xs italic opacity-50">Watch now</span>
+                    )}
                   </span>
                   <div className="flex gap-2">
                     {video.embedUrl && (
-                      <Button size="sm" onClick={() => setSelectedVideo(video.embedUrl!)} className="rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105">
+                      <Button size="sm" onClick={() => setSelectedVideo(video)} className="rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105">
                         Watch
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" asChild className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300">
-                      <a href={video.url} target="_blank" rel="noreferrer">
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </Button>
+                    {video.url && (
+                      <Button size="sm" variant="outline" asChild className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300">
+                        <a href={video.url} target="_blank" rel="noreferrer">
+                          <ExternalLink className="w-4 h-4 mr-2" /> Download
+                        </a>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

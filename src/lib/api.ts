@@ -43,10 +43,10 @@ api.interceptors.response.use(
         });
 
         const newAccessToken = response.data.access;
-        
+
         // Save new token
         localStorage.setItem('access_token', newAccessToken);
-        
+
         // Retry the original request with the new token
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
