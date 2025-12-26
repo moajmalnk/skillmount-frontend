@@ -94,51 +94,63 @@ export const BlogManager = () => {
           </TableRow>
         ) : (
           blogs.map((blog) => (
-            <TableRow key={blog.id}>
-              <TableCell className="font-medium">
+            <TableRow key={blog.id} className="group hover:bg-muted/30">
+              <TableCell className="font-medium min-w-[200px] py-4">
                 <div className="flex flex-col">
-                  <span className="line-clamp-1 max-w-[300px]" title={blog.title}>{blog.title}</span>
-                  <div className="flex gap-2 mt-1">
+                  <span className="text-sm sm:text-base line-clamp-1 max-w-[200px] sm:max-w-[400px]" title={blog.title}>{blog.title}</span>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {blog.isFeatured && (
-                      <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                      <Badge variant="outline" className="text-[9px] sm:text-[10px] px-1.5 py-0 h-5 leading-none whitespace-nowrap bg-blue-500/10 text-blue-600 border-blue-200/50 rounded-sm font-semibold uppercase tracking-wider">
                         Featured
                       </Badge>
                     )}
                     {blog.isEditorsPick && (
-                      <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">
+                      <Badge variant="outline" className="text-[9px] sm:text-[10px] px-1.5 py-0 h-5 leading-none whitespace-nowrap bg-emerald-500/10 text-emerald-600 border-emerald-200/50 rounded-sm font-semibold uppercase tracking-wider">
                         Editor's Pick
                       </Badge>
                     )}
                   </div>
                 </div>
               </TableCell>
-              <TableCell>
-                <Badge variant="secondary">{blog.category}</Badge>
+              <TableCell className="py-4">
+                <Badge variant="secondary" className="text-[10px] sm:text-xs bg-muted/50 text-muted-foreground font-normal rounded-md">
+                  {blog.category}
+                </Badge>
               </TableCell>
-              <TableCell>{blog.author.name}</TableCell>
-              <TableCell>
+              <TableCell className="text-xs sm:text-sm text-muted-foreground py-4">{blog.author.name}</TableCell>
+              <TableCell className="py-4">
                 {blog.isPublished ? (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                     Published
                   </span>
                 ) : (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-muted/50 text-muted-foreground border border-border">
                     Draft
                   </span>
                 )}
               </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => window.open(`/blog/${blog.slug}`, '_blank')}>
+              <TableCell className="text-right py-4">
+                <div className="flex justify-end gap-1 sm:gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground"
+                    onClick={() => window.open(`/blog/${blog.slug}`, '_blank')}
+                  >
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(blog)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground"
+                    onClick={() => handleEdit(blog)}
+                  >
                     <Edit2 className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-destructive hover:bg-destructive/10"
+                    className="h-8 w-8 sm:h-9 sm:w-9 text-destructive hover:bg-destructive/10"
                     onClick={() => setDeleteId(blog.id)}
                   >
                     <Trash2 className="w-4 h-4" />

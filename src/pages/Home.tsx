@@ -124,15 +124,19 @@ const Home = () => {
         <HeroSection isVisible={isVisible} />
         <CategorySection />
 
-        <TopPerformersSection
-          students={topPerformers}
-          isLoading={isLoading}
-        />
+        {(isLoading || topPerformers.length > 0) && (
+          <TopPerformersSection
+            students={topPerformers}
+            isLoading={isLoading}
+          />
+        )}
 
-        <LatestGraduatesSection
-          students={latestGraduates}
-          isLoading={isLoading}
-        />
+        {(isLoading || latestGraduates.length > 0) && (
+          <LatestGraduatesSection
+            students={latestGraduates}
+            isLoading={isLoading}
+          />
+        )}
 
         {/* Pass isLoading to handle the '0' flash */}
         <BatchesSummarySection

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { X, Trash2, Edit2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, ChevronDown } from "lucide-react";
+import { X, Trash2, Edit2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, ChevronDown, Mic, Loader2 } from "lucide-react";
 import { VoiceRecorder } from "@/components/tickets/VoiceRecorder";
 import { toast } from "sonner";
 import { Ticket } from "@/types/ticket";
@@ -144,98 +144,141 @@ export const TicketDetailModal = ({
 
   // --- SUB-COMPONENTS ---
   const SummaryView = () => (
-    <div className="p-6 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+    <div className="p-4 sm:p-6 space-y-6 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto h-full">
       <h3 className="font-semibold text-lg text-foreground">Ticket Summary</h3>
-      <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-center gap-4">
-        <Avatar className="h-12 w-12 border-2 border-background">
-          <AvatarFallback className="bg-primary text-primary-foreground">
-            {ticket.student?.name?.substring(0, 2).toUpperCase() || 'ST'}
+      <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+        <Avatar className="h-14 w-14 border-2 border-background shadow-sm">
+          <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xl">
+            {ticket.student?.name?.substring(0, 2).toUpperCase() || "ST"}
           </AvatarFallback>
         </Avatar>
-        <div>
-          <div className="font-bold text-lg">{ticket.student?.name || 'Student'}</div>
-          <div className="text-xs text-primary font-mono">{ticket.student?.id}</div>
-          <div className="text-xs text-muted-foreground">{ticket.student?.email}</div>
+        <div className="flex-1 overflow-hidden w-full">
+          <div className="font-bold text-xl truncate">{ticket.student?.name || "Student"}</div>
+          <div className="text-xs text-primary font-mono bg-primary/10 px-2 py-0.5 rounded-full w-fit mt-1 mx-auto sm:mx-0">
+            {ticket.student?.id || "N/A"}
+          </div>
+          <div className="text-sm text-muted-foreground mt-1 truncate">
+            {ticket.student?.email}
+          </div>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 rounded-xl border border-border bg-card">
-          <div className="text-xs text-muted-foreground mb-1">Ticket Code</div>
-          <div className="font-mono font-bold">{ticket.id}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="p-3 sm:p-4 rounded-xl border border-border bg-card">
+          <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Ticket Code</div>
+          <div className="font-mono font-medium text-sm sm:text-base truncate">{ticket.id}</div>
         </div>
-        <div className="p-4 rounded-xl border border-border bg-card">
-          <div className="text-xs text-muted-foreground mb-1">Category</div>
-          <div className="font-bold text-sm">{ticket.category}</div>
+        <div className="p-3 sm:p-4 rounded-xl border border-border bg-card">
+          <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Category</div>
+          <div className="font-medium text-sm sm:text-base">{ticket.category}</div>
         </div>
-        <div className="p-4 rounded-xl border border-border bg-card">
-          <div className="text-xs text-muted-foreground mb-1">Status</div>
-          <Badge variant={ticket.status === 'Open' ? 'default' : 'secondary'}>{ticket.status}</Badge>
+        <div className="p-3 sm:p-4 rounded-xl border border-border bg-card">
+          <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Status</div>
+          <Badge variant={ticket.status === "Open" ? "default" : "secondary"} className="mt-1">
+            {ticket.status}
+          </Badge>
         </div>
-        <div className="p-4 rounded-xl border border-border bg-card">
-          <div className="text-xs text-muted-foreground mb-1">Priority</div>
-          <Badge variant="outline" className={ticket.priority === 'High' ? 'text-red-500 border-red-200' : ''}>
+        <div className="p-3 sm:p-4 rounded-xl border border-border bg-card">
+          <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Priority</div>
+          <Badge
+            variant="outline"
+            className={`mt-1 ${ticket.priority === "High" || ticket.priority === "Urgent"
+              ? "text-red-500 border-red-200 bg-red-50"
+              : ""
+              }`}
+          >
             {ticket.priority}
           </Badge>
         </div>
 
         {/* ASSIGNED TO */}
-        {ticket.assigned_to && (
-          <div className="p-4 rounded-xl border border-border bg-card col-span-2">
-            <div className="text-xs text-muted-foreground mb-1">Assigned To</div>
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-[10px]">
-                  {ticket.assigned_to_details?.name?.substring(0, 2).toUpperCase() || 'ID'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="font-bold text-sm">{ticket.assigned_to_details?.name || `User ${ticket.assigned_to}`}</div>
-            </div>
+        <div className="p-3 sm:p-4 rounded-xl border border-border bg-card col-span-1 sm:col-span-2">
+          <div className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider">Assigned To</div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {ticket.assigned_to ? (
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8 border border-border">
+                  <AvatarFallback className="text-xs bg-muted">
+                    {ticket.assigned_to_details?.name?.substring(0, 2).toUpperCase() || "ID"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-sm">{ticket.assigned_to_details?.name || `User ${ticket.assigned_to}`}</span>
+                  <span className="text-[10px] text-muted-foreground">Support Agent</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm italic">
+                <div className="h-2 w-2 rounded-full bg-yellow-400"></div>
+                Unassigned
+              </div>
+            )}
+
+            {/* Show Action Button here on mobile for easier access */}
+            {isSupportRole && (
+              <div className="sm:hidden mt-2">
+                {ticket.assigned_to ? (
+                  (role === "admin" || String(currentUserId) === String(ticket.assigned_to)) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAssign(null)}
+                      className="w-full text-xs h-8 border-dashed hover:border-solid"
+                    >
+                      Unassign
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => handleAssign(Number(currentUserId))}
+                    className="w-full text-xs h-8"
+                  >
+                    Claim Ticket
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
 
   const DetailsView = () => (
-    <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-200">
-      {/* Header */}
-      <div className="p-6 border-b border-border/50 pb-4">
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <h2 className="text-xl font-bold">{ticket.title}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="secondary" className="text-[10px]">
-                {new Date(ticket.created_at).toLocaleDateString()}
-              </Badge>
-              <Badge className={
-                ticket.status === 'Open' ? 'bg-green-100 text-green-700' :
-                  ticket.status === 'Closed' ? 'bg-gray-100 text-gray-500' :
-                    'bg-blue-100 text-blue-700'
-              }>
-                {ticket.status}
-              </Badge>
-              <Badge variant="outline">{ticket.priority}</Badge>
-            </div>
+    <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+      {/* Messages Header - Compact */}
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border/40 bg-background/50 backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center shrink-0">
+        <div className="overflow-hidden mr-2">
+          <h2 className="font-bold text-base sm:text-lg leading-tight truncate" title={ticket.title}>{ticket.title}</h2>
+          <div className="flex items-center gap-2 mt-0.5 text-[10px] sm:text-xs text-muted-foreground">
+            <span className="font-mono hidden sm:inline">{ticket.id}</span>
+            <span className="hidden sm:inline">•</span>
+            <span className="truncate">{new Date(ticket.created_at).toLocaleDateString()}</span>
           </div>
+        </div>
+        <div className="flex gap-1 sm:gap-2 shrink-0">
+          <Badge variant={ticket.status === 'Open' ? 'default' : 'secondary'} className="text-[10px] px-1.5">{ticket.status}</Badge>
+          <Badge variant="outline" className="text-[10px] px-1.5 hidden xs:inline-flex">{ticket.priority}</Badge>
         </div>
       </div>
 
       {/* Message History */}
-      <ScrollArea className="flex-1 p-6 bg-muted/5">
-        <div className="space-y-6">
+      <ScrollArea className="flex-1 p-3 sm:p-6 bg-muted/5">
+        <div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
           {/* Initial Description */}
-          <div className="flex justify-start">
-            <div className="max-w-[85%]">
-              <div className="flex items-center gap-2 mb-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
-                    {ticket.student?.name?.substring(0, 2).toUpperCase() || 'ST'}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs font-semibold">{ticket.student?.name}</span>
-                <span className="text-[10px] text-muted-foreground">{new Date(ticket.created_at).toLocaleString()}</span>
+          <div className="flex gap-3 sm:gap-4">
+            <Avatar className="h-7 w-7 sm:h-8 sm:w-8 mt-1 border border-border shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary text-[10px] sm:text-xs">
+                {ticket.student?.name?.substring(0, 2).toUpperCase() || "ST"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 overflow-hidden">
+              <div className="flex items-baseline gap-2 mb-1 overflow-hidden">
+                <span className="text-xs sm:text-sm font-semibold truncate">{ticket.student?.name}</span>
+                <span className="text-[9px] sm:text-[10px] text-muted-foreground shrink-0">Original Request</span>
               </div>
-              <div className="p-4 rounded-2xl rounded-tl-none bg-white border border-border/50 shadow-sm text-sm whitespace-pre-wrap">
+              <div className="p-3 sm:p-4 rounded-2xl rounded-tl-none bg-background border border-border text-xs sm:text-sm leading-relaxed shadow-sm break-words">
                 {ticket.description}
               </div>
             </div>
@@ -247,46 +290,36 @@ export const TicketDetailModal = ({
             if (currentUserId) {
               isMe = String(msg.sender) === String(currentUserId);
             } else {
-              if (role === 'student') {
-                isMe = msg.sender_name === ticket.student?.name;
-              } else {
-                isMe = msg.sender_name !== ticket.student?.name;
-              }
+              isMe = role === "student" ? msg.sender_name === ticket.student?.name : msg.sender_name !== ticket.student?.name;
             }
 
             return (
-              <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`
-                  max-w-[80%] rounded-2xl p-4 shadow-sm
-                  ${isMe
-                    ? 'bg-primary text-primary-foreground rounded-tr-none'
-                    : 'bg-white border border-border/50 rounded-tl-none'
-                  }
-                `}>
-                  {!isMe && (
-                    <div className="flex items-center gap-2 mb-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="bg-background/20 text-[10px]">
-                          {msg.sender_name?.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-semibold opacity-70">{msg.sender_name}</span>
-                      <span className="text-[10px] opacity-50">
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  )}
+              <div
+                key={msg.id}
+                className={`flex gap-2 sm:gap-3 ${isMe ? "flex-row-reverse" : "flex-row"}`}
+              >
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8 mt-1 border border-border bg-background shrink-0">
+                  <AvatarFallback className={`text-[10px] ${isMe ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    {msg.sender_name?.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
 
+                <div
+                  className={`
+                  max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 sm:p-3.5 shadow-sm text-xs sm:text-sm
+                  ${isMe
+                      ? "bg-primary text-primary-foreground rounded-tr-none"
+                      : "bg-background border border-border rounded-tl-none"
+                    }
+                `}
+                >
                   <div className="space-y-2">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed break-words">
+                      {msg.message}
+                    </p>
                     {msg.voice_note && (
-                      <div className="mt-2 bg-background/10 rounded-lg p-1">
-                        <audio controls className="w-full h-8 max-w-[200px]">
-                          <source src={msg.voice_note} type="audio/webm" />
-                          <source src={msg.voice_note} type="audio/wav" />
-                          <source src={msg.voice_note} type="audio/mp4" />
-                          <source src={msg.voice_note} type="audio/mpeg" />
-                        </audio>
+                      <div className={`mt-2 rounded-lg p-1.5 sm:p-2 ${isMe ? 'bg-white/10' : 'bg-muted'}`}>
+                        <audio controls className="w-full h-8 max-w-[180px] sm:max-w-[220px]" src={msg.voice_note} />
                       </div>
                     )}
                     {msg.attachment && (
@@ -294,19 +327,21 @@ export const TicketDetailModal = ({
                         href={msg.attachment}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`inline-flex items-center gap-2 text-xs hover:underline mt-1 p-2 rounded-lg ${isMe ? 'bg-primary-foreground/10' : 'bg-muted'}`}
+                        className={`group flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 rounded-lg transition-colors border ${isMe ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-muted hover:bg-muted/80 border-border'}`}
                       >
-                        <Paperclip className="w-3 h-3" />
-                        Download Attachment
+                        <div className={`p-1.5 sm:p-2 rounded-md ${isMe ? 'bg-white/20' : 'bg-background'}`}>
+                          <Paperclip className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-[10px] sm:text-xs font-medium truncate max-w-[120px] sm:max-w-[150px]">Attachment</span>
+                          <span className="text-[8px] sm:text-[10px] opacity-70">Click to view</span>
+                        </div>
                       </a>
                     )}
                   </div>
-
-                  {isMe && (
-                    <div className="text-[10px] opacity-60 text-right mt-1">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  )}
+                  <div className={`text-[9px] sm:text-[10px] mt-1.5 opacity-60 ${isMe ? 'text-right' : 'text-left'}`}>
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
                 </div>
               </div>
             );
@@ -315,78 +350,67 @@ export const TicketDetailModal = ({
       </ScrollArea>
 
       {/* Reply Section */}
-      <div className="p-6 border-t border-border/50 bg-background">
+      <div className="p-3 sm:p-4 bg-background border-t border-border shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.1)] z-20 shrink-0">
         {canReply ? (
-          <div className="space-y-4">
-            {isSupportRole && macros.length > 0 && (
-              <MacroSelector macros={macros} onSelect={handleMacroSelect} />
-            )}
-
-            <Textarea
-              ref={textareaRef}
-              placeholder="Type your reply here..."
-              className="min-h-[80px] resize-none"
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-            />
-
-            <div className="flex gap-4 items-start">
-              <div className="flex-1">
-                <VoiceRecorder
-                  onRecordingComplete={setVoiceBlob}
-                  onDelete={() => setVoiceBlob(null)}
-                />
-              </div>
-              <div className="flex-1">
-                <div className={`border border-dashed border-border rounded-xl h-[80px] flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors relative ${attachment ? 'bg-primary/5 border-primary/20' : ''}`}>
-                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
-                  <div className="flex flex-col items-center gap-1 text-muted-foreground text-xs p-2 text-center">
-                    {attachment ? (
-                      <>
-                        <Paperclip className="w-4 h-4 text-primary" />
-                        <span className="text-primary font-medium truncate max-w-[120px]">{attachment.name}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Paperclip className="w-4 h-4" />
-                        <span>Attach File</span>
-                      </>
-                    )}
+          <div className="max-w-4xl mx-auto flex flex-col gap-2 sm:gap-3">
+            <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-1">
+              {isSupportRole && macros.length > 0 && (
+                <div className="flex-1 min-w-[160px] max-w-[240px] sm:max-w-[300px]">
+                  <MacroSelector macros={macros} onSelect={handleMacroSelect} />
+                </div>
+              )}
+              <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
+                <div className="flex items-center border rounded-md p-0.5 sm:p-1 gap-0.5 sm:gap-1">
+                  <VoiceRecorder onRecordingComplete={setVoiceBlob} onDelete={() => setVoiceBlob(null)} variant="compact" />
+                  <div className={`relative flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-md hover:bg-muted cursor-pointer transition-colors ${attachment ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`} title="Attach File">
+                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
+                    <Paperclip className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    {attachment && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-primary rounded-full" />}
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-col gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => handleSendReply(false)}
-                  disabled={isSubmitting}
-                  className="h-9 px-4"
-                >
-                  <Send className="w-4 h-4 mr-2" /> Reply
-                </Button>
-                {isSupportRole && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleSendReply(true)}
-                    disabled={isSubmitting}
-                    className="h-9 px-4 bg-green-100 text-green-700 hover:bg-green-200"
-                    title="Reply & Close Ticket"
-                  >
-                    <CheckCircle2 className="w-4 h-4 mr-2" /> Resolve
-                  </Button>
+            <div className="flex gap-2 sm:gap-3 items-end">
+              <Textarea
+                ref={textareaRef}
+                placeholder="Type your reply..."
+                className="min-h-[40px] max-h-[120px] resize-none py-2.5 sm:py-3 text-xs sm:text-sm"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                rows={1}
+              />
+              <Button size="icon" onClick={() => handleSendReply(false)} disabled={isSubmitting} className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 shadow-sm">
+                {isSubmitting ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" /> : <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+              </Button>
+            </div>
+
+            {(attachment || voiceBlob) && (
+              <div className="flex gap-2 overflow-x-auto py-1 no-scrollbar">
+                {attachment && (
+                  <Badge variant="secondary" className="gap-1.5 py-0.5 pl-2 pr-1 text-[10px]">
+                    <Paperclip className="w-2.5 h-2.5" />
+                    <span className="max-w-[80px] sm:max-w-[120px] truncate">{attachment.name}</span>
+                    <button onClick={() => setAttachment(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
+                  </Badge>
+                )}
+                {voiceBlob && (
+                  <Badge variant="secondary" className="gap-1.5 py-0.5 pl-2 pr-1 bg-purple-50 text-purple-700 text-[10px]">
+                    <Mic className="w-2.5 h-2.5" />
+                    <span>Voice Recorded</span>
+                    <button onClick={() => setVoiceBlob(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
+                  </Badge>
                 )}
               </div>
-            </div>
+            )}
           </div>
         ) : (
-          <div className="text-center space-y-3 py-2">
-            <p className="text-xs text-muted-foreground">
-              This ticket is closed.
-            </p>
-            <Button variant="outline" size="sm" onClick={() => handleStatusChange('Reopened')}>
-              Reopen Ticket
+          <div className="flex items-center justify-center gap-3 py-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full text-[10px] sm:text-xs">
+              <CheckCircle2 className="w-3.5 h-3.5" /> This ticket is closed.
+            </div>
+            <Button variant="outline" size="sm" className="h-8 text-[10px] sm:text-xs" onClick={() => handleStatusChange("Reopened")}>
+              Reopen
             </Button>
           </div>
         )}
@@ -396,73 +420,88 @@ export const TicketDetailModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl p-0 h-[650px] overflow-hidden flex gap-0 outline-none border-none shadow-2xl rounded-2xl bg-background">
-        {/* LEFT SIDEBAR */}
-        <div className="w-56 bg-muted/30 border-r border-border/50 flex flex-col justify-between p-4">
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-2">Menu</h3>
-            <Button
-              variant={activeView === 'details' ? 'secondary' : 'ghost'}
-              className="w-full justify-start text-sm"
-              onClick={() => setActiveView('details')}
-            >
-              <MessageSquare className="w-4 h-4 mr-2" /> Conversation
-            </Button>
-            <Button
-              variant={activeView === 'summary' ? 'secondary' : 'ghost'}
-              className="w-full justify-start text-sm"
-              onClick={() => setActiveView('summary')}
-            >
-              <FileText className="w-4 h-4 mr-2" /> Info & Metadata
-            </Button>
+      <DialogContent className="max-w-4xl p-0 w-[95vw] sm:w-[90vw] md:w-full h-[90vh] sm:h-[85vh] max-h-[850px] overflow-hidden flex flex-col sm:flex-row gap-0 outline-none border-none shadow-2xl rounded-2xl bg-background">
+        {/* LEFT SIDEBAR - Adaptive for Mobile */}
+        <div className="w-full sm:w-56 bg-muted/30 border-b sm:border-r border-border/50 flex flex-row sm:flex-col justify-between p-2 sm:p-4 shrink-0 overflow-hidden">
+          <div className="flex flex-row sm:flex-col gap-2 sm:gap-6 flex-1 items-center sm:items-stretch overflow-x-auto no-scrollbar">
+            <div className="flex flex-row sm:flex-col gap-1 w-full shrink-0 sm:shrink">
+              <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-3 hidden sm:block">Menu</h3>
+              <div className="flex flex-row sm:flex-col gap-1 w-full">
+                <Button
+                  variant={activeView === "details" ? "secondary" : "ghost"}
+                  className={`flex-1 sm:flex-none justify-center sm:justify-start text-xs sm:text-sm font-medium h-9 sm:h-10 ${activeView === 'details' ? 'bg-white shadow-sm dark:bg-muted text-primary' : 'text-muted-foreground'}`}
+                  onClick={() => setActiveView("details")}
+                >
+                  <div className={`sm:mr-3 p-1 rounded-md ${activeView === 'details' ? 'bg-primary/10 text-primary' : ''}`}>
+                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
+                  <span className="hidden xs:inline">Conversation</span>
+                </Button>
+                <Button
+                  variant={activeView === "summary" ? "secondary" : "ghost"}
+                  className={`flex-1 sm:flex-none justify-center sm:justify-start text-xs sm:text-sm font-medium h-9 sm:h-10 ${activeView === 'summary' ? 'bg-white shadow-sm dark:bg-muted text-primary' : 'text-muted-foreground'}`}
+                  onClick={() => setActiveView("summary")}
+                >
+                  <div className={`sm:mr-3 p-1 rounded-md ${activeView === 'summary' ? 'bg-primary/10 text-primary' : ''}`}>
+                    <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
+                  <span className="hidden xs:inline">Info & Metadata</span>
+                </Button>
+              </div>
+            </div>
 
-            {/* Assignment Section for Support */}
+            {/* Assignment Section - Hidden on Mobile Sidebar */}
             {isSupportRole && (
-              <div className="mt-6 pt-6 border-t border-border/50">
-                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 px-2">Assignment</h3>
-                {ticket?.assigned_to ? (
-                  <div className="flex flex-col gap-2 px-2">
-                    <div className="text-xs text-foreground font-medium flex items-center gap-2 mb-2">
-                      <Avatar className="h-6 w-6 border">
-                        <AvatarFallback className="text-[9px]">
-                          {ticket.assigned_to_details?.name?.substring(0, 2).toUpperCase() || 'ID'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="truncate">{ticket.assigned_to_details?.name || `User ${ticket.assigned_to}`}</span>
+              <div className="hidden sm:block space-y-3 pt-4 border-t border-border/50">
+                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-3">Assignment</h3>
+                <div className="bg-background rounded-xl p-3 border border-border shadow-sm mx-1">
+                  {ticket?.assigned_to ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8 border">
+                          <AvatarFallback className="text-[10px]">
+                            {ticket.assigned_to_details?.name?.substring(0, 2).toUpperCase() || "ID"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-xs font-semibold truncate">{ticket.assigned_to_details?.name}</span>
+                          <span className="text-[10px] text-muted-foreground">Assignee</span>
+                        </div>
+                      </div>
+                      {(role === "admin" || String(currentUserId) === String(ticket.assigned_to)) && (
+                        <Button variant="outline" size="sm" onClick={() => handleAssign(null)} className="w-full text-xs h-8 border-dashed hover:border-solid">
+                          Unassign
+                        </Button>
+                      )}
                     </div>
-                    {/* Only allow Unassign if I am Admin OR I am the assignee */}
-                    {(role === 'admin' || String(currentUserId) === String(ticket.assigned_to)) && (
-                      <Button variant="outline" size="sm" onClick={() => handleAssign(null)} className="h-7 text-xs w-full bg-background">
-                        Unassign / Release
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-xs text-muted-foreground mb-3">No one is assigned</div>
+                      <Button size="sm" variant="default" onClick={() => handleAssign(Number(currentUserId))} className="w-full text-xs h-8">
+                        Claim Ticket
                       </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="px-2">
-                    <Button size="sm" variant="default" onClick={() => handleAssign(Number(currentUserId))} className="w-full text-xs h-8 gap-2 bg-primary/90 hover:bg-primary">
-                      <CheckCircle2 className="w-3 h-3" /> Claim Ticket
-                    </Button>
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
-          <div className="flex gap-2">
-            {role === 'admin' && onDelete && (
-              <Button variant="outline" size="icon" onClick={handleDelete} className="bg-white hover:bg-destructive hover:text-white rounded-full border-none shadow-sm h-8 w-8">
-                <Trash2 className="w-4 h-4" />
+          <div className="flex items-center gap-2 px-1 shrink-0">
+            {role === "admin" && onDelete && (
+              <Button variant="ghost" size="icon" onClick={handleDelete} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8 sm:h-9 sm:w-9 shrink-0">
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="ml-auto rounded-full h-8 w-8" onClick={onClose}>
-              <X className="w-5 h-5" />
+            <Button variant="ghost" className="text-[10px] sm:text-xs text-muted-foreground h-8 px-2 sm:px-3" onClick={onClose}>
+              Close
             </Button>
           </div>
         </div>
 
         {/* RIGHT CONTENT */}
-        <div className="flex-1 bg-background relative">
-          {activeView === 'details' ? <DetailsView /> : <SummaryView />}
+        <div className="flex-1 bg-background relative flex flex-col min-h-0">
+          {activeView === "details" ? <DetailsView /> : <SummaryView />}
         </div>
       </DialogContent>
     </Dialog>

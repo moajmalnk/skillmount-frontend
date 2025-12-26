@@ -139,24 +139,24 @@ export const TicketManager = () => {
                 <div className="flex flex-col gap-4">
                     {/* Top Bar: Tabs & Search & Priority */}
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <TabsList className="bg-muted/50 p-1 rounded-lg self-start md:self-auto">
-                            <TabsTrigger value="Open" className="px-4">Open / Pending</TabsTrigger>
-                            <TabsTrigger value="Assigned" className="px-4">My Assigned</TabsTrigger>
-                            <TabsTrigger value="Closed" className="px-4">Closed</TabsTrigger>
+                        <TabsList className="bg-muted/50 p-1 rounded-lg w-full md:w-auto flex justify-between md:justify-start">
+                            <TabsTrigger value="Open" className="flex-1 md:flex-none px-2 sm:px-4 text-[10px] sm:text-sm">Open / Pending</TabsTrigger>
+                            <TabsTrigger value="Assigned" className="flex-1 md:flex-none px-2 sm:px-4 text-[10px] sm:text-sm">My Assigned</TabsTrigger>
+                            <TabsTrigger value="Closed" className="flex-1 md:flex-none px-2 sm:px-4 text-[10px] sm:text-sm">Closed</TabsTrigger>
                         </TabsList>
 
-                        <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                        <div className="grid grid-cols-2 md:flex md:flex-row gap-2 w-full md:w-auto">
                             <Input
                                 placeholder="Search..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="h-9 md:w-48 bg-background"
+                                className="h-9 w-full md:w-48 bg-background text-xs sm:text-sm"
                             />
                             <Select
                                 value={priorityFilter}
                                 onValueChange={(val: any) => setPriorityFilter(val)}
                             >
-                                <SelectTrigger className="h-9 md:w-32 bg-background">
+                                <SelectTrigger className="h-9 w-full md:w-32 bg-background text-xs sm:text-sm">
                                     <SelectValue placeholder="Priority" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -171,70 +171,74 @@ export const TicketManager = () => {
                     </div>
 
                     {/* Advanced Filters Bar */}
-                    <div className="flex flex-wrap gap-2 items-center bg-muted/20 p-2 rounded-lg border border-border/50">
-                        <div className="text-xs font-semibold text-muted-foreground mr-2 flex items-center">
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-start sm:items-center bg-muted/20 p-2 rounded-lg border border-border/50">
+                        <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center px-1">
                             <Filter className="w-3 h-3 mr-1" /> Filters:
                         </div>
 
-                        <div className="relative">
-                            <Filter className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-                            <Input
-                                placeholder="Category..."
-                                value={categoryFilter}
-                                onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="h-9 w-40 pl-8 text-xs bg-background border-dashed focus-visible:ring-0 focus-visible:border-primary"
-                            />
-                        </div>
-
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    id="date"
-                                    variant={"outline"}
-                                    className={cn(
-                                        "h-9 w-[240px] justify-start text-left font-normal border-dashed text-xs",
-                                        !dateRange && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-3 w-3" />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <>
-                                                {format(dateRange.from, "LLL dd, y")} -{" "}
-                                                {format(dateRange.to, "LLL dd, y")}
-                                            </>
-                                        ) : (
-                                            format(dateRange.from, "LLL dd, y")
-                                        )
-                                    ) : (
-                                        <span>Pick a date range</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={setDateRange}
-                                    numberOfMonths={2}
-                                    className="p-3"
+                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <div className="relative flex-1 sm:flex-none">
+                                <Filter className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                                <Input
+                                    placeholder="Category..."
+                                    value={categoryFilter}
+                                    onChange={(e) => setCategoryFilter(e.target.value)}
+                                    className="h-8 w-full sm:w-36 pl-8 text-[11px] bg-background border-dashed focus-visible:ring-0 focus-visible:border-primary"
                                 />
-                            </PopoverContent>
-                        </Popover>
+                            </div>
 
-                        {(categoryFilter || dateRange) && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => { setCategoryFilter(""); setDateRange(undefined); }}
-                                className="h-9 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
-                            >
-                                <X className="w-3 h-3 mr-1" />
-                                Clear
-                            </Button>
-                        )}
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date"
+                                        variant={"outline"}
+                                        className={cn(
+                                            "h-8 w-full sm:w-[200px] justify-start text-left font-normal border-dashed text-[11px]",
+                                            !dateRange && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-3 w-3" />
+                                        <span className="truncate">
+                                            {dateRange?.from ? (
+                                                dateRange.to ? (
+                                                    <>
+                                                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                                                        {format(dateRange.to, "LLL dd, y")}
+                                                    </>
+                                                ) : (
+                                                    format(dateRange.from, "LLL dd, y")
+                                                )
+                                            ) : (
+                                                <span>Pick a date range</span>
+                                            )}
+                                        </span>
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        numberOfMonths={1}
+                                        className="p-3"
+                                    />
+                                </PopoverContent>
+                            </Popover>
+
+                            {(categoryFilter || dateRange) && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setCategoryFilter(""); setDateRange(undefined); }}
+                                    className="h-8 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted ml-auto sm:ml-0"
+                                >
+                                    <X className="w-3 h-3 mr-1" />
+                                    Clear
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
 

@@ -60,7 +60,7 @@ export const ProfileEditorModal = ({ isOpen, onClose, student }: ProfileEditorMo
 
         {/* Header */}
         <DialogHeader className="p-6 pb-2 border-b">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pr-8">
             <div>
               <DialogTitle>Edit Student Profile</DialogTitle>
               <DialogDescription>
@@ -79,8 +79,8 @@ export const ProfileEditorModal = ({ isOpen, onClose, student }: ProfileEditorMo
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <div className="px-4 sm:px-6 pt-4 border-b bg-muted/20">
-              <TabsList className="grid w-full sm:w-[400px] grid-cols-2">
+            <div className="px-4 sm:px-6 pt-4 border-b bg-muted/20 flex justify-center">
+              <TabsList className="grid w-full max-w-[500px] grid-cols-2">
                 <TabsTrigger value="basic">Personal & Academic</TabsTrigger>
                 <TabsTrigger value="projects">Projects & Portfolio</TabsTrigger>
               </TabsList>
@@ -105,9 +105,9 @@ export const ProfileEditorModal = ({ isOpen, onClose, student }: ProfileEditorMo
         </div>
 
         {/* Footer */}
-        <DialogFooter className="p-6 border-t bg-muted/10">
+        <DialogFooter className="p-6 border-t bg-muted/10 flex flex-row items-center justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
-          <Button onClick={handleSave} disabled={isSaving} className="w-32">
+          <Button onClick={handleSave} disabled={isSaving} className="px-6 min-w-[140px]">
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-2" /> Save Changes</>}
           </Button>
         </DialogFooter>

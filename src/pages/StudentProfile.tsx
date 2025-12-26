@@ -128,24 +128,22 @@ const StudentProfile = () => {
 
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative z-10">
           {/* Navigation & Actions */}
-          <ContainerScrollAnimation direction="up" speed="fast">
-            <div className="pt-8 sm:pt-12 mb-8 sm:mb-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <Link
-                to="/students"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-300 group"
-              >
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-300" />
-                <span className="text-sm sm:text-base font-medium">Back to Students</span>
-              </Link>
+          <div className="pt-18 sm:pt-24 mb-4 flex flex-row items-center justify-between gap-2 max-w-6xl mx-auto animate-in fade-in slide-in-from-top-4 duration-700">
+            <Link
+              to="/students"
+              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-300 group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-300" />
+              <span className="text-sm sm:text-base font-medium">Back to Students</span>
+            </Link>
 
-              {canEdit && (
-                <Button onClick={() => setIsEditModalOpen(true)} className="shadow-lg">
-                  <Pencil className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
-              )}
-            </div>
-          </ContainerScrollAnimation>
+            {canEdit && (
+              <Button onClick={() => setIsEditModalOpen(true)} className="shadow-lg">
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
+            )}
+          </div>
 
           {/* Sections - Each handles its own visibility */}
           <ProfileHero student={student} />

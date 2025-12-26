@@ -13,6 +13,7 @@ export interface ChatResponse {
   answer: string;
   sources: ChatSource[];
   turn_id: string;
+  title?: string;
 }
 
 export const chatService = {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Plus, X, Settings, Database, Users, BookOpen, 
+import {
+  Plus, X, Settings, Database, Users, BookOpen,
   Share2, Save, CheckCircle2, HelpCircle, Pencil, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ interface SettingCardProps {
 
 const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemove, onEdit, placeholder }: SettingCardProps) => {
   const [newItem, setNewItem] = useState("");
-  
+
   // State for Edit/Delete Modals
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [itemToEdit, setItemToEdit] = useState<string | null>(null);
@@ -104,8 +104,8 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
-            <Input 
-              placeholder={placeholder} 
+            <Input
+              placeholder={placeholder}
               value={newItem}
               onChange={(e) => setNewItem(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -115,10 +115,10 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
               <Plus className="w-4 h-4" />
             </Button>
           </div>
-          
+
           <Separator />
-          
-          <ScrollArea className="h-[200px] pr-4">
+
+          <ScrollArea className="h-auto max-h-[240px] min-h-[80px] pr-4">
             <div className="flex flex-wrap gap-2">
               <AnimatePresence mode="popLayout">
                 {items.length > 0 ? (
@@ -130,20 +130,20 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
                       exit={{ opacity: 0, scale: 0.8 }}
                       layout
                     >
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className="pl-3 pr-1 py-1.5 flex items-center gap-2 text-sm hover:bg-muted transition-colors border border-border/50 group"
                       >
                         {item}
                         <div className="flex items-center border-l border-border/50 ml-1 pl-1 gap-0.5">
-                          <button 
+                          <button
                             onClick={() => initiateEdit(item)}
                             className="p-1 hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-md transition-colors"
                             title="Edit"
                           >
                             <Pencil className="w-3 h-3" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => setItemToDelete(item)}
                             className="p-1 hover:bg-destructive hover:text-destructive-foreground rounded-md transition-colors text-muted-foreground"
                             title="Delete"
@@ -170,11 +170,11 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-destructive" />
-                Confirm Deletion
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Confirm Deletion
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <strong>"{itemToDelete}"</strong>? 
+              Are you sure you want to remove <strong>"{itemToDelete}"</strong>?
               This may affect users currently assigned to this option.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -244,7 +244,7 @@ export const SettingsManager = () => {
     // A. Optimistic Update (Instant UI feedback)
     const previousSettings = { ...settings };
     const newSettings = { ...settings, [key]: newList };
-    setSettings(newSettings); 
+    setSettings(newSettings);
 
     // B. Save to Backend (Silent Sync)
     try {
@@ -270,10 +270,10 @@ export const SettingsManager = () => {
       updateList(key, currentList.filter(i => i !== item));
     },
     onEdit: (oldItem: string, newItem: string) => {
-        if (!settings) return;
-        const currentList = settings[key] || [];
-        const updatedList = currentList.map(i => i === oldItem ? newItem : i);
-        updateList(key, updatedList);
+      if (!settings) return;
+      const currentList = settings[key] || [];
+      const updatedList = currentList.map(i => i === oldItem ? newItem : i);
+      updateList(key, updatedList);
     }
   });
 
@@ -295,8 +295,8 @@ export const SettingsManager = () => {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <div className="text-sm text-muted-foreground animate-pulse">Loading configurations...</div>
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-sm text-muted-foreground animate-pulse">Loading configurations...</div>
         </div>
       </div>
     );
@@ -309,12 +309,12 @@ export const SettingsManager = () => {
           <h2 className="text-2xl font-bold tracking-tight">System Configurations</h2>
           <p className="text-muted-foreground">Manage global dropdown options and system values.</p>
         </div>
-        <Button 
-          className="bg-primary hover:bg-primary/90" 
+        <Button
+          className="bg-primary hover:bg-primary/90"
           onClick={handleSaveAll}
           disabled={isSaving}
         >
-          {isSaving ? <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"/> : <Save className="w-4 h-4 mr-2" />} 
+          {isSaving ? <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Save className="w-4 h-4 mr-2" />}
           Sync Changes
         </Button>
       </div>
@@ -327,63 +327,63 @@ export const SettingsManager = () => {
 
         <TabsContent value="general" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            <SettingCard 
-              title="Batches" 
-              description="Active student batches." 
-              icon={Database} 
-              items={settings.batches || []} 
+            <SettingCard
+              title="Batches"
+              description="Active student batches."
+              icon={Database}
+              items={settings.batches || []}
               {...createHandlers('batches')}
-              placeholder="e.g. Oct 2025" 
+              placeholder="e.g. Oct 2025"
             />
-            <SettingCard 
-              title="Mentors" 
-              description="Faculty members." 
-              icon={Users} 
-              items={settings.mentors || []} 
+            <SettingCard
+              title="Mentors"
+              description="Faculty members."
+              icon={Users}
+              items={settings.mentors || []}
               {...createHandlers('mentors')}
-              placeholder="e.g. Dr. Alan Grant" 
+              placeholder="e.g. Dr. Alan Grant"
             />
-            <SettingCard 
-              title="Coordinators" 
-              description="Batch staff." 
-              icon={CheckCircle2} 
-              items={settings.coordinators || []} 
+            <SettingCard
+              title="Coordinators"
+              description="Batch staff."
+              icon={CheckCircle2}
+              items={settings.coordinators || []}
               {...createHandlers('coordinators')}
-              placeholder="e.g. Sarah" 
+              placeholder="e.g. Sarah"
             />
-            <SettingCard 
-              title="Topics" 
-              description="Tutor specializations." 
-              icon={BookOpen} 
-              items={settings.topics || []} 
+            <SettingCard
+              title="Topics"
+              description="Tutor specializations."
+              icon={BookOpen}
+              items={settings.topics || []}
               {...createHandlers('topics')}
-              placeholder="e.g. Python" 
+              placeholder="e.g. Python"
             />
-            <SettingCard 
-              title="Platforms" 
-              description="Affiliate sources." 
-              icon={Share2} 
-              items={settings.platforms || []} 
+            <SettingCard
+              title="Platforms"
+              description="Affiliate sources."
+              icon={Share2}
+              items={settings.platforms || []}
               {...createHandlers('platforms')}
-              placeholder="e.g. TikTok" 
+              placeholder="e.g. TikTok"
             />
-            <SettingCard 
-              title="FAQ Categories" 
-              description="Categories for Help Center." 
-              icon={HelpCircle} 
-              items={settings.faqCategories || []} 
+            <SettingCard
+              title="FAQ Categories"
+              description="Categories for Help Center."
+              icon={HelpCircle}
+              items={settings.faqCategories || []}
               {...createHandlers('faqCategories')}
-              placeholder="e.g. Hosting" 
+              placeholder="e.g. Hosting"
             />
           </div>
         </TabsContent>
 
         <TabsContent value="tickets" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <SettingCard 
-              title="Ticket Macros" 
+            <SettingCard
+              title="Ticket Macros"
               description="Pre-defined replies for faster support."
-              icon={Settings} 
+              icon={Settings}
               items={settings.macros || []}
               {...createHandlers('macros')}
               placeholder="e.g. Please check your internet..."
