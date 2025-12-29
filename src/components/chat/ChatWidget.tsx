@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
 import { MessageSquare, Sparkles, X, Loader2, ArrowUpRight, Copy, Bot, Info, PanelLeft, Plus, Menu, ChevronLeft, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -610,9 +611,10 @@ export const ChatWidget = () => {
                               </Button>
                             </div>
 
-                            <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                              {turn.displayedAnswer || turn.answer}
-                              {turn.isTyping && <span className="animate-pulse opacity-60 ml-1">▋</span>}
+                            <div className="text-foreground/90 leading-relaxed overflow-hidden prose dark:prose-invert prose-sm max-w-none break-words">
+                              <ReactMarkdown>
+                                {(turn.displayedAnswer || turn.answer) + (turn.isTyping ? " ▋" : "")}
+                              </ReactMarkdown>
                             </div>
 
                             {turn.sources?.length > 0 && !turn.isTyping && (
