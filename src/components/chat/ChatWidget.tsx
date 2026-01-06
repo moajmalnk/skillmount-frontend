@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
-import { MessageSquare, Sparkles, X, Loader2, ArrowUpRight, Copy, Bot, Info, PanelLeft, Plus, Menu, ChevronLeft, History } from "lucide-react";
+import { MessageSquare, Sparkles, X, Loader2, ArrowUpRight, Copy, Bot, Info, PanelLeft, Plus, Menu, ChevronLeft, History, Youtube, FileText, Globe, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -263,11 +263,19 @@ export const ChatWidget = () => {
   const [sessions, setSessions] = useState<any[]>([]);
 
   const [question, setQuestion] = useState("");
-  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  const [sessionId, setSessionId] = useState<string | undefined>(() => localStorage.getItem("chat_session_id") || undefined);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const typingIntervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (sessionId) {
+      localStorage.setItem("chat_session_id", sessionId);
+    } else {
+      localStorage.removeItem("chat_session_id");
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     // Prevent background scroll when the chat is open
@@ -284,7 +292,23 @@ export const ChatWidget = () => {
     try {
       const data = await chatService.history();
       setSessions(data || []);
-      // If no session active, maybe show recent? (logic removed to avoid overwriting current turns if viewing something)
+
+      // Auto-restore session if we have a saved ID
+      const savedId = localStorage.getItem("chat_session_id");
+      if (savedId && data) {
+        const selected = data.find((s: any) => s.id === savedId);
+        if (selected) {
+          const sessionTurns = (selected.turns || []).map((t: any) => ({
+            id: t.id,
+            question: t.question,
+            answer: t.answer,
+            sources: t.sources || [],
+            displayedAnswer: t.answer,
+            isTyping: false,
+          }));
+          setTurns(sessionTurns);
+        }
+      }
     } catch (e) {
       console.error("Failed to fetch history", e);
     }
@@ -370,59 +394,153 @@ export const ChatWidget = () => {
     }, 20);
   };
 
-  const send = async () => {
-    if (!question.trim()) return;
+  const send = async (overrideQuestion?: string) => {
+    const textToSend = overrideQuestion || question;
+    if (!textToSend.trim()) return;
     if (!user) {
       toast.error("Please log in to use the assistant.");
       return;
     }
+
+    const currentQuestion = textToSend;
+    const currentSessionId = sessionId;
+    const tempTurnId = "temp-" + Date.now();
+
+    // 1. Clear input and show loading state immediately
+    setQuestion("");
     setIsLoading(true);
+
+    // 2. Add User Question and "Thinking..." placeholder to UI
+    const placeholderTurn: Turn = {
+      id: tempTurnId,
+      question: currentQuestion,
+      answer: "", // Empty initially
+      sources: [],
+      displayedAnswer: "Thinking...", // Special placeholder text
+      isTyping: true, // Show typing cursor
+    };
+
+    setTurns((prev) => {
+      // Stop any previous animations
+      const withoutTyping = prev.map((t) => ({ ...t, isTyping: false }));
+      return [...withoutTyping, placeholderTurn].slice(-6);
+    });
+
     try {
-      const res = await chatService.ask(question, sessionId);
-      setSessionId(res.session_id);
-      const fullAnswer = res.answer || "";
+      const token = localStorage.getItem('access_token');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-      const newTurn: Turn = {
-        id: res.turn_id,
-        question,
-        answer: fullAnswer,
-        sources: res.sources || [],
-        displayedAnswer: "",
-        isTyping: true,
-      };
-
-      setTurns((prev) => {
-        // Stop any previous typing animations immediately
-        const withoutTyping = prev.map((t) => ({ ...t, isTyping: false }));
-        // Add new turn
-        const next = [...withoutTyping, newTurn].slice(-6);
-        return next;
+      const response = await fetch(`${API_URL}/chat/ask/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          question: currentQuestion,
+          session_id: currentSessionId
+        })
       });
 
-      // Update sessions list immediately for better UX
-      if (!sessionId) {
-        setSessions(prev => [
-          {
-            id: res.session_id,
-            title: res.title || question, // Use smart title or fallback to question
-            created_at: new Date().toISOString(),
-            first_q: question,
-            turns: [newTurn] // minimal data
-          },
-          ...prev
-        ]);
-        // Background refresh to get the generated title after a delay
-        setTimeout(() => fetchHistory(), 4000);
-      } else {
-        // Optional: Update title if it changed (though usually only on first msg)
-        setSessions(prev => prev.map(s => s.id === res.session_id && res.title ? { ...s, title: res.title } : s));
+      if (!response.ok) {
+        try {
+          const errData = await response.json();
+          throw new Error(errData.detail || "Network response was not ok");
+        } catch (e) {
+          throw new Error("Network response was not ok");
+        }
       }
 
-      // Start the typewriter animation for this answer
-      startTypingAnimation(newTurn.id, fullAnswer);
-      setQuestion("");
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No reader available");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let currentTurnId = tempTurnId;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const data = JSON.parse(line);
+
+            if (data.type === "meta") {
+              const newSessionId = data.session_id;
+              setSessionId(newSessionId);
+              currentTurnId = data.turn_id;
+
+              setTurns(prev => prev.map(t => {
+                if (t.id === tempTurnId) {
+                  return {
+                    ...t,
+                    id: data.turn_id,
+                    sources: data.sources || [],
+                    displayedAnswer: "",
+                    answer: ""
+                  };
+                }
+                return t;
+              }));
+
+              if (!currentSessionId) {
+                setSessions(prev => [
+                  {
+                    id: newSessionId,
+                    title: data.title || currentQuestion,
+                    created_at: new Date().toISOString(),
+                    first_q: currentQuestion,
+                    turns: []
+                  },
+                  ...prev
+                ]);
+                setTimeout(() => fetchHistory(), 3000);
+              }
+
+            } else if (data.type === "chunk") {
+              setTurns(prev => prev.map(t => {
+                if (t.id === currentTurnId || t.id === tempTurnId) {
+                  return {
+                    ...t,
+                    answer: t.answer + data.text,
+                    displayedAnswer: t.answer + data.text,
+                    isTyping: true
+                  };
+                }
+                return t;
+              }));
+
+            } else if (data.type === "error") {
+              toast.error(data.text);
+              const errTxt = data.text || " Error";
+              setTurns(prev => prev.map(t => t.id === currentTurnId ? { ...t, answer: t.answer + errTxt, displayedAnswer: t.answer + errTxt } : t));
+            }
+
+          } catch (e) {
+            console.error("JSON Parse Error", e);
+          }
+        }
+      }
+
+      setTurns(prev => prev.map(t => t.id === currentTurnId ? { ...t, isTyping: false } : t));
+
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || "Could not fetch answer.");
+      console.error(err);
+      const errorMessage = "I'm having trouble connecting to my brain right now. Please try again later.";
+      toast.error(err.message || "Connection failed");
+
+      setTurns(prev => prev.map(t => {
+        if (t.id === tempTurnId) {
+          return { ...t, answer: errorMessage, displayedAnswer: errorMessage, isTyping: false };
+        }
+        return t;
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -568,7 +686,7 @@ export const ChatWidget = () => {
                             size="sm"
                             variant="secondary"
                             className="rounded-full bg-background/60 hover:bg-indigo-500/10 hover:text-indigo-600 transition-colors border border-transparent hover:border-indigo-500/20 shadow-sm"
-                            onClick={() => setQuestion(s)}
+                            onClick={() => send(s)}
                           >
                             {s}
                           </Button>
@@ -606,40 +724,112 @@ export const ChatWidget = () => {
                                 <Bot className="w-4 h-4 text-indigo-500" />
                                 <span className="font-semibold text-foreground text-xs uppercase tracking-wide">Assistant</span>
                               </div>
-                              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-50 hover:opacity-100" onClick={() => copyAnswer(turn.answer)}>
-                                <Copy className="w-3 h-3" />
-                              </Button>
+                              {!turn.isTyping && (
+                                <Button size="icon" variant="ghost" className="h-6 w-6 opacity-50 hover:opacity-100" onClick={() => copyAnswer(turn.answer)}>
+                                  <Copy className="w-3 h-3" />
+                                </Button>
+                              )}
                             </div>
 
-                            <div className="text-foreground/90 leading-relaxed overflow-hidden prose dark:prose-invert prose-sm max-w-none break-words">
-                              <ReactMarkdown>
-                                {(turn.displayedAnswer || turn.answer) + (turn.isTyping ? " ▋" : "")}
-                              </ReactMarkdown>
+                            <div className="text-foreground/90 leading-relaxed overflow-hidden prose dark:prose-invert prose-sm max-w-none break-words min-h-[24px]">
+                              {turn.displayedAnswer === "Thinking..." ? (
+                                <div className="flex items-center gap-1.5 h-6 animate-in fade-in duration-300">
+                                  <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                  <span className="w-1.5 h-1.5 bg-indigo-300 rounded-full animate-bounce"></span>
+                                </div>
+                              ) : (
+                                <ReactMarkdown>
+                                  {(turn.displayedAnswer || turn.answer) + (turn.isTyping ? " ▋" : "")}
+                                </ReactMarkdown>
+                              )}
                             </div>
 
-                            {turn.sources?.length > 0 && !turn.isTyping && (
-                              <div className="pt-2 border-t border-dashed border-slate-200 dark:border-slate-800 mt-2 space-y-2">
-                                <div className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                                  <ArrowUpRight className="w-3 h-3" /> Sources
+                            {/* Dynamic Source Parsing & Display */}
+                            {(() => {
+                              // 1. Extract External Links from Markdown Answer
+                              const mdLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
+                              const externalLinks: any[] = [];
+                              let match;
+                              while ((match = mdLinkRegex.exec(turn.answer)) !== null) {
+                                externalLinks.push({
+                                  id: `ext-${match[2]}`,
+                                  title: match[1],
+                                  url: match[2],
+                                  source_type: "External Resource"
+                                });
+                              }
+
+                              // 2. Combine with Backend Sources
+                              const existingSources = turn.sources || [];
+                              const allSources = [...existingSources, ...externalLinks];
+
+                              // 3. Deduplicate
+                              const uniqueSources = allSources.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
+
+                              if (uniqueSources.length === 0 || turn.isTyping) return null;
+
+                              return (
+                                <div className="pt-2 border-t border-dashed border-slate-200 dark:border-slate-800 mt-2 space-y-2">
+                                  <div className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                                    <ArrowUpRight className="w-3 h-3" /> References & Sources
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {uniqueSources.map((s) => {
+                                      const isExternal = s.source_type === "External Resource";
+                                      const type = (s.source_type || "").toLowerCase();
+
+                                      // Icon Selection
+                                      let Icon = Globe;
+                                      if (type.includes("youtube") || type.includes("video")) Icon = Youtube;
+                                      else if (type.includes("pdf") || type.includes("material")) Icon = FileText;
+                                      else if (type.includes("blog")) Icon = BookOpen;
+                                      else if (isExternal) Icon = ArrowUpRight;
+
+                                      const getSmartLink = (source: ChatSource) => {
+                                        if (source.url && source.url.startsWith("http")) return source.url;
+                                        if (type === "video" || type === "material" || type === "plugin" || type === "theme") return "/materials";
+                                        if (type === "faq") return "/faq";
+                                        if (type === "blog") {
+                                          if (source.url && source.url.includes("/blog/")) return source.url;
+                                          return "/blog";
+                                        }
+                                        if (source.url && source.url.startsWith("/")) return source.url;
+                                        return "#";
+                                      };
+
+                                      const linkHref = getSmartLink(s);
+
+                                      return (
+                                        <a
+                                          key={s.id}
+                                          href={linkHref}
+                                          className={`flex items-center justify-between text-xs border rounded-lg px-3 py-2 transition-colors group ${isExternal
+                                            ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                                            : "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                                            }`}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          <div className="flex items-center truncate flex-1 mr-2 gap-2">
+                                            <div className={`p-1 rounded-md ${isExternal ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600" : "bg-slate-200 dark:bg-slate-700 text-slate-600"}`}>
+                                              <Icon className="w-3.5 h-3.5" />
+                                            </div>
+                                            <div className="flex flex-col truncate">
+                                              <span className={`font-medium truncate group-hover:underline ${isExternal ? "text-indigo-700 dark:text-indigo-300" : "text-indigo-600 dark:text-indigo-400"}`}>
+                                                {s.title}
+                                              </span>
+                                              <span className="text-[10px] text-muted-foreground uppercase">{s.source_type}</span>
+                                            </div>
+                                          </div>
+                                          {isExternal && <ArrowUpRight className="w-3 h-3 text-indigo-400 opacity-50" />}
+                                        </a>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                                <div className="grid grid-cols-1 gap-2">
-                                  {turn.sources.map((s) => (
-                                    <a
-                                      key={s.id}
-                                      href={s.url || "#"}
-                                      className="flex items-center justify-between text-xs border rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-200 transition-colors group"
-                                      target="_blank"
-                                      rel="noreferrer"
-                                    >
-                                      <div className="flex flex-col truncate">
-                                        <span className="font-medium truncate text-indigo-600 dark:text-indigo-400 group-hover:underline">{s.title}</span>
-                                        <span className="text-[10px] text-muted-foreground uppercase">{s.source_type}</span>
-                                      </div>
-                                    </a>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -665,7 +855,7 @@ export const ChatWidget = () => {
                         }}
                       />
                       <Button
-                        onClick={send}
+                        onClick={() => send()}
                         disabled={isLoading || !question.trim()}
                         size="icon"
                         className={`rounded-full h-9 w-9 sm:h-10 sm:w-10 shrink-0 transition-all duration-300 ${question.trim() ? "bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-lg scale-100" : "bg-muted text-muted-foreground scale-95"}`}
