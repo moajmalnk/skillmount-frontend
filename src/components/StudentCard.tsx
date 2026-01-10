@@ -92,50 +92,85 @@ const StudentCard = ({
       </div>
 
       {/* Portfolio Preview / Cover Section */}
-      <Link
-        to={`/students/${id}`}
-        className="relative block w-full aspect-[4/3] bg-gradient-to-br from-muted via-muted/80 to-muted/60 overflow-hidden group/preview"
-      >
-        {/* Overlay Text */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity duration-500 z-10 flex items-center justify-center">
-          <span className="bg-white/90 text-black px-4 py-2 rounded-full text-sm font-bold transform translate-y-4 group-hover/preview:translate-y-0 transition-transform duration-300">
-            View Profile
-          </span>
-        </div>
-
-        {/* Avatar Image or Fallback */}
-        {avatar ? (
-          <img
-            src={avatar}
-            alt={name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-[0.05]" style={{
-              backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
-              backgroundSize: '24px 24px'
-            }}></div>
-            <div className="relative z-10 text-center p-4">
-              <div className="w-16 h-16 mx-auto bg-background rounded-full flex items-center justify-center mb-3 shadow-sm">
-                <User className="w-8 h-8 text-primary/40" />
-              </div>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">{batch}</p>
-            </div>
+      {isAuthenticated ? (
+        <Link
+          to={`/students/${id}`}
+          className="relative block w-full aspect-[4/3] bg-gradient-to-br from-muted via-muted/80 to-muted/60 overflow-hidden group/preview"
+        >
+          {/* Overlay Text */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity duration-500 z-10 flex items-center justify-center">
+            <span className="bg-white/90 text-black px-4 py-2 rounded-full text-sm font-bold transform translate-y-4 group-hover/preview:translate-y-0 transition-transform duration-300">
+              View Profile
+            </span>
           </div>
-        )}
-      </Link>
+
+          {/* Avatar Image or Fallback */}
+          {avatar ? (
+            <img
+              src={avatar}
+              alt={name}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 relative overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.05]" style={{
+                backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
+                backgroundSize: '24px 24px'
+              }}></div>
+              <div className="relative z-10 text-center p-4">
+                <div className="w-16 h-16 mx-auto bg-background rounded-full flex items-center justify-center mb-3 shadow-sm">
+                  <User className="w-8 h-8 text-primary/40" />
+                </div>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">{batch}</p>
+              </div>
+            </div>
+          )}
+        </Link>
+      ) : (
+        <div className="relative block w-full aspect-[4/3] bg-gradient-to-br from-muted via-muted/80 to-muted/60 overflow-hidden group/preview cursor-default">
+          {/* Avatar Image or Fallback (No Overlay for non-auth) */}
+          {avatar ? (
+            <img
+              src={avatar}
+              alt={name}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 relative overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.05]" style={{
+                backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
+                backgroundSize: '24px 24px'
+              }}></div>
+              <div className="relative z-10 text-center p-4">
+                <div className="w-16 h-16 mx-auto bg-background rounded-full flex items-center justify-center mb-3 shadow-sm">
+                  <User className="w-8 h-8 text-primary/40" />
+                </div>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">{batch}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Content Section - Flex Grow to push footer down */}
       <CardContent className="flex flex-col flex-grow p-5">
         {/* Name & Headline */}
         <div className="mb-4">
-          <Link to={`/students/${id}`} className="group/link block">
-            <h3 className="text-lg font-bold text-foreground mb-0.5 group-hover/link:text-primary transition-colors duration-300 line-clamp-1">
-              {name}
-            </h3>
-          </Link>
+          {isAuthenticated ? (
+            <Link to={`/students/${id}`} className="group/link block">
+              <h3 className="text-lg font-bold text-foreground mb-0.5 group-hover/link:text-primary transition-colors duration-300 line-clamp-1">
+                {name}
+              </h3>
+            </Link>
+          ) : (
+            <div className="block cursor-default">
+              <h3 className="text-lg font-bold text-foreground mb-0.5 transition-colors duration-300 line-clamp-1">
+                {name}
+              </h3>
+            </div>
+          )}
 
           {/* Headline - NEW */}
           {headline && (
@@ -183,9 +218,9 @@ const StudentCard = ({
         </div>
 
         {/* ACTIONS / CONTACT INFO */}
-        <div className="mt-4 pt-4 border-t border-border/40">
-          {isAuthenticated ? (
-            // LOGGED IN VIEW: Show Socials & Contact
+        {isAuthenticated && (
+          <div className="mt-4 pt-4 border-t border-border/40">
+            {/* LOGGED IN VIEW: Show Socials & Contact */}
             <div className="space-y-3">
               <div className="flex gap-2">
                 {domain && (
@@ -220,15 +255,8 @@ const StudentCard = ({
                 </div>
               )}
             </div>
-          ) : (
-            // PUBLIC VIEW: Hide Personal Data, Show CTA
-            <Button asChild className="w-full h-9 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all shadow-none border-0">
-              <Link to={`/students/${id}`}>
-                View Full Profile
-              </Link>
-            </Button>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
 
       {/* Shine Effect */}
