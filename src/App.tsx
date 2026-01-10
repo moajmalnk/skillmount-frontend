@@ -8,7 +8,6 @@ import { AuthProvider } from "@/context/AuthContext";
 
 // Route Guards
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
-import { PublicRoute } from "@/components/layout/PublicRoute";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -55,20 +54,18 @@ const AppContent = () => {
         <main className="flex-1 relative">
           <Routes>
 
-            {/* === PUBLIC ROUTES (With Safety Trap) === */}
-            <Route element={<PublicRoute />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
-              <Route path="/students" element={<Students />} />
-              <Route path="/students/:id" element={<StudentProfile />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/skelui" element={<SkelUI />} />
+            {/* === PUBLIC ROUTES (No Guard) === */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
+            <Route path="/students" element={<Students />} />
+            <Route path="/students/:id" element={<StudentProfile />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/skelui" element={<SkelUI />} />
 
-              {/* Blog Routes */}
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-            </Route>
+            {/* Blog Routes */}
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
 
             {/* === PROTECTED ROUTES === */}
             <Route element={<ProtectedRoute />}>

@@ -26,13 +26,7 @@ const StudentProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // 1. Auth Guard - Effect
-  useEffect(() => {
-    // Only redirect if auth check is complete and user is NOT authenticated
-    if (!isAuthLoading && !isAuthenticated) {
-      window.location.href = `/login?redirect=/students/${id}`;
-    }
-  }, [isAuthenticated, isAuthLoading, id]);
+
 
   const fetchStudent = async () => {
     // Keep loading state minimal for re-fetches
@@ -51,19 +45,10 @@ const StudentProfile = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchStudent();
-    }
-  }, [id, isAuthenticated]);
+    fetchStudent();
+  }, [id]);
 
-  // 2. Auth Guard - Render Loading or Null
-  if (isAuthLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+
 
   const canEdit = currentUser && student && (currentUser.id === student.id || currentUser.role === 'super_admin');
 
