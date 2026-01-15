@@ -1,14 +1,14 @@
 import api from "@/lib/api";
-import { Notification } from "@/types/notification";
+import { Notification, PaginatedNotificationResponse } from "@/types/notification";
 
 export const notificationService = {
-    getAll: async (): Promise<Notification[]> => {
+    getAll: async (params?: { hours?: number; page?: number; page_size?: number }): Promise<PaginatedNotificationResponse> => {
         try {
-            const response = await api.get<Notification[]>('/notifications/');
+            const response = await api.get<PaginatedNotificationResponse>('/notifications/', { params });
             return response.data;
         } catch (error) {
             console.error("Failed to fetch notifications", error);
-            return [];
+            return { count: 0, next: null, previous: null, results: [] };
         }
     },
 

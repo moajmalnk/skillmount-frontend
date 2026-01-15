@@ -223,6 +223,9 @@ export const TicketManager = () => {
                                         onSelect={setDateRange}
                                         numberOfMonths={1}
                                         className="p-3"
+                                        captionLayout="dropdown-buttons"
+                                        fromYear={2024}
+                                        toYear={2030}
                                     />
                                 </PopoverContent>
                             </Popover>

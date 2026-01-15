@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Clock } from "lucide-react";
-import { Ticket } from "@/types/ticket"; // <--- Imported from central types
+import { Edit, Clock, ArrowRight, ExternalLink } from "lucide-react";
+import { Ticket } from "@/types/ticket";
+import { cn } from "@/lib/utils";
 
 interface TicketListProps {
   tickets: Ticket[];
@@ -19,40 +20,48 @@ export const TicketList = ({ tickets, onSelectTicket, showStudentInfo = true }: 
     );
   }
 
+  // Dynamic grid template columns to ensure full width usage
+  const gridClass = showStudentInfo
+    ? "md:grid-cols-[1.5fr_3fr_2fr_3fr_1.5fr_1fr]" // Admin/Tutor View
+    : "md:grid-cols-[1.5fr_4fr_3fr_2fr_1.5fr]";    // Student View
+
   return (
     <div className="space-y-3">
       {/* Header Row - Hidden on mobile */}
-      <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        <div className="col-span-2">Ticket ID</div>
-        <div className="col-span-3">Title & Date</div>
-        <div className="col-span-2">Category</div>
-        {showStudentInfo && <div className="col-span-3">Ticketed By</div>}
-        <div className="col-span-1">Priority</div>
-        <div className="col-span-1 text-right">Action</div>
+      <div className={cn("hidden md:grid gap-4 px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider", gridClass)}>
+        <div>Ticket ID</div>
+        <div>Title & Date</div>
+        <div>Category</div>
+        {showStudentInfo && <div>Ticketed By</div>}
+        <div>Priority</div>
+        <div className="text-right">Action</div>
       </div>
 
       {/* Ticket Rows */}
       {tickets.map((ticket) => (
         <div
           key={ticket.id}
-          className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 items-start md:items-center bg-card border border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-200 p-4 rounded-xl group cursor-pointer relative"
+          className={cn(
+            "flex flex-col md:grid gap-3 md:gap-4 items-start md:items-center bg-card border border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-200 p-4 rounded-xl group cursor-pointer relative",
+            gridClass
+          )}
           onClick={() => onSelectTicket(ticket)}
         >
           {/* Mobile Header: ID & Action */}
           <div className="flex md:hidden items-center justify-between w-full border-b border-border/50 pb-2 mb-1">
             <span className="font-mono text-[10px] text-muted-foreground">{ticket.id}</span>
             <Button variant="ghost" size="icon" className="h-7 w-7 bg-muted/50 text-muted-foreground hover:bg-primary hover:text-primary-foreground">
-              <Edit className="w-3.5 h-3.5" />
+              <ExternalLink className="w-3.5 h-3.5" />
             </Button>
           </div>
 
           {/* ID - Desktop only */}
-          <div className="hidden md:block col-span-2 font-mono text-xs text-muted-foreground truncate">
+          <div className="hidden md:block font-mono text-xs text-muted-foreground truncate">
             {ticket.id}
           </div>
 
           {/* Title & Date */}
-          <div className="col-span-12 md:col-span-3 w-full">
+          <div className="w-full">
             <div className="font-semibold text-foreground text-sm sm:text-base md:truncate leading-tight" title={ticket.title}>
               {ticket.title}
             </div>
@@ -62,14 +71,16 @@ export const TicketList = ({ tickets, onSelectTicket, showStudentInfo = true }: 
           </div>
 
           {/* Category */}
-          <div className="col-span-12 md:col-span-2 flex items-center gap-2 md:block">
+          <div className="flex items-center gap-2 md:block">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider md:hidden">Category:</span>
-            <span className="text-xs sm:text-sm text-muted-foreground truncate">{ticket.category}</span>
+            <Badge variant="secondary" className="font-medium text-xs truncate max-w-[140px]">
+              {ticket.category}
+            </Badge>
           </div>
 
           {/* Student Info */}
           {showStudentInfo && (
-            <div className="col-span-12 md:col-span-3 flex items-center gap-3 w-full">
+            <div className="flex items-center gap-3 w-full">
               <Avatar className="h-8 w-8 shrink-0 border border-border/50">
                 <AvatarImage src={ticket.student.avatar} />
                 <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
@@ -86,29 +97,29 @@ export const TicketList = ({ tickets, onSelectTicket, showStudentInfo = true }: 
           )}
 
           {/* Priority Badge */}
-          <div className="col-span-12 md:col-span-1 flex items-center gap-2 md:block">
+          <div className="flex items-center gap-2 md:block">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider md:hidden">Priority:</span>
             <Badge
               variant="outline"
-              className={`
-                 text-[10px] h-5 px-1.5 whitespace-nowrap
-                 ${ticket.priority === 'High' || ticket.priority === 'Urgent' ? 'bg-red-500/10 text-red-600 border-red-200' : ''}
-                 ${ticket.priority === 'Medium' ? 'bg-orange-500/10 text-orange-600 border-orange-200' : ''}
-                 ${ticket.priority === 'Low' ? 'bg-blue-500/10 text-blue-600 border-blue-200' : ''}
-               `}
+              className={cn(
+                "text-[10px] h-6 px-2.5 rounded-full whitespace-nowrap border capitalize",
+                ticket.priority === 'High' || ticket.priority === 'Urgent' ? "bg-red-500/10 text-red-600 border-red-200" :
+                  ticket.priority === 'Medium' ? "bg-orange-500/10 text-orange-600 border-orange-200" :
+                    "bg-blue-500/10 text-blue-600 border-blue-200"
+              )}
             >
               {ticket.priority}
             </Badge>
           </div>
 
           {/* Actions - Desktop only */}
-          <div className="hidden md:block col-span-1 text-right">
+          <div className="hidden md:flex justify-end">
             <Button
               variant="ghost"
-              size="icon"
-              className="bg-muted/50 group-hover:bg-primary group-hover:text-primary-foreground transition-colors h-8 w-8"
+              size="sm"
+              className="text-xs font-semibold gap-1 bg-muted/50 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
             >
-              <Edit className="w-4 h-4" />
+              View <ArrowRight className="w-3 h-3" />
             </Button>
           </div>
         </div>

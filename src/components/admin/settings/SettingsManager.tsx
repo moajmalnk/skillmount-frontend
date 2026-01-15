@@ -20,16 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ActionConfirmationDialog } from "@/components/admin/ActionConfirmationDialog";
 import { Label } from "@/components/ui/label";
 
 // Import Service & Type
@@ -50,20 +41,27 @@ interface SettingCardProps {
 const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemove, onEdit, placeholder }: SettingCardProps) => {
   const [newItem, setNewItem] = useState("");
 
-  // State for Edit/Delete Modals
-  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+
+  // State for Edit
   const [itemToEdit, setItemToEdit] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  const handleAdd = () => {
+  // Pending Action State
+  type PendingAction =
+    | { type: 'add', value: string }
+    | { type: 'edit', oldValue: string, newValue: string }
+    | { type: 'delete', value: string };
+
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+
+  const handleAddRequest = () => {
     if (!newItem.trim()) return;
-    // Prevent duplicates (Case insensitive check optional, keeping exact for now)
     if (items.includes(newItem.trim())) {
       toast.error("This item already exists.");
       return;
     }
-    onAdd(newItem.trim());
-    setNewItem("");
+    setPendingAction({ type: 'add', value: newItem.trim() });
   };
 
   const initiateEdit = (item: string) => {
@@ -71,23 +69,40 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
     setEditValue(item);
   };
 
-  const confirmEdit = () => {
+  const handleEditRequest = () => {
     if (itemToEdit && editValue.trim()) {
       if (items.includes(editValue.trim()) && editValue.trim() !== itemToEdit) {
-        toast.error("This item name already exists.");
+        toast.error("This item already exists.");
         return;
       }
-      onEdit(itemToEdit, editValue.trim());
-      setItemToEdit(null);
-      setEditValue("");
+      setPendingAction({ type: 'edit', oldValue: itemToEdit, newValue: editValue.trim() });
+      setItemToEdit(null); // Close the edit input modal first
     }
   };
 
-  const confirmDelete = () => {
-    if (itemToDelete) {
-      onRemove(itemToDelete);
-      setItemToDelete(null);
+  const handleDeleteRequest = (item: string) => {
+    setPendingAction({ type: 'delete', value: item });
+  };
+
+  const executePendingAction = () => {
+    if (!pendingAction) return;
+
+    switch (pendingAction.type) {
+      case 'add':
+        onAdd(pendingAction.value);
+        setNewItem("");
+        toast.success(`Added "${pendingAction.value}" to ${title}`);
+        break;
+      case 'edit':
+        onEdit(pendingAction.oldValue, pendingAction.newValue);
+        toast.success("Updated successfully");
+        break;
+      case 'delete':
+        onRemove(pendingAction.value);
+        toast.success("Deleted successfully");
+        break;
     }
+    setPendingAction(null);
   };
 
   return (
@@ -108,10 +123,10 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
               placeholder={placeholder}
               value={newItem}
               onChange={(e) => setNewItem(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              onKeyDown={(e) => e.key === "Enter" && handleAddRequest()}
               className="bg-muted/30"
             />
-            <Button onClick={handleAdd} size="icon" className="shrink-0">
+            <Button onClick={handleAddRequest} size="icon" className="shrink-0">
               <Plus className="w-4 h-4" />
             </Button>
           </div>
@@ -144,7 +159,7 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
                             <Pencil className="w-3 h-3" />
                           </button>
                           <button
-                            onClick={() => setItemToDelete(item)}
+                            onClick={() => handleDeleteRequest(item)}
                             className="p-1 hover:bg-destructive hover:text-destructive-foreground rounded-md transition-colors text-muted-foreground"
                             title="Delete"
                           >
@@ -165,27 +180,40 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
         </CardContent>
       </Card>
 
-      {/* DELETE CONFIRMATION DIALOG */}
-      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              Confirm Deletion
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove <strong>"{itemToDelete}"</strong>?
-              This may affect users currently assigned to this option.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-              Delete Item
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* UNIFIED CONFIRMATION DIALOG */}
+      {pendingAction && (
+        <ActionConfirmationDialog
+          open={!!pendingAction}
+          onOpenChange={(open) => !open && setPendingAction(null)}
+          onConfirm={executePendingAction}
+          title={
+            pendingAction.type === 'add' ? "Confirm Addition" :
+              pendingAction.type === 'edit' ? "Confirm Changes" :
+                "Confirm Deletion"
+          }
+          itemName={
+            pendingAction.type === 'add' ? pendingAction.value :
+              pendingAction.type === 'edit' ? pendingAction.oldValue :
+                pendingAction.value
+          }
+          description={
+            pendingAction.type === 'add'
+              ? `Are you sure you want to add this to ${title}?`
+              : pendingAction.type === 'edit'
+                ? <span>Change to <strong>"{pendingAction.newValue}"</strong>?</span>
+                : `Are you sure you want to remove this from ${title}? Use caution as this might affect existing users.`
+          }
+          variant={
+            pendingAction.type === 'delete' ? 'destructive' :
+              pendingAction.type === 'add' ? 'success' : 'default'
+          }
+          confirmLabel={
+            pendingAction.type === 'add' ? "Add Item" :
+              pendingAction.type === 'edit' ? "Save Changes" :
+                "Delete"
+          }
+        />
+      )}
 
       {/* EDIT ITEM DIALOG */}
       <Dialog open={!!itemToEdit} onOpenChange={() => setItemToEdit(null)}>
@@ -208,7 +236,7 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setItemToEdit(null)}>Cancel</Button>
-            <Button onClick={confirmEdit}>Save Changes</Button>
+            <Button onClick={handleEditRequest}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

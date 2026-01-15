@@ -36,7 +36,7 @@ import { userService } from "@/services/userService";
 import { systemService } from "@/services/systemService"; // Added System Service
 import { Student } from "@/types/user";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
+import { ActionConfirmationDialog } from "../ActionConfirmationDialog";
 import { StudentCreateDialog } from "./dialogs/StudentCreateDialog";
 import { Copy } from "lucide-react";
 
@@ -56,7 +56,13 @@ export const StudentManager = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Unified Action State
+  type PendingAction = {
+    type: 'delete' | 'toggleTop' | 'toggleFeatured';
+    student: Student;
+  } | null;
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   // 1. Fetch Data (Students + Batches)
   // 1. Fetch Data (Students + Batches)
@@ -144,29 +150,56 @@ export const StudentManager = () => {
     return matchesSearch && matchesBatch && matchesProfile && matchesType;
   });
 
-  // 3. Quick Actions (Toggles)
-  const toggleAttribute = async (student: Student, field: 'isTopPerformer' | 'isFeatured') => {
-    const newValue = !student[field];
+  // 3. Quick Actions (Requests)
+  const requestToggle = (e: React.MouseEvent, student: Student, field: 'isTopPerformer' | 'isFeatured') => {
+    e.stopPropagation();
+    setPendingAction({
+      type: field === 'isTopPerformer' ? 'toggleTop' : 'toggleFeatured',
+      student
+    });
+  };
 
-    // Optimistic Update
-    setStudents(prev => prev.map(s => s.id === student.id ? { ...s, [field]: newValue } : s));
+  const requestDelete = (e: React.MouseEvent, student: Student) => {
+    e.stopPropagation();
+    setPendingAction({ type: 'delete', student });
+  };
+
+  // 4. Execution Handler
+  const executePendingAction = async () => {
+    if (!pendingAction) return;
+    const { type, student } = pendingAction;
 
     try {
-      // Backend expects specific profile field names
-      await userService.update(student.id, {
-        role: 'student',
-        [field]: newValue
-      } as any);
+      if (type === 'delete') {
+        await userService.delete(student.id);
+        toast.success("Student deleted successfully");
+        setStudents(prev => prev.filter(s => s.id !== student.id));
+        loadData(); // To be safe
+      } else {
+        // Toggles
+        const field = type === 'toggleTop' ? 'isTopPerformer' : 'isFeatured';
+        const newValue = !student[field];
 
-      toast.success(`Updated ${student.name}`, {
-        description: newValue
-          ? (field === 'isTopPerformer' ? "Marked as Top Performer" : "Marked as Featured Graduate")
-          : "Status removed"
-      });
+        // Backend update
+        await userService.update(student.id, {
+          role: 'student',
+          [field]: newValue
+        } as any);
+
+        // Local update
+        setStudents(prev => prev.map(s => s.id === student.id ? { ...s, [field]: newValue } : s));
+
+        toast.success("Updated successfully", {
+          description: newValue
+            ? `Added to ${type === 'toggleTop' ? 'Top Performers' : 'Featured Graduates'}`
+            : `Removed from ${type === 'toggleTop' ? 'Top Performers' : 'Featured Graduates'}`
+        });
+      }
     } catch (error) {
-      // Revert on failure
-      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, [field]: !newValue } : s));
-      toast.error("Failed to update status");
+      console.error(error);
+      toast.error("Action failed", { description: "Please try again later." });
+    } finally {
+      setPendingAction(null);
     }
   };
 
@@ -175,32 +208,6 @@ export const StudentManager = () => {
     setSelectedStudent(student);
     setIsSheetOpen(true);
   };
-
-
-
-
-
-  const initiateDelete = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDeleteId(id);
-  };
-
-  // Confirm Handler (Executes Logic)
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    try {
-      await userService.delete(deleteId);
-      toast.success("Student deleted successfully");
-      loadData();
-    } catch (error) {
-      toast.error("Failed to delete student");
-    } finally {
-      setDeleteId(null);
-    }
-  };
-
-  // Helper to get name for popup
-  const studentToDelete = students.find(s => s.id === deleteId);
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -378,7 +385,7 @@ export const StudentManager = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={(e) => { e.stopPropagation(); toggleAttribute(student, 'isTopPerformer'); }}
+                                  onClick={(e) => requestToggle(e, student, 'isTopPerformer')}
                                   className={`h-8 w-8 rounded-full transition-all ${student.isTopPerformer
                                     ? 'bg-amber-100 text-amber-500 hover:bg-amber-200'
                                     : 'text-muted-foreground hover:text-amber-500 hover:bg-amber-50'
@@ -397,7 +404,7 @@ export const StudentManager = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={(e) => { e.stopPropagation(); toggleAttribute(student, 'isFeatured'); }}
+                                  onClick={(e) => requestToggle(e, student, 'isFeatured')}
                                   className={`h-8 w-8 rounded-full transition-all ${student.isFeatured
                                     ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                                     : 'text-muted-foreground hover:text-blue-600 hover:bg-blue-50'
@@ -427,7 +434,7 @@ export const StudentManager = () => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={(e) => initiateDelete(student.id, e)}
+                            onClick={(e) => requestDelete(e, student)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -442,14 +449,36 @@ export const StudentManager = () => {
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
-      <DeleteConfirmationDialog
-        open={!!deleteId}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-        onConfirm={confirmDelete}
-        itemName={studentToDelete?.name}
-        description="This will remove the student, their profile, and all associated project data."
-      />
+      {/* 4. Action Confirmation Dialog */}
+      {
+        pendingAction && (
+          <ActionConfirmationDialog
+            open={!!pendingAction}
+            onOpenChange={(open) => !open && setPendingAction(null)}
+            onConfirm={executePendingAction}
+            itemName={pendingAction.student.name}
+            title={
+              pendingAction.type === 'delete' ? "Delete Student?" :
+                pendingAction.type === 'toggleTop' ? "Update Top Performer Status?" :
+                  "Update Featured Status?"
+            }
+            description={
+              pendingAction.type === 'delete'
+                ? "This will permanently delete the student and all associated data. This action cannot be undone."
+                : pendingAction.type === 'toggleTop'
+                  ? `Are you sure you want to ${pendingAction.student.isTopPerformer ? 'remove' : 'mark'} this student as a Top Performer?`
+                  : `Are you sure you want to ${pendingAction.student.isFeatured ? 'remove' : 'mark'} this student as a Featured Graduate?`
+            }
+            variant={pendingAction.type === 'delete' ? "destructive" : "default"}
+            confirmLabel={
+              pendingAction.type === 'delete' ? "Delete Permanently" :
+                pendingAction.type === 'toggleTop'
+                  ? (pendingAction.student.isTopPerformer ? "Remove Status" : "Mark as Top Performer")
+                  : (pendingAction.student.isFeatured ? "Remove Status" : "Mark as Graduate")
+            }
+          />
+        )
+      }
 
       {/* Create Dialog - Uses dedicated component with Loader */}
       <StudentCreateDialog

@@ -107,7 +107,11 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "defaul
         const audioBlob = new Blob(audioChunksRef.current, { type: actualMimeType });
 
         if (audioBlob.size === 0) {
-          toast.error("Recording failed: Empty audio file.");
+          // Don't show error if it was just a quick click (0s), but maybe we should?
+          // If it's 0 bytes, it failed.
+          if (audioChunksRef.current.length > 0) {
+            toast.error("Recording failed: Empty audio file.");
+          }
           return;
         }
 
@@ -120,9 +124,22 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "defaul
       // Start with 1000ms timeslice to ensure data is saved periodically
       mediaRecorder.start(1000);
       setIsRecording(true);
+      setRecordingTime(0);
 
       timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        setRecordingTime((prev) => {
+          const newTime = prev + 1;
+          if (newTime >= 60) {
+            if (mediaRecorder.state !== 'inactive') {
+              mediaRecorder.stop();
+            }
+            setIsRecording(false);
+            toast.info("Recording limit reached (1 minute).");
+            if (timerRef.current) clearInterval(timerRef.current);
+            return 60;
+          }
+          return newTime;
+        });
       }, 1000);
 
     } catch (error: any) {
@@ -180,26 +197,36 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "defaul
   if (variant === 'compact') {
     return (
       <>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-8 w-8 rounded-md transition-all hover:bg-muted",
-            isRecording && "text-destructive hover:text-destructive hover:bg-destructive/10 animate-pulse",
-            audioUrl && "text-primary hover:text-primary hover:bg-primary/10"
+        <div className={cn("flex items-center transition-all duration-300", isRecording ? "gap-2" : "gap-0")}>
+          {isRecording && (
+            <span className="text-[10px] font-mono font-medium animate-in fade-in slide-in-from-right-2">
+              <span className="text-red-500 animate-pulse">{formatTime(recordingTime)}</span>
+              <span className="text-muted-foreground">/01:00</span>
+            </span>
           )}
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={isInitializing}
-          title={isRecording ? "Stop Recording" : "Record Voice Note"}
-        >
-          {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
-        </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-8 w-8 rounded-md transition-all hover:bg-muted",
+              isRecording && "text-destructive hover:text-destructive hover:bg-destructive/10",
+              audioUrl && "text-primary hover:text-primary hover:bg-primary/10"
+            )}
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isInitializing}
+            title={isRecording ? `Recording... (${60 - recordingTime}s left)` : "Record Voice Note (Max 1m)"}
+          >
+            {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
+          </Button>
+        </div>
 
         {/* Hidden Audio Player for Compact Mode if needed, or just relying on parent */}
-        {audioUrl && (
-          <audio ref={audioPlayerRef} src={audioUrl} className="hidden" />
-        )}
+        {
+          audioUrl && (
+            <audio ref={audioPlayerRef} src={audioUrl} className="hidden" />
+          )
+        }
 
         <Dialog open={showPermissionHelp} onOpenChange={setShowPermissionHelp}>
           <DialogContent className="sm:max-w-md">
@@ -238,7 +265,7 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "defaul
 
             <div className="flex flex-col overflow-hidden">
               <span className={cn("text-sm font-medium truncate", isRecording ? "text-red-500" : "text-muted-foreground")}>
-                {isInitializing ? "Starting..." : isRecording ? "Recording..." : "Click mic to record"}
+                {isInitializing ? "Starting..." : isRecording ? "Recording..." : "Click mic to record (Max 1m)"}
               </span>
               {isRecording && <span className="font-mono text-xs">{formatTime(recordingTime)}</span>}
             </div>

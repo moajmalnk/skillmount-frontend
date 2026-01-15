@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { feedbackService } from "@/services/feedbackService";
 import { systemService } from "@/services/systemService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import confetti from "canvas-confetti";
 
 export const FeedbackForm = () => {
   const { user } = useAuth();
@@ -45,6 +46,27 @@ export const FeedbackForm = () => {
         return;
       }
       setFormData({ ...formData, attachment: file });
+    }
+  };
+
+  const handleRatingChange = (rating: number) => {
+    setFormData({ ...formData, rating });
+
+    // Professional Celebration Mode for 5 Stars
+    if (rating === 5) {
+      const duration = 1000;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      // A small burst of gold/yellow particles to match the star color
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FFD700', '#FDB931', '#E1AD01'], // Gold metallic colors
+        disableForReducedMotion: true
+      });
     }
   };
 
@@ -103,13 +125,13 @@ export const FeedbackForm = () => {
             <button
               key={star}
               type="button"
-              onClick={() => setFormData({ ...formData, rating: star })}
+              onClick={() => handleRatingChange(star)}
               className="transition-all duration-300 hover:scale-125 focus:outline-none"
               aria-label={`Rate ${star} stars`}
             >
               <Star
                 className={`w-10 h-10 transition-all duration-300 ${star <= formData.rating
-                  ? 'fill-primary text-primary drop-shadow-lg'
+                  ? 'fill-yellow-400 text-yellow-500 drop-shadow-lg'
                   : 'text-muted-foreground/30 hover:text-muted-foreground/50'
                   }`}
                 strokeWidth={1.5}

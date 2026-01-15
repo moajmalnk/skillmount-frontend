@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from "@/context/AuthContext";
 
@@ -19,6 +19,7 @@ import { ChatWidget } from "@/components/chat/ChatWidget";
 // Pages
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import GoogleCallback from "./pages/GoogleCallback";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import Students from "./pages/Students";
@@ -44,6 +45,8 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   // Activate global referral tracking logic
   useReferral();
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
 
   return (
     <>
@@ -57,6 +60,7 @@ const AppContent = () => {
             {/* === PUBLIC ROUTES (No Guard) === */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/google-callback" element={<GoogleCallback />} />
             <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
             <Route path="/students" element={<Students />} />
             <Route path="/students/:id" element={<StudentProfile />} />
@@ -88,8 +92,8 @@ const AppContent = () => {
 
           </Routes>
         </main>
-        <Footer />
-        <ChatWidget />
+        {!isLoginPage && <Footer />}
+        {!isLoginPage && <ChatWidget />}
       </div>
     </>
   );

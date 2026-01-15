@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { WobbleCard } from "@/components/ui/wobble-card";
 import { Video, PlayCircle, ExternalLink } from "lucide-react";
 import { Material } from "@/types/material";
+import { CustomVideoPlayer } from "./CustomVideoPlayer";
 
 interface VideoGridProps {
   videos: Material[];
@@ -18,27 +19,14 @@ export const VideoGrid = ({ videos }: VideoGridProps) => {
     <div className="container mx-auto px-6 max-w-7xl">
       {/* Video Player Modal/Area */}
       {selectedVideo && (selectedVideo.embedUrl) && (
-        <WobbleCard className="mb-12 border border-border/30 rounded-3xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-700">
-          <div className="aspect-video w-full">
-            <iframe
-              src={selectedVideo.embedUrl}
-              title={selectedVideo.title}
-              className="w-full h-full rounded-lg"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-          <div className="p-6 bg-card/50 backdrop-blur-sm">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedVideo(null)}
-              className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300"
-            >
-              Close Video
-            </Button>
-          </div>
-        </WobbleCard>
+        <div className="mb-12 rounded-3xl overflow-hidden shadow-2xl bg-black border border-white/10 ring-1 ring-white/5 animate-in fade-in zoom-in duration-500">
+          <CustomVideoPlayer
+            url={selectedVideo.embedUrl}
+            title={selectedVideo.title}
+            onClose={() => setSelectedVideo(null)}
+            autoPlay={true}
+          />
+        </div>
       )}
 
       {/* Grid */}

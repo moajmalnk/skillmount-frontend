@@ -53,11 +53,7 @@ export const materialService = {
       // Use FormData for file uploads
       const formData = createFormData(payload);
 
-      await api.post('/materials/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await api.post('/materials/', formData);
 
       // Toast handled by UI component usually
     } catch (error) {
@@ -82,11 +78,7 @@ export const materialService = {
       const payload = { ...material };
       const formData = createFormData(payload);
 
-      await api.patch(`/materials/${id}/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await api.patch(`/materials/${id}/`, formData);
     } catch (error) {
       console.error("Failed to update material", error);
       throw error;

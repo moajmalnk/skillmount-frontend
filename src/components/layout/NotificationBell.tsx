@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, Fragment } from "react"; // Added Fragment
 import {
-    Bell, Check, MailOpen, Ticket, Info, CheckCheck, ExternalLink, Loader2
+    Bell, Check, MailOpen, Ticket, Info, CheckCheck, ExternalLink, Loader2, History, ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,24 +14,58 @@ import { notificationService } from "@/services/notificationService";
 import { Notification } from "@/types/notification";
 import { useNavigate, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 
 export const NotificationBell = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<'recent' | 'all'>('recent');
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    // 1. Fetch Notifications with Query
-    const { data: notifications = [], isLoading } = useQuery({
-        queryKey: ['notifications'],
-        queryFn: notificationService.getAll,
-        refetchInterval: 30000, // Poll every 30s
+    // 1. Fetch Recent Notifications (Last 48h)
+    const { data: recentData, isLoading: isRecentLoading } = useQuery({
+        queryKey: ['notifications', 'recent'],
+        queryFn: () => notificationService.getAll({ hours: 48, page_size: 10 }),
+        refetchInterval: 30000,
     });
 
-    const unreadCount = notifications.filter(n => !n.is_read).length;
+    // 2. Fetch All Notifications (Infinite Scroll)
+    const {
+        data: allData,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: isAllLoading
+    } = useInfiniteQuery({
+        queryKey: ['notifications', 'all'],
+        queryFn: ({ pageParam = 1 }) => notificationService.getAll({ page: pageParam }),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) => {
+            if (lastPage.next) {
+                const param = new URL(lastPage.next).searchParams.get('page');
+                return param ? parseInt(param) : undefined;
+            }
+            return undefined;
+        },
+        enabled: viewMode === 'all', // Only fetch when in 'all' mode
+    });
 
-    // 2. Mutations
+    const notifications = viewMode === 'recent'
+        ? (recentData?.results || [])
+        : (allData?.pages.flatMap(page => page.results) || []);
+
+    const isLoading = viewMode === 'recent' ? isRecentLoading : isAllLoading;
+
+    // Calculate unread from RECENT (or separate endpoint for count?)
+    // Actually, unread count should probably be global. For now, using recent's unread is "okay" but imperfect if an old one is unread.
+    // Ideally, we'd have a separate `/notifications/unread-count/` endpoint.
+    // For now, let's use recentData's count + maybe a visual indicator if there are more.
+    // But since `recentData` is paginated, we rely on what we have.
+    // A quick hack: Recent is likely what matters most for the badge.
+    const unreadCount = (recentData?.results || []).filter(n => !n.is_read).length;
+
+    // 3. Mutations
     const markReadMutation = useMutation({
         mutationFn: notificationService.markAsRead,
         onSuccess: () => {
@@ -46,9 +80,9 @@ export const NotificationBell = () => {
         }
     });
 
-    // 3. Handlers
+    // 4. Handlers
     const handleMarkAsRead = (e: React.MouseEvent, id: number) => {
-        e.stopPropagation(); // Prevent navigation
+        e.stopPropagation();
         markReadMutation.mutate(id);
     };
 
@@ -56,41 +90,26 @@ export const NotificationBell = () => {
         markAllReadMutation.mutate();
     };
 
-    // Fix legacy/incorrect links from backend notifications
     const fixLink = (link?: string) => {
         if (!link) return "/";
-
-        // Fix Ticket Links (Old: /admin/tickets?id=123 -> New: /admin?tab=tickets&id=123)
-        if (link.includes("/admin/tickets")) {
-            return link.replace("/admin/tickets", "/admin?tab=tickets");
-        }
-
-        // Fix Inquiry Links (Old: /admin/support -> New: /admin?tab=inquiries)
-        if (link.includes("/admin/support")) {
-            return "/admin?tab=inquiries";
-        }
-
+        if (link.includes("/admin/tickets")) return link.replace("/admin/tickets", "/admin?tab=tickets");
+        if (link.includes("/admin/support")) return "/admin?tab=inquiries";
         return link;
     };
 
     const handleItemClick = (notification: Notification, e: React.MouseEvent) => {
-        // If it's a link click (Ctrl/Cmd+Click), let browser handle it
         if (e.ctrlKey || e.metaKey || e.button === 1) return;
-
-        e.preventDefault(); // Prevent Link's default behavior so we can handle navigation + close
-
-        // Otherwise close and mark read if needed
+        e.preventDefault();
         setIsOpen(false);
         if (!notification.is_read) {
             markReadMutation.mutate(notification.id);
         }
-
         if (notification.link) {
             navigate(fixLink(notification.link));
         }
     };
 
-    // 4. Icons & Styling Helper
+    // 5. Icons & Styling Helper
     const getTypeStyles = (type: Notification['notification_type']) => {
         switch (type) {
             case 'ticket_create':
@@ -104,7 +123,10 @@ export const NotificationBell = () => {
     };
 
     return (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <Popover open={isOpen} onOpenChange={(open) => {
+            setIsOpen(open);
+            if (!open) setViewMode('recent'); // Reset to recent when closed
+        }}>
             <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                     <Bell className={cn("h-5 w-5 transition-all", unreadCount > 0 && "text-primary animate-pulse-subtle")} />
@@ -121,23 +143,32 @@ export const NotificationBell = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b bg-muted/30">
                     <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-sm">Notifications</h4>
-                        {unreadCount > 0 && (
+                        {viewMode === 'all' && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6 -ml-2 mr-1" onClick={() => setViewMode('recent')}>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <h4 className="font-semibold text-sm">
+                            {viewMode === 'recent' ? 'Recent Updates' : 'Notification History'}
+                        </h4>
+                        {unreadCount > 0 && viewMode === 'recent' && (
                             <Badge variant="secondary" className="text-[10px] px-1.5 h-5">{unreadCount} new</Badge>
                         )}
                     </div>
-                    {unreadCount > 0 && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={markAllReadMutation.isPending}
-                            className="text-xs h-7 px-2 text-muted-foreground hover:text-primary gap-1"
-                            onClick={handleMarkAllMethod}
-                        >
-                            {markAllReadMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCheck className="w-3.5 h-3.5" />}
-                            Mark all read
-                        </Button>
-                    )}
+                    <div className="flex gap-1">
+                        {unreadCount > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={markAllReadMutation.isPending}
+                                className="text-xs h-7 px-2 text-muted-foreground hover:text-primary gap-1"
+                                onClick={handleMarkAllMethod}
+                                title="Mark all as read"
+                            >
+                                <CheckCheck className="w-3.5 h-3.5" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Content */}
@@ -145,19 +176,26 @@ export const NotificationBell = () => {
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center h-40 text-muted-foreground gap-2">
                             <Loader2 className="h-6 w-6 animate-spin" />
-                            <span className="text-xs">Loading updates...</span>
+                            <span className="text-xs">Loading...</span>
                         </div>
                     ) : notifications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
                             <div className="bg-muted p-4 rounded-full">
                                 <MailOpen className="h-6 w-6 opacity-40" />
                             </div>
-                            <span className="text-sm">No notifications yet</span>
+                            <span className="text-sm">
+                                {viewMode === 'recent' ? "No recent notifications" : "No notifications found"}
+                            </span>
+                            {viewMode === 'recent' && (
+                                <Button variant="link" size="sm" onClick={() => setViewMode('all')}>
+                                    View older history
+                                </Button>
+                            )}
                         </div>
                     ) : (
                         <div className="divide-y divide-border/40">
                             {notifications.map((notification) => {
-                                const { icon: Icon, color, bg } = getTypeStyles(notification.notification_type);
+                                const { icon: Icon, color, bg } = getTypeStyles(notification.notification_type as any);
 
                                 return (
                                     <div
@@ -167,17 +205,14 @@ export const NotificationBell = () => {
                                             !notification.is_read ? "bg-primary/5 hover:bg-primary/10" : "bg-transparent"
                                         )}
                                     >
-                                        {/* Unread Indicator Bar */}
                                         {!notification.is_read && (
                                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
                                         )}
 
-                                        {/* Icon */}
                                         <div className={cn("mt-1 w-9 h-9 shrink-0 rounded-full flex items-center justify-center", bg)}>
                                             <Icon className={cn("h-4 w-4", color)} />
                                         </div>
 
-                                        {/* Content */}
                                         <div className="flex-1 space-y-1 min-w-0">
                                             <div className="flex items-start justify-between gap-2">
                                                 <p className={cn("text-sm font-medium leading-none truncate pr-4", !notification.is_read ? "text-foreground" : "text-muted-foreground")}>
@@ -192,9 +227,7 @@ export const NotificationBell = () => {
                                                 {notification.message}
                                             </p>
 
-                                            {/* Actions */}
                                             <div className="flex items-center gap-3 pt-2">
-                                                {/* Action Link */}
                                                 {notification.link && (
                                                     <Link
                                                         to={fixLink(notification.link)}
@@ -205,7 +238,6 @@ export const NotificationBell = () => {
                                                     </Link>
                                                 )}
 
-                                                {/* Manual Mark Read */}
                                                 {!notification.is_read && (
                                                     <button
                                                         onClick={(e) => handleMarkAsRead(e, notification.id)}
@@ -221,18 +253,45 @@ export const NotificationBell = () => {
                                     </div>
                                 );
                             })}
+
+                            {/* "Load More" or "View History" Footer Actions */}
+                            {viewMode === 'recent' ? (
+                                <div className="p-3 text-center border-t bg-muted/10">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full text-xs text-muted-foreground hover:text-primary"
+                                        onClick={() => setViewMode('all')}
+                                    >
+                                        <History className="w-3.5 h-3.5 mr-2" />
+                                        View Earlier Notifications
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="p-3 text-center border-t bg-muted/10">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={!hasNextPage || isFetchingNextPage}
+                                        onClick={() => fetchNextPage()}
+                                        className="w-full text-xs"
+                                    >
+                                        {isFetchingNextPage ? (
+                                            <>
+                                                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                                                Loading...
+                                            </>
+                                        ) : hasNextPage ? (
+                                            "Load More"
+                                        ) : (
+                                            "No more notifications"
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </ScrollArea>
-
-                {/* Footer */}
-                {notifications.length > 5 && (
-                    <div className="p-2 border-t bg-muted/30 text-center">
-                        <span className="text-[10px] text-muted-foreground">
-                            Showing latest notifications
-                        </span>
-                    </div>
-                )}
             </PopoverContent>
         </Popover>
     );

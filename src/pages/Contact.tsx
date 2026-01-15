@@ -271,17 +271,17 @@ const Contact = () => {
                     <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 md:p-8">
                       <div className="text-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
                         {/* Professional Status Badge */}
-                        <div className="inline-flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 sm:px-4 sm:py-2 mb-4 sm:mb-6 shadow-xl border border-white/30">
+                        <div className="inline-flex items-center gap-2 bg-card/95 backdrop-blur-sm rounded-full px-3 py-1.5 sm:px-4 sm:py-2 mb-4 sm:mb-6 shadow-xl border border-border/50">
                           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="text-xs sm:text-sm font-medium text-gray-700 tracking-wide">Available Now</span>
+                          <span className="text-xs sm:text-sm font-medium text-foreground tracking-wide">Available Now</span>
                         </div>
 
                         {/* Professional Contact Card */}
-                        <div className="bg-white/90 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl border border-white/40 hover:shadow-3xl transition-all duration-500">
+                        <div className="bg-card/90 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl border border-border/40 hover:shadow-3xl transition-all duration-500">
                           <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 flex items-center justify-center mx-auto mb-3 sm:mb-4">
                           </div>
-                          <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">Quick Contact</h3>
-                          <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-4 sm:mb-6 leading-relaxed">Get instant support</p>
+                          <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-foreground mb-2 sm:mb-3">Quick Contact</h3>
+                          <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">Get instant support</p>
                           <a
                             href="mailto:moajmalnk@gmail.com"
                             className="inline-block"
@@ -296,7 +296,7 @@ const Contact = () => {
                   </ProfessionalBackground>
 
                   {/* Professional Floating Contact Card */}
-                  <div className="absolute -bottom-3 sm:-bottom-4 md:-bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-xl border border-white/30 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 shadow-2xl hover:shadow-3xl transition-all duration-500 group">
+                  <div className="absolute -bottom-3 sm:-bottom-4 md:-bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-xl border border-border/30 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 shadow-2xl hover:shadow-3xl transition-all duration-500 group">
                     <a
                       href="https://moajmalnk.in"
                       target="_blank"
@@ -309,13 +309,13 @@ const Contact = () => {
                           <Mail className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-primary" />
                         </div>
                         {/* Online Status Indicator */}
-                        <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white shadow-lg">
+                        <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-background shadow-lg">
                           <div className="w-full h-full bg-green-400 rounded-full animate-pulse"></div>
                         </div>
                       </div>
                       <div className="text-left min-w-0 flex-1">
-                        <div className="text-xs sm:text-sm md:text-base font-bold text-gray-800 group-hover:text-primary transition-colors duration-300 truncate">Mohammed Ajmal NK</div>
-                        <div className="text-xs sm:text-sm text-gray-600 truncate">Lead Instructor @ SkillMount</div>
+                        <div className="text-xs sm:text-sm md:text-base font-bold text-foreground group-hover:text-primary transition-colors duration-300 truncate">Mohammed Ajmal NK</div>
+                        <div className="text-xs sm:text-sm text-muted-foreground truncate">Lead Instructor @ SkillMount</div>
                         <div className="text-xs sm:text-sm text-green-600 font-medium">● Ready to Help</div>
                       </div>
                     </a>
@@ -480,16 +480,7 @@ const Contact = () => {
                       Feedbacks
                     </TabsTrigger>
                   </TabsList>
-                ) : (
-                  // If Guest: Show a nice prompt about logging in for tickets
-                  <div className="mb-8 text-center p-4 bg-muted/30 rounded-xl border border-border/50">
-                    {/* <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                      <Lock className="w-4 h-4" />
-                      <span className="font-medium">Student Features Locked</span>
-                      <span className="opacity-70">- Login to Raise Tickets or Submit Feedback</span>
-                    </p> */}
-                  </div>
-                )}
+                ) : null}
 
                 {/* Contact Form */}
                 <TabsContent value="contact">
@@ -504,44 +495,48 @@ const Contact = () => {
                       </div>
 
                       <form onSubmit={handleContactSubmit} className="space-y-6">
-                        <div className="grid md:grid-cols-2 gap-6">
-                          <div className="space-y-3">
-                            <Label htmlFor="contact-name" className="text-sm font-semibold text-foreground">Full Name *</Label>
-                            <Input
-                              id="contact-name"
-                              placeholder="John Doe"
-                              value={contactForm.name}
-                              onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                              required
-                              className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                            />
-                          </div>
+                        {!isAuthenticated && (
+                          <>
+                            <div className="grid md:grid-cols-2 gap-6">
+                              <div className="space-y-3">
+                                <Label htmlFor="contact-name" className="text-sm font-semibold text-foreground">Full Name *</Label>
+                                <Input
+                                  id="contact-name"
+                                  placeholder="John Doe"
+                                  value={contactForm.name}
+                                  onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                                  required
+                                  className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
+                                />
+                              </div>
 
-                          <div className="space-y-3">
-                            <Label htmlFor="contact-email" className="text-sm font-semibold text-foreground">Email *</Label>
-                            <Input
-                              id="contact-email"
-                              type="email"
-                              placeholder="john@example.com"
-                              value={contactForm.email}
-                              onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                              required
-                              className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                            />
-                          </div>
-                        </div>
+                              <div className="space-y-3">
+                                <Label htmlFor="contact-email" className="text-sm font-semibold text-foreground">Email *</Label>
+                                <Input
+                                  id="contact-email"
+                                  type="email"
+                                  placeholder="john@example.com"
+                                  value={contactForm.email}
+                                  onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                                  required
+                                  className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
+                                />
+                              </div>
+                            </div>
 
-                        <div className="space-y-3">
-                          <Label htmlFor="contact-phone" className="text-sm font-semibold text-foreground">Phone Number</Label>
-                          <Input
-                            id="contact-phone"
-                            type="tel"
-                            placeholder="+91 8848676627"
-                            value={contactForm.phone}
-                            onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                            className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
-                          />
-                        </div>
+                            <div className="space-y-3">
+                              <Label htmlFor="contact-phone" className="text-sm font-semibold text-foreground">Phone Number</Label>
+                              <Input
+                                id="contact-phone"
+                                type="tel"
+                                placeholder="+91 8848676627"
+                                value={contactForm.phone}
+                                onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                                className="h-12 rounded-xl border-border/30 focus:border-primary/50 focus:ring-primary/20 transition-all duration-300"
+                              />
+                            </div>
+                          </>
+                        )}
 
                         <div className="space-y-3">
                           <Label htmlFor="contact-subject" className="text-sm font-semibold text-foreground">Subject</Label>

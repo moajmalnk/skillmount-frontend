@@ -64,7 +64,7 @@ export const ticketService = {
     message: string,
     voiceBlob?: Blob,
     attachment?: File
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const formData = new FormData();
       formData.append('message', message);
@@ -82,9 +82,10 @@ export const ticketService = {
         formData.append('attachment', attachment);
       }
 
-      await api.post(`/tickets/${ticketId}/reply/`, formData, {
+      const response = await api.post(`/tickets/${ticketId}/reply/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+      return response.data;
     } catch (error) {
       console.error("Reply failed", error);
       throw error;

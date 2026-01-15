@@ -9,3 +9,10 @@ export interface Notification {
 }
 
 export type NotificationType = Notification['notification_type'];
+
+export interface PaginatedNotificationResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: Notification[];
+}

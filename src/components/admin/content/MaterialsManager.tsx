@@ -151,22 +151,32 @@ export const MaterialsManager = () => {
   };
 
   const handleEmbedUrlBlur = () => {
-    const url = formData.embedUrl || "";
-    let newUrl = url;
+    setFormData(prev => {
+      const url = prev.embedUrl || "";
+      let newUrl = url;
 
-    // Convert Standard YouTube
-    if (url.includes("watch?v=")) {
-      const vId = url.split("watch?v=")[1].split("&")[0];
-      newUrl = `https://www.youtube.com/embed/${vId}`;
-    } else if (url.includes("youtu.be/")) {
-      const vId = url.split("youtu.be/")[1].split("?")[0];
-      newUrl = `https://www.youtube.com/embed/${vId}`;
-    }
+      // Ensure we use the standard watch URL for ReactPlayer compatibility
+      if (url.includes("youtu.be/")) {
+        try {
+          const vId = url.split("youtu.be/")[1].split("?")[0];
+          newUrl = `https://www.youtube.com/watch?v=${vId}`;
+        } catch (e) {
+          // Keep original if parse fails
+        }
+      } else if (url.includes("youtube.com/embed/")) {
+        try {
+          const vId = url.split("embed/")[1].split("?")[0];
+          newUrl = `https://www.youtube.com/watch?v=${vId}`;
+        } catch (e) {
+          // Keep original
+        }
+      }
 
-    if (newUrl !== url) {
-      setFormData(prev => ({ ...prev, embedUrl: newUrl }));
-      toast.success("Converted to Embed URL format automatically");
-    }
+      if (newUrl !== url) {
+        return { ...prev, embedUrl: newUrl };
+      }
+      return prev;
+    });
   };
 
   const resetForm = () => {
@@ -533,8 +543,10 @@ export const MaterialsManager = () => {
                 <Input
                   placeholder="Paste YouTube link here..."
                   value={formData.embedUrl || ""}
-                  onChange={(e) => setFormData({ ...formData, embedUrl: e.target.value })}
-                  onBlur={handleEmbedUrlBlur}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({ ...prev, embedUrl: val }));
+                  }}
                 />
                 <p className="text-[10px] text-muted-foreground">
                   Paste standard links like https://www.youtube.com/watch?v=ID

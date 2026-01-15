@@ -149,7 +149,7 @@ export const TicketForm = () => {
         <div className="space-y-3">
           <Label className="flex items-center gap-2">
             Record Voice Note
-            <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+            <span className="text-xs text-muted-foreground font-normal">(Optional, Max 1 min)</span>
           </Label>
           <VoiceRecorder
             key={formKey}

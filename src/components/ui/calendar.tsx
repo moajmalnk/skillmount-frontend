@@ -18,17 +18,17 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
+        caption: "flex justify-center pt-1 relative items-center mb-2", // Added mb-2 for spacing
         // When using dropdowns, hide the static caption text "December 2025"
         caption_label: cn("text-sm font-medium", isDropdown && "hidden"),
-        caption_dropdowns: "flex justify-center gap-1",
+        caption_dropdowns: "flex justify-center gap-2 flex-row-reverse w-full px-8", // Added px-8 to clear arrows
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          "h-7 w-7 bg-background p-0 opacity-50 hover:opacity-100 shadow-sm border border-input"
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
+        nav_button_previous: "absolute left-0", // Pushed to edge
+        nav_button_next: "absolute right-0", // Pushed to edge
         table: "w-full border-collapse space-y-1",
         head_row: "flex",
         head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
@@ -36,12 +36,12 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+          "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground"
         ),
         day_range_end: "day-range-end",
         day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
+          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground shadow-sm",
+        day_today: "bg-accent text-accent-foreground font-bold",
         day_outside:
           "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
@@ -49,9 +49,9 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         // Dropdown specific styles
-        dropdown: "p-2 bg-background border border-border rounded-md text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        dropdown_month: "flex-1",
-        dropdown_year: "w-[4.5rem]",
+        dropdown: "appearance-none bg-transparent hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-md text-sm font-medium px-3 py-1.5 focus-visible:outline-none transition-colors text-center min-w-[70px]",
+        dropdown_month: "border-b border-border/50 hover:border-primary/50 rounded-none px-1", // Minimalist underline style for month
+        dropdown_year: "border-b border-border/50 hover:border-primary/50 rounded-none px-1 font-bold", // Minimalist underline style for year
         vhidden: "sr-only",
         ...classNames,
       }}
