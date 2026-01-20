@@ -158,7 +158,8 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     // Redirect to Django Backend Google Auth
-    window.location.href = "http://localhost:8000/api/auth/google/login/";
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.location.href = `${API_URL}/auth/google/login/`;
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
