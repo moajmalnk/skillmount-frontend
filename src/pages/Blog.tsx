@@ -33,25 +33,36 @@ const Blog = () => {
   }, []);
 
   // Derived State
-  const featuredPost = blogs.find(b => b.isFeatured) || blogs[0];
-  const otherPosts = blogs.filter(b => b.id !== featuredPost?.id);
-  
-  const filteredPosts = otherPosts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
+  const isDefaultView = selectedCategory === "All" && !searchQuery;
+
+  // 1. Filter ALL blogs based on criteria
+  const allFilteredPosts = blogs.filter(post => {
+    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || (post.categories && post.categories.includes(selectedCategory));
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ["All", ...new Set(blogs.map(b => b.category))];
+  // 2. Determine View Mode
+  // If default view, pull out the featured post for the hero section.
+  // If filtering, show EVERYTHING in the grid and hide the hero to avoid confusion.
+  const featuredPost = isDefaultView ? (blogs.find(b => b.isFeatured) || blogs[0]) : null;
+
+  const displayPosts = isDefaultView
+    ? allFilteredPosts.filter(b => b.id !== featuredPost?.id)
+    : allFilteredPosts;
+
+  // Flatten all categories arrays and get unique values
+  const allCategories = blogs.flatMap(b => b.categories || []).filter(Boolean);
+  const categories = ["All", ...new Set(allCategories)];
 
   return (
     <FollowingPointer>
       <SEO title="Blog - Tech Insights & Tutorials | SkillMount" description="Read the latest articles on Web Development, AI, and Career Growth." />
-      
+
       <div className="min-h-screen bg-background pb-20">
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl pt-24">
-          
+
           {/* Header */}
           <div className="text-center mb-16 space-y-4">
             <div className="inline-flex items-center justify-center gap-2 bg-primary/5 border border-primary/10 rounded-full px-4 py-1.5 mb-4">
@@ -71,7 +82,7 @@ const Blog = () => {
             <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>
           ) : (
             <div className="space-y-16">
-              
+
               {/* Featured Post */}
               {featuredPost && (
                 <ContainerScrollAnimation direction="up" speed="slow">
@@ -83,23 +94,28 @@ const Blog = () => {
               <div className="sticky top-20 z-40 bg-background/80 backdrop-blur-xl border-y border-border/40 py-4">
                 <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                   <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
-                    {categories.map(cat => (
-                      <Button
-                        key={cat}
-                        variant={selectedCategory === cat ? "default" : "outline"}
-                        onClick={() => setSelectedCategory(cat)}
-                        className="rounded-full whitespace-nowrap"
-                        size="sm"
-                      >
-                        {cat}
-                      </Button>
-                    ))}
+                    {categories.map(cat => {
+                      const count = cat === "All" ? blogs.length : blogs.filter(b => b.categories?.includes(cat)).length;
+                      if (count === 0) return null; // Don't show empty categories
+
+                      return (
+                        <Button
+                          key={cat}
+                          variant={selectedCategory === cat ? "default" : "outline"}
+                          onClick={() => setSelectedCategory(cat)}
+                          className="rounded-full whitespace-nowrap"
+                          size="sm"
+                        >
+                          {cat} <span className="ml-2 text-[10px] opacity-70">({count})</span>
+                        </Button>
+                      );
+                    })}
                   </div>
-                  
+
                   <div className="relative w-full md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Search articles..." 
+                    <Input
+                      placeholder="Search articles..."
                       className="pl-9 rounded-full bg-muted/30 border-border/50"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -111,14 +127,14 @@ const Blog = () => {
               {/* Blog Grid */}
               <ContainerScrollAnimation direction="up" speed="normal">
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {filteredPosts.map((post, idx) => (
+                  {displayPosts.map((post, idx) => (
                     <div key={post.id} className="animate-elegant-entrance" style={{ animationDelay: `${idx * 100}ms` }}>
                       <BlogCard post={post} />
                     </div>
                   ))}
                 </div>
-                
-                {filteredPosts.length === 0 && (
+
+                {displayPosts.length === 0 && (
                   <div className="text-center py-20 text-muted-foreground">
                     No articles found matching your criteria.
                   </div>

@@ -43,7 +43,7 @@ import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
 import { materialService } from "@/services/materialService";
 import { Material, MaterialType } from "@/types/material";
 
-const MATERIAL_TYPES: MaterialType[] = ["Video", "Theme", "Plugin", "Snippet", "Asset"];
+const MATERIAL_TYPES: MaterialType[] = ["Template Kit", "Themes", "Plugins", "Docs", "Snippet", "Videos"];
 
 export const MaterialsManager = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -60,7 +60,7 @@ export const MaterialsManager = () => {
   // Extended Form State
   const [formData, setFormData] = useState<Partial<Material>>({
     title: "",
-    type: "Video",
+    type: "Videos",
     category: "",
     url: "",
     description: "",
@@ -69,7 +69,9 @@ export const MaterialsManager = () => {
     language: "PHP",
     version: "",
     size: "",
-    previewUrl: ""
+    previewUrl: "",
+    duration: "",
+    topics: [] as string[]
   });
 
   // File Upload State
@@ -123,10 +125,12 @@ export const MaterialsManager = () => {
 
   const getIconForType = (type: string) => {
     switch (type) {
-      case "Video": return <Video className="w-4 h-4 text-blue-500" />;
-      case "Theme": return <Palette className="w-4 h-4 text-purple-500" />;
-      case "Plugin": return <Package className="w-4 h-4 text-orange-500" />;
+      case "Videos": return <Video className="w-4 h-4 text-blue-500" />;
+      case "Themes": return <Palette className="w-4 h-4 text-purple-500" />;
+      case "Plugins": return <Package className="w-4 h-4 text-orange-500" />;
       case "Snippet": return <FileCode className="w-4 h-4 text-green-500" />;
+      case "Template Kit": return <FolderOpen className="w-4 h-4 text-pink-500" />;
+      case "Docs": return <FileText className="w-4 h-4 text-gray-500" />;
       default: return <FolderOpen className="w-4 h-4 text-gray-500" />;
     }
   };
@@ -181,8 +185,9 @@ export const MaterialsManager = () => {
 
   const resetForm = () => {
     setFormData({
-      title: "", type: "Video", category: "", url: "", description: "",
-      embedUrl: "", code: "", language: "PHP", version: "", size: "", previewUrl: ""
+      title: "", type: "Videos", category: "", url: "", description: "",
+      embedUrl: "", code: "", language: "PHP", version: "", size: "", previewUrl: "",
+      duration: "", topics: []
     });
     setSelectedFile(null);
     setEditingId(null);
@@ -192,21 +197,28 @@ export const MaterialsManager = () => {
   const initiateEdit = (material: Material) => {
     setEditingId(material.id);
 
+    // For Videos, we map embedUrl -> url so it shows in the main input
+    const initialUrl = material.type === 'Videos'
+      ? (material.embedUrl || material.externalUrl || "")
+      : (material.is_file ? "" : (material.externalUrl || ""));
+
     setFormData({
       title: material.title || "",
-      type: material.type || "Video",
+      type: material.type || "Videos",
       category: material.category || "",
       description: material.description || "",
 
       embedUrl: material.embedUrl || "",
       previewUrl: material.previewUrl || "",
 
-      url: material.is_file ? "" : (material.externalUrl || ""),
+      url: initialUrl,
 
       code: material.code || "",
       language: material.language || "PHP",
       version: material.version || "",
-      size: material.size || ""
+      size: material.size || "",
+      duration: material.duration || "",
+      topics: Array.isArray(material.topics) ? material.topics : []
     });
 
     setIsCreateOpen(true);
@@ -219,7 +231,7 @@ export const MaterialsManager = () => {
     }
 
     // 1. MANDATORY THEME CHECK: Ensure both links exist
-    if (formData.type === 'Theme') {
+    if (formData.type === 'Themes' || formData.type === 'Template Kit') {
       if (!formData.url && !selectedFile && !editingId) {
         toast.error("Download source (File or URL) is mandatory for Themes.");
         return;
@@ -252,8 +264,11 @@ export const MaterialsManager = () => {
       };
 
       // Conditional Fields
-      if (formData.type === 'Video') {
-        payload.embedUrl = ensureProtocol(formData.embedUrl) || ensureProtocol(formData.url);
+      if (formData.type === 'Videos') {
+        // Use the common 'url' field which the user edits
+        payload.embedUrl = ensureProtocol(formData.url);
+        payload.duration = formData.duration;
+        payload.topics = formData.topics; // Array of strings
       }
 
       if (formData.type === 'Snippet') {
@@ -261,7 +276,7 @@ export const MaterialsManager = () => {
         payload.language = formData.language;
       }
 
-      if (['Theme', 'Plugin', 'Asset'].includes(formData.type || "")) {
+      if (['Themes', 'Plugins', 'Template Kit'].includes(formData.type || "")) {
         payload.version = formData.version;
         payload.size = formData.size;
         payload.previewUrl = ensureProtocol(formData.previewUrl);
@@ -321,15 +336,7 @@ export const MaterialsManager = () => {
   return (
     <div className="space-y-4">
       {/* 1. Header & Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Learning Materials</h2>
-          <p className="text-muted-foreground">Manage resources, videos, and downloads.</p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="shrink-0">
-          <Plus className="w-4 h-4 mr-2" /> Add Material
-        </Button>
-      </div>
+
 
       {/* 2. Advanced Filter Bar */}
       <Card>
@@ -376,6 +383,10 @@ export const MaterialsManager = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <Button onClick={() => setIsCreateOpen(true)} className="shrink-0">
+              <Plus className="w-4 h-4 mr-2" /> Add Material
+            </Button>
 
             {/* Clear Button */}
             {(searchQuery || filterType !== 'all' || filterCategory !== 'all') && (
@@ -433,10 +444,10 @@ export const MaterialsManager = () => {
                       </TableCell>
                       <TableCell><Badge variant="outline">{item.category}</Badge></TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {item.type === 'Video' && <span className="flex items-center gap-1"><LinkIcon className="w-3 h-3" /> Video</span>}
+                        {item.type === 'Videos' && <span className="flex items-center gap-1"><LinkIcon className="w-3 h-3" /> Video</span>}
                         {item.type === 'Snippet' && <span className="flex items-center gap-1"><CodeIcon className="w-3 h-3" /> {item.language}</span>}
-                        {(item.type === 'Theme' || item.type === 'Plugin') && <span>v{item.version || '1.0'} • {item.size || 'N/A'}</span>}
-                        {item.type === 'Asset' && <span>{item.size || 'N/A'}</span>}
+                        {(item.type === 'Themes' || item.type === 'Plugins' || item.type === 'Template Kit') && <span>v{item.version || '1.0'} • {item.size || 'N/A'}</span>}
+                        {item.type === 'Docs' && <span>{item.size || 'N/A'}</span>}
                       </TableCell>
                       <TableCell className="text-xs">{item.lastUpdated}</TableCell>
                       <TableCell className="text-right">
@@ -499,33 +510,22 @@ export const MaterialsManager = () => {
 
             {/* Dynamic Source Input: URL vs File */}
             <div className="space-y-2">
-              <Label>Source (File or URL)</Label>
+              <Label>
+                {formData.type === 'Videos' ? "Video URL" :
+                  formData.type === 'Docs' ? "Documentation URL" :
+                    formData.type === 'Themes' ? "Theme Download URL" :
+                      formData.type === 'Template Kit' ? "Template Kit URL" :
+                        formData.type === 'Plugins' ? "Plugin Download URL" :
+                          "Resource URL"}
+              </Label>
               <div className="flex flex-col gap-3">
-                {/* Option 1: File Upload */}
-                {['Theme', 'Plugin', 'Asset'].includes(formData.type as string) && (
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${selectedFile ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <Upload className="w-4 h-4" />
-                      {selectedFile ? selectedFile.name : (editingId && formData.url ? "Replace existing file" : "Click to upload file")}
-                    </div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      onChange={handleFileSelect}
-                    />
-                  </div>
-                )}
+
 
                 {/* Option 2: External URL */}
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-xs text-muted-foreground font-medium">OR</span>
                   <Input
-                    placeholder="https://example.com/download"
-                    className="pl-10"
+                    placeholder={formData.type === 'Videos' ? "https://www.youtube.com/watch?v=..." : "https://example.com/..."}
+                    className=""
                     value={formData.url}
                     onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                     disabled={!!selectedFile}
@@ -536,21 +536,29 @@ export const MaterialsManager = () => {
 
             {/* --- CONDITIONAL FIELDS BASED ON TYPE --- */}
 
-            {/* 1. Video Specific */}
-            {formData.type === 'Video' && (
-              <div className="space-y-2">
-                <Label> Video URL</Label>
-                <Input
-                  placeholder="Paste YouTube link here..."
-                  value={formData.embedUrl || ""}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setFormData(prev => ({ ...prev, embedUrl: val }));
-                  }}
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Paste standard links like https://www.youtube.com/watch?v=ID
-                </p>
+
+            {/* 1. Video Specific (New Fields) */}
+            {formData.type === 'Videos' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Duration</Label>
+                  <Input
+                    placeholder="e.g. 10:05"
+                    value={formData.duration || ""}
+                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Topics (Comma separated)</Label>
+                  <Input
+                    placeholder="e.g. Marketing, Setup"
+                    value={Array.isArray(formData.topics) ? formData.topics.join(", ") : ""}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      topics: e.target.value.split(",").map(s => s.trim()).filter(Boolean)
+                    })}
+                  />
+                </div>
               </div>
             )}
 
@@ -582,8 +590,8 @@ export const MaterialsManager = () => {
             )}
 
             {/* 3. Theme/Plugin/Asset Specific */}
-            {(formData.type === 'Theme' || formData.type === 'Plugin' || formData.type === 'Asset') && (
-              <div className={`grid grid-cols-2 gap-4 p-3 rounded-md border ${formData.type === 'Theme' ? 'bg-purple-50/50 border-purple-100' : formData.type === 'Plugin' ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50/50 border-gray-100'}`}>
+            {(formData.type === 'Themes' || formData.type === 'Plugins' || formData.type === 'Template Kit') && (
+              <div className={`grid grid-cols-2 gap-4 p-3 rounded-md border ${formData.type === 'Themes' ? 'bg-purple-50/50 border-purple-100' : formData.type === 'Plugins' ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50/50 border-gray-100'}`}>
                 <div className="space-y-2">
                   <Label>Version</Label>
                   <Input placeholder="e.g. 1.0.4" value={formData.version} onChange={(e) => setFormData({ ...formData, version: e.target.value })} />
@@ -594,9 +602,8 @@ export const MaterialsManager = () => {
                 </div>
                 <div className="col-span-2 space-y-2">
                   <Label>
-                    {formData.type === 'Theme' && "Live Preview URL (Optional)"}
-                    {formData.type === 'Plugin' && "Plugin Homepage / Demo URL (Optional)"}
-                    {formData.type === 'Asset' && "External Details URL (Optional)"}
+                    {formData.type === 'Themes' && "Live Preview URL (Optional)"}
+                    {(formData.type === 'Plugins' || formData.type === 'Template Kit') && "Demo URL (Optional)"}
                   </Label>
                   <Input
                     placeholder="https://..."

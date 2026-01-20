@@ -47,6 +47,7 @@ const AppContent = () => {
   useReferral();
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   return (
     <>
@@ -92,7 +93,7 @@ const AppContent = () => {
 
           </Routes>
         </main>
-        {!isLoginPage && <Footer />}
+        {!isLoginPage && !isAdminPage && <Footer />}
         {!isLoginPage && <ChatWidget />}
       </div>
     </>

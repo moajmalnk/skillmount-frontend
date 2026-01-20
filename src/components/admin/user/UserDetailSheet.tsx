@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ShieldAlert, Save, Loader2, Star, UserCircle, Briefcase, Trophy,
-  Mail, Phone, MapPin, Calendar, GraduationCap, Globe, Github, Linkedin,
+  Mail, Phone, MapPin, Calendar, GraduationCap, Globe, Github, Linkedin, Instagram,
   X, CheckCircle2, AlertTriangle,
   UserIcon
 } from "lucide-react";
@@ -42,12 +42,17 @@ interface UserDetailSheetProps {
   onClose: () => void;
   user: User | null;
   type: "student" | "tutor" | "affiliate";
+  onUpdate?: () => void;
 }
 
-export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheetProps) => {
+export const UserDetailSheet = ({ isOpen, onClose, user, type, onUpdate }: UserDetailSheetProps) => {
   const [formData, setFormData] = useState<Partial<User>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
+
+  // New State for Showcase Confirmation
+  const [isShowcaseConfirmOpen, setIsShowcaseConfirmOpen] = useState(false);
+  const [pendingShowcaseChange, setPendingShowcaseChange] = useState<{ field: 'isTopPerformer' | 'isFeatured', value: boolean } | null>(null);
 
   // Local state to track status changes instantly without refetching parent
   const [currentStatus, setCurrentStatus] = useState<string>(user?.status || "Active");
@@ -70,6 +75,7 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
     try {
       await userService.update(user.id, formData);
       toast.success("Profile Updated Successfully");
+      if (onUpdate) onUpdate();
     } catch (error) {
       toast.error("Failed to save changes");
     } finally {
@@ -98,8 +104,24 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
       } else {
         toast.success("User Activated", { description: "Access restored successfully." });
       }
+
+      if (onUpdate) onUpdate();
     } catch (error) {
       toast.error("Failed to update status");
+    }
+  };
+
+  // --- SHOWCASE TOGGLE HANDLER ---
+  const handleShowcaseToggle = (field: 'isTopPerformer' | 'isFeatured', value: boolean) => {
+    setPendingShowcaseChange({ field, value });
+    setIsShowcaseConfirmOpen(true);
+  };
+
+  const confirmShowcaseChange = () => {
+    if (pendingShowcaseChange) {
+      handleUpdate({ [pendingShowcaseChange.field]: pendingShowcaseChange.value } as any);
+      setPendingShowcaseChange(null);
+      setIsShowcaseConfirmOpen(false);
     }
   };
 
@@ -155,7 +177,7 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
           <ScrollArea className="flex-1 bg-background/50">
             <Tabs defaultValue="overview" className="w-full">
               <div className="px-6 pt-4 sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border/40">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className={`grid w-full ${type === 'student' ? 'grid-cols-3' : 'grid-cols-2'}`}>
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="profile">Edit Profile</TabsTrigger>
                   {type === 'student' && <TabsTrigger value="projects">Projects</TabsTrigger>}
@@ -181,14 +203,14 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
                           <div className="flex flex-col items-center gap-1">
                             <Switch
                               checked={(formData as any).isTopPerformer}
-                              onCheckedChange={(val) => handleUpdate({ isTopPerformer: val } as any)}
+                              onCheckedChange={(val) => handleShowcaseToggle('isTopPerformer', val)}
                             />
                             <Label className="text-[10px] uppercase font-bold text-muted-foreground">Top Performer</Label>
                           </div>
                           <div className="flex flex-col items-center gap-1">
                             <Switch
                               checked={(formData as any).isFeatured}
-                              onCheckedChange={(val) => handleUpdate({ isFeatured: val } as any)}
+                              onCheckedChange={(val) => handleShowcaseToggle('isFeatured', val)}
                             />
                             <Label className="text-[10px] uppercase font-bold text-muted-foreground">Graduate</Label>
                           </div>
@@ -197,88 +219,107 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
                     </Card>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      {type === 'student' ? (
-                        <>
-                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                            <GraduationCap className="w-4 h-4" /> Academic Info
-                          </h4>
-                          <Card>
-                            <CardContent className="p-4 space-y-3">
-                              <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div className="text-muted-foreground">Batch</div>
-                                <div className="font-medium text-right">{formatBatchForDisplay(userData.batch)}</div>
-                                <div className="text-muted-foreground">Mentor</div>
-                                <div className="font-medium text-right">{userData.mentor || "Not Assigned"}</div>
-                                <div className="text-muted-foreground">Coordinator</div>
-                                <div className="font-medium text-right">{userData.coordinator || "Not Assigned"}</div>
-                                <div className="text-muted-foreground">Joined On</div>
-                                <div className="font-medium text-right">{new Date(userData.createdAt).toLocaleDateString()}</div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </>
-                      ) : type === 'affiliate' ? (
-                        <>
-                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                            <Briefcase className="w-4 h-4" /> Affiliate Stats
-                          </h4>
-                          <Card className="bg-emerald-50/10 border-emerald-200 shadow-sm">
-                            <CardContent className="p-4 space-y-3">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Total Earnings</p>
-                                  <p className="text-lg font-bold font-mono text-emerald-600">₹{userData.totalEarnings || "0.00"}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Referrals</p>
-                                  <p className="text-lg font-bold font-mono text-emerald-600">{userData.totalReferrals || 0}</p>
-                                </div>
-                                <div className="col-span-2 p-2 bg-background rounded border">
-                                  <p className="text-xs text-muted-foreground">Coupon Code</p>
-                                  <p className="text-sm font-mono font-bold tracking-wider">{userData.couponCode || "N/A"}</p>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </>
-                      ) : null}
-                    </div>
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <UserCircle className="w-4 h-4" /> Profile Information
+                    </h4>
+                    <Card>
+                      <CardContent className="p-0 text-sm">
+                        <div className="divide-y divide-border/40">
 
-                    <div className="space-y-4">
-                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                        <UserIcon className="w-4 h-4" /> Personal Details
-                      </h4>
-                      <Card>
-                        <CardContent className="p-4 space-y-3 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center text-muted-foreground"><Mail className="w-3 h-3 mr-2" /> Email</span>
+                          {/* === STUDENT SPECIFIC FIELDS === */}
+                          {type === 'student' && (
+                            <>
+                              <div className="flex justify-between items-center p-3">
+                                <span className="flex items-center text-muted-foreground gap-2">
+                                  <GraduationCap className="w-3.5 h-3.5 text-primary/70" /> Batch
+                                </span>
+                                <span className="font-medium">{formatBatchForDisplay(userData.batch)}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3">
+                                <span className="flex items-center text-muted-foreground gap-2">
+                                  <UserIcon className="w-3.5 h-3.5 text-primary/70" /> Mentor
+                                </span>
+                                <span className="font-medium">{userData.mentor || "Not Assigned"}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3">
+                                <span className="flex items-center text-muted-foreground gap-2">
+                                  <UserCircle className="w-3.5 h-3.5 text-primary/70" /> Coordinator
+                                </span>
+                                <span className="font-medium">{userData.coordinator || "Not Assigned"}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3">
+                                <span className="flex items-center text-muted-foreground gap-2">
+                                  <Calendar className="w-3.5 h-3.5 text-primary/70" /> Joined On
+                                </span>
+                                <span className="font-medium">{new Date(userData.createdAt).toLocaleDateString()}</span>
+                              </div>
+                            </>
+                          )}
+
+                          {/* === AFFILIATE SPECIFIC FIELDS === */}
+                          {type === 'affiliate' && (
+                            <>
+                              <div className="flex justify-between items-center p-3 bg-emerald-50/30">
+                                <span className="flex items-center text-muted-foreground gap-2">
+                                  <Briefcase className="w-3.5 h-3.5 text-emerald-600" /> Total Earnings
+                                </span>
+                                <span className="font-medium font-mono text-emerald-700">₹{userData.totalEarnings || "0.00"}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3">
+                                <span className="text-muted-foreground pl-6">Referrals</span>
+                                <span className="font-medium">{userData.totalReferrals || 0}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3">
+                                <span className="text-muted-foreground pl-6">Coupon Code</span>
+                                <span className="font-medium font-mono">{userData.couponCode || "N/A"}</span>
+                              </div>
+                            </>
+                          )}
+
+                          {/* === COMMON PERSONAL DETAILS === */}
+                          <div className="flex justify-between items-center p-3">
+                            <span className="flex items-center text-muted-foreground gap-2">
+                              <Mail className="w-3.5 h-3.5 text-primary/70" /> Email
+                            </span>
                             <span className="font-medium">{userData.email}</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center text-muted-foreground"><Phone className="w-3 h-3 mr-2" /> Phone</span>
+
+                          <div className="flex justify-between items-center p-3">
+                            <span className="flex items-center text-muted-foreground gap-2">
+                              <Phone className="w-3.5 h-3.5 text-primary/70" /> Phone
+                            </span>
                             <span className="font-medium">{userData.phone || "N/A"}</span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center text-muted-foreground"><Calendar className="w-3 h-3 mr-2" /> DOB</span>
+
+                          <div className="flex justify-between items-center p-3">
+                            <span className="flex items-center text-muted-foreground gap-2">
+                              <Calendar className="w-3.5 h-3.5 text-primary/70" /> DOB
+                            </span>
                             <span className="font-medium">{userData.dob || "N/A"}</span>
                           </div>
-                          <div className="flex items-start justify-between">
-                            <span className="flex items-center text-muted-foreground mt-0.5"><MapPin className="w-3 h-3 mr-2" /> Address</span>
-                            <span className="font-medium text-right max-w-[150px] leading-tight text-xs">
+
+                          <div className="flex justify-between items-start p-3">
+                            <span className="flex items-center text-muted-foreground gap-2 mt-0.5">
+                              <MapPin className="w-3.5 h-3.5 text-primary/70" /> Address
+                            </span>
+                            <span className="font-medium text-right max-w-[200px] leading-snug text-xs">
                               {userData.address} {userData.pincode ? `- ${userData.pincode}` : ""}
                             </span>
                           </div>
+
                           {type === 'affiliate' && (
-                            <div className="flex items-center justify-between">
-                              <span className="flex items-center text-muted-foreground"><Phone className="w-3 h-3 mr-2" /> WhatsApp</span>
+                            <div className="flex justify-between items-center p-3">
+                              <span className="flex items-center text-muted-foreground gap-2">
+                                <Phone className="w-3.5 h-3.5 text-green-600" /> WhatsApp
+                              </span>
                               <span className="font-medium">{userData.whatsappNumber || "N/A"}</span>
                             </div>
                           )}
-                        </CardContent>
-                      </Card>
-                    </div>
+
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
 
                   <div className="space-y-4">
@@ -288,33 +329,33 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
                           <Briefcase className="w-4 h-4" /> Professional Profile
                         </h4>
                         <Card>
-                          <CardContent className="p-5 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-1">Headline</p>
-                                <p className="text-sm font-medium">{userData.headline || "Not set"}</p>
+                          <CardContent className="p-0 text-sm">
+                            <div className="divide-y divide-border/40">
+                              <div className="flex justify-between items-center p-3">
+                                <span className="text-muted-foreground w-1/3">Headline</span>
+                                <span className="font-medium text-right w-2/3 truncate pl-2">{userData.headline || "Not set"}</span>
                               </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-1">Qualification</p>
-                                <p className="text-sm font-medium">{userData.qualification || "Not set"}</p>
+                              <div className="flex justify-between items-center p-3">
+                                <span className="text-muted-foreground w-1/3">Qualification</span>
+                                <span className="font-medium text-right w-2/3">{userData.qualification || "Not set"}</span>
                               </div>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Professional Aim</p>
-                              <p className="text-sm italic text-foreground/80">{userData.aim || "No goal set yet."}</p>
-                            </div>
-                            {userData.skills && userData.skills.length > 0 && (
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-2">Skills</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {userData.skills.map((skill: any) => (
-                                    <Badge key={skill} variant="secondary" className="text-[10px] px-2 py-0.5 border border-border/50">
-                                      {skill}
-                                    </Badge>
-                                  ))}
+                              <div className="flex justify-between items-start p-3">
+                                <span className="text-muted-foreground w-1/3 mt-0.5">Professional Aim</span>
+                                <span className="font-medium text-right w-2/3 italic text-foreground/80 leading-snug">{userData.aim || "No goal set yet."}</span>
+                              </div>
+                              {userData.skills && userData.skills.length > 0 && (
+                                <div className="flex justify-between items-start p-3">
+                                  <span className="text-muted-foreground w-1/3 mt-1">Skills</span>
+                                  <div className="flex flex-wrap gap-1.5 justify-end w-2/3">
+                                    {userData.skills.map((skill: any) => (
+                                      <Badge key={skill} variant="secondary" className="text-[10px] px-2 py-0.5 border border-border/50">
+                                        {skill}
+                                      </Badge>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </CardContent>
                         </Card>
                       </>
@@ -324,29 +365,61 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
                           <Globe className="w-4 h-4" /> Onboarding Details
                         </h4>
                         <Card>
-                          <CardContent className="p-5 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-1">Affiliate ID</p>
-                                <p className="text-sm font-medium font-mono">{userData.regId || "N/A"}</p>
+                          <CardContent className="p-0 text-sm">
+                            <div className="divide-y divide-border/40">
+                              <div className="flex justify-between items-center p-3">
+                                <span className="text-muted-foreground w-1/3">Affiliate ID</span>
+                                <span className="font-medium font-mono text-right w-2/3">{userData.regId || "N/A"}</span>
                               </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-1">Qualification</p>
-                                <p className="text-sm font-medium">{userData.qualification || "N/A"}</p>
+                              <div className="flex justify-between items-center p-3">
+                                <span className="text-muted-foreground w-1/3">Qualification</span>
+                                <span className="font-medium text-right w-2/3">{userData.qualification || "N/A"}</span>
                               </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-1">Platform</p>
-                                <p className="text-sm font-medium">{userData.platform || "N/A"}</p>
+                              <div className="flex justify-between items-center p-3">
+                                <span className="text-muted-foreground w-1/3">Platform</span>
+                                <span className="font-medium text-right w-2/3">{userData.platform || "N/A"}</span>
                               </div>
-                              <div className="sm:col-span-2">
-                                <p className="text-xs text-muted-foreground mb-1">Domain / Website</p>
-                                {userData.domain ? (
-                                  <a href={userData.domain} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline break-all">
-                                    {userData.domain}
-                                  </a>
-                                ) : (
-                                  <p className="text-sm font-medium text-muted-foreground">N/A</p>
-                                )}
+                              <div className="flex justify-between items-start p-3">
+                                <span className="text-muted-foreground w-1/3 mt-0.5">Domain</span>
+                                <div className="w-2/3 text-right">
+                                  {userData.domain ? (
+                                    <a href={userData.domain} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                                      {userData.domain}
+                                    </a>
+                                  ) : (
+                                    <span className="text-muted-foreground">N/A</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    ) : type === 'tutor' ? (
+                      <>
+                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                          <Briefcase className="w-4 h-4" /> Tutor Profile
+                        </h4>
+                        <Card>
+                          <CardContent className="p-0 text-sm">
+                            <div className="divide-y divide-border/40">
+                              <div className="flex justify-between items-center p-3">
+                                <span className="text-muted-foreground w-1/3">Qualification</span>
+                                <span className="font-medium text-right w-2/3">{userData.qualification || "N/A"}</span>
+                              </div>
+                              <div className="flex justify-between items-start p-3">
+                                <span className="text-muted-foreground w-1/3 mt-1">Specialization</span>
+                                <div className="flex flex-wrap gap-1.5 justify-end w-2/3">
+                                  {userData.topics && userData.topics.length > 0 ? (
+                                    userData.topics.map((topic: any) => (
+                                      <Badge key={topic} variant="secondary" className="text-[10px] px-2 py-0.5 border border-border/50">
+                                        {topic}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <span className="text-muted-foreground italic">No topics assigned</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </CardContent>
@@ -368,6 +441,13 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
                         <Button variant="outline" size="sm" className="h-8 gap-2 text-blue-600 hover:text-blue-700" asChild>
                           <a href={userData.socials.linkedin} target="_blank" rel="noreferrer">
                             <Linkedin className="w-3.5 h-3.5" /> LinkedIn
+                          </a>
+                        </Button>
+                      )}
+                      {userData.socials.instagram && (
+                        <Button variant="outline" size="sm" className="h-8 gap-2 text-pink-600 hover:text-pink-700" asChild>
+                          <a href={userData.socials.instagram} target="_blank" rel="noreferrer">
+                            <Instagram className="w-3.5 h-3.5" /> Instagram
                           </a>
                         </Button>
                       )}
@@ -480,6 +560,32 @@ export const UserDetailSheet = ({ isOpen, onClose, user, type }: UserDetailSheet
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               Yes, Suspend User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* --- SHOWCASE TOGGLE CONFIRMATION DIALOG --- */}
+      <AlertDialog open={isShowcaseConfirmOpen} onOpenChange={setIsShowcaseConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <Trophy className="w-5 h-5" />
+              Confirm Status Change
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to change the <strong>{pendingShowcaseChange?.field === 'isTopPerformer' ? 'Top Performer' : 'Graduate'}</strong> status?
+              <br /><br />
+              This will update the student's public visibility on the showcase page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingShowcaseChange(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmShowcaseChange}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Confirm Update
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

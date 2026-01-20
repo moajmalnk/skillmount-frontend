@@ -35,6 +35,10 @@ export const ticketService = {
       formData.append('priority', data.priority);
       formData.append('category', data.category || "General");
 
+      if (data.student_id) {
+        formData.append('student_id', data.student_id);
+      }
+
       if (data.attachment) {
         formData.append('attachment', data.attachment);
       }
@@ -120,6 +124,17 @@ export const ticketService = {
       toast.success(userId ? "Ticket assigned" : "Ticket unassigned");
     } catch (error) {
       console.error("Assignment failed", error);
+      throw error;
+    }
+  },
+
+  // 8. UPDATE TICKET DETAILS
+  update: async (id: string, data: Partial<Ticket> | any): Promise<Ticket> => {
+    try {
+      const response = await api.patch<Ticket>(`/tickets/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update ticket", error);
       throw error;
     }
   },

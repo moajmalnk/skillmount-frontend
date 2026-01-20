@@ -34,26 +34,73 @@ interface ProfileBasicFormProps {
 export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
     const [loadingOptions, setLoadingOptions] = useState(false);
     const [batches, setBatches] = useState<string[]>([]);
-    const [mentors, setMentors] = useState<string[]>([]);
-    const [coordinators, setCoordinators] = useState<string[]>([]);
+
+    // Store full objects for rich display
+    const [mentorOptions, setMentorOptions] = useState<{ id: string, name: string, identifier: string }[]>([]);
+    const [coordinatorOptions, setCoordinatorOptions] = useState<{ id: string, name: string, identifier: string }[]>([]);
 
     // Fetch Dropdown Options on Mount
     useEffect(() => {
         const fetchData = async () => {
             setLoadingOptions(true);
             try {
-                const [settings, tutors] = await Promise.all([
+                // Fetch Settings and ALL users for best matching chance
+                // This ensures we find the Mentor/Coordinator phonenumber regardless of their role
+                const [settings, allUsers] = await Promise.all([
                     systemService.getSettings(),
-                    userService.getElementsByRole('tutor')
+                    userService.getAll()
                 ]);
 
-                setBatches(settings.batches || []);
-                setCoordinators(settings.coordinators || []);
+                // Create a map for faster lookup (though we need fuzzy matching too)
+                const staffMembers = allUsers;
 
-                // Mentors = Tutors + Manual Mentors from Settings
-                const tutorNames = tutors.map((t: any) => t.name);
-                const manualMentors = settings.mentors || [];
-                setMentors([...new Set([...tutorNames, ...manualMentors])]);
+                setBatches(settings.batches || []);
+
+                const getMatchIdentifier = (name: string, index: number, prefix: string) => {
+                    if (!name) return "";
+                    const normalize = (s: string) => s.toLowerCase().trim();
+                    const target = normalize(name);
+
+                    // 1. Exact Match
+                    let match = staffMembers.find((u: any) => normalize(u.name) === target);
+
+                    // 2. Starts With Match
+                    if (!match) {
+                        match = staffMembers.find((u: any) => normalize(u.name).startsWith(target));
+                    }
+
+                    // 3. Includes Match
+                    if (!match && target.length > 3) {
+                        match = staffMembers.find((u: any) => normalize(u.name).includes(target));
+                    }
+
+                    // 4. Return Real ID if found (Phone Match Priority)
+                    if (match) {
+                        if (match.phone) return `${match.phone}`;
+                        if (match.regId) return `ID: ${match.regId}`;
+                    }
+
+                    // 5. Fallback: Generate "Simple ID" if no account found
+                    // Format: M-01, M-02, C-01 etc.
+                    const paddedId = String(index + 1).padStart(2, '0');
+                    return `ID: ${prefix}-${paddedId}`;
+                };
+
+                // 1. Process Mentors (Prefix: M)
+                const manualMentors = (settings.mentors || []).map((name: string, idx: number) => ({
+                    id: `men-${idx}`,
+                    name: name,
+                    identifier: getMatchIdentifier(name, idx, 'M')
+                }));
+                setMentorOptions(manualMentors);
+
+                // 2. Process Coordinators (Prefix: C)
+                const manualCoordinators = (settings.coordinators || []).map((name: string, idx: number) => ({
+                    id: `co-${idx}`,
+                    name: name,
+                    identifier: getMatchIdentifier(name, idx, 'C')
+                }));
+                setCoordinatorOptions(manualCoordinators);
 
             } catch (error) {
                 console.error("Failed to fetch academic options", error);
@@ -106,27 +153,41 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {/* ENHANCED MENTOR SELECT */}
                     <div className="space-y-2">
                         <Label htmlFor="mentor">Mentor</Label>
                         <Select value={data.mentor || ""} onValueChange={(val) => onChange({ mentor: val })}>
                             <SelectTrigger className="bg-background">
                                 <SelectValue placeholder={loadingOptions ? "Loading..." : "Select Mentor"} />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="max-h-[200px]">
                                 <SelectItem value="Not Assigned">Not Assigned</SelectItem>
-                                {mentors.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                                {mentorOptions.map(m => (
+                                    <SelectItem key={m.id} value={m.name}>
+                                        <span className="font-medium">{m.name}</span>
+                                        {m.identifier && <span className="text-xs text-muted-foreground ml-2">({m.identifier})</span>}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {/* ENHANCED COORDINATOR SELECT */}
                     <div className="space-y-2">
                         <Label htmlFor="coordinator">Coordinator</Label>
                         <Select value={data.coordinator || ""} onValueChange={(val) => onChange({ coordinator: val })}>
                             <SelectTrigger className="bg-background">
                                 <SelectValue placeholder={loadingOptions ? "Loading..." : "Select Coordinator"} />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="max-h-[200px]">
                                 <SelectItem value="Not Assigned">Not Assigned</SelectItem>
-                                {coordinators.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                {coordinatorOptions.map(c => (
+                                    <SelectItem key={c.id} value={c.name}>
+                                        <span className="font-medium">{c.name}</span>
+                                        {c.identifier && <span className="text-xs text-muted-foreground ml-2">({c.identifier})</span>}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -139,7 +200,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                     Personal Details
                 </h4>
 
-                {/* Name & Phone */}
+                {/* Name, Email, Phone & Address */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
@@ -150,12 +211,34 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="whatsapp">WhatsApp Number <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
                         <Input
-                            id="whatsapp"
+                            id="email"
+                            type="email"
+                            value={data.email || ""}
+                            onChange={(e) => onChange({ email: e.target.value })}
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span></Label>
+                        <Input
+                            id="phone"
                             placeholder="+91..."
                             value={data.phone || ""}
                             onChange={(e) => onChange({ phone: e.target.value })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="address">Address <span className="text-red-500">*</span></Label>
+                        <Textarea
+                            id="address"
+                            placeholder="Full residential address..."
+                            className="min-h-[38px] h-10 py-2 resize-none overflow-hidden leading-tight"
+                            value={data.address || ""}
+                            onChange={(e) => onChange({ address: e.target.value })}
                         />
                     </div>
                 </div>
@@ -206,18 +289,6 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                             onChange={(e) => onChange({ pincode: e.target.value })}
                         />
                     </div>
-                </div>
-
-                {/* Address */}
-                <div className="space-y-2">
-                    <Label htmlFor="address">Address <span className="text-red-500">*</span></Label>
-                    <Textarea
-                        id="address"
-                        placeholder="Full residential address..."
-                        className="min-h-[80px] resize-none"
-                        value={data.address || ""}
-                        onChange={(e) => onChange({ address: e.target.value })}
-                    />
                 </div>
             </div>
 
@@ -321,7 +392,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                     />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 pt-2">
                     <div className="space-y-2">
                         <Label htmlFor="resume">Resume / CV</Label>
                         <div className="flex items-center gap-3">
@@ -337,28 +408,34 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                             />
                             {data.resume && !data.resumeFile && (
                                 <Button variant="secondary" size="sm" asChild className="shrink-0">
-                                    <a href={data.resume} target="_blank" rel="noopener noreferrer">View Current</a>
+                                    <a href={data.resume} target="_blank" rel="noopener noreferrer">View</a>
                                 </Button>
                             )}
                         </div>
                     </div>
-                </div>
 
-                <div className="space-y-2 pt-2">
-                    <Label>Placement Details <span className="text-xs text-muted-foreground font-normal">(if applicable)</span></Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                        <Label>Company Name <span className="text-xs text-muted-foreground font-normal">(if placed)</span></Label>
                         <Input
-                            placeholder="Company Name"
+                            placeholder="e.g. Google"
                             value={data.placement?.company || ""}
                             onChange={(e) => onChange({ placement: { ...data.placement, company: e.target.value } as any })}
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Job Role</Label>
                         <Input
-                            placeholder="Job Role"
+                            placeholder="e.g. Software Engineer"
                             value={data.placement?.role || ""}
                             onChange={(e) => onChange({ placement: { ...data.placement, role: e.target.value } as any })}
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Package (LPA)</Label>
                         <Input
-                            placeholder="Package (LPA)"
+                            placeholder="e.g. 24.5"
                             value={data.placement?.package || ""}
                             onChange={(e) => onChange({ placement: { ...data.placement, package: e.target.value } as any })}
                         />
@@ -408,6 +485,15 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                             placeholder="https://behance.net/..."
                             value={data.socials?.behance || ""}
                             onChange={(e) => onChange({ socials: { ...data.socials, behance: e.target.value } })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="instagram" className="text-xs font-medium">Instagram URL</Label>
+                        <Input
+                            id="instagram"
+                            placeholder="https://instagram.com/..."
+                            value={data.socials?.instagram || ""}
+                            onChange={(e) => onChange({ socials: { ...data.socials, instagram: e.target.value } })}
                         />
                     </div>
                     <div className="space-y-2">

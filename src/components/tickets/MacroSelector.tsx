@@ -16,14 +16,25 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import { MacroItem } from "@/services/systemService"
 
 interface MacroSelectorProps {
-    macros: string[];
-    onSelect: (macro: string) => void;
+    macros: MacroItem[];
+    onSelect: (description: string) => void;
 }
 
 export function MacroSelector({ macros, onSelect }: MacroSelectorProps) {
     const [open, setOpen] = React.useState(false)
+
+    // Normalize input just in case mixed types come through (legacy support)
+    const normalizedMacros: MacroItem[] = React.useMemo(() => {
+        return macros.map((m: any) => {
+            if (typeof m === 'string') {
+                return { title: 'Quick Reply', description: m, dateAdded: undefined };
+            }
+            return m;
+        });
+    }, [macros]);
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -38,35 +49,27 @@ export function MacroSelector({ macros, onSelect }: MacroSelectorProps) {
                     <ChevronDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[400px] p-0" align="start">
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command>
                     <CommandInput placeholder="Search macros..." />
                     <CommandList>
                         <CommandEmpty>No macro found.</CommandEmpty>
                         <CommandGroup heading="Available Responses">
-                            {macros.map((macro, idx) => (
+                            {normalizedMacros.map((macro, idx) => (
                                 <CommandItem
                                     key={idx}
-                                    value={macro} // Command uses value for filtering
-                                    onSelect={(currentValue) => {
-                                        // currentValue might be lowercased by Command usually, but here we want the original text
-                                        // Actually CommandItem value is used for search matching.
-                                        // We can pass the original macro to onSelect via closure if needed, 
-                                        // BUT CommandItem `onSelect` passes the `value` prop content usually.
-                                        // Let's rely on the closure 'macro' variable which is correct.
-                                        // Wait, `onSelect` trigger.
-                                        onSelect(macro)
+                                    value={macro.title} // Search by title
+                                    onSelect={() => {
+                                        onSelect(macro.description)
                                         setOpen(false)
                                     }}
                                     className="text-xs cursor-pointer"
                                 >
                                     <div className="flex flex-col gap-1 w-full">
-                                        <span className="truncate">{macro.length > 50 ? macro.substring(0, 50) + "..." : macro}</span>
-                                        {macro.length > 50 && (
-                                            <span className="text-[10px] text-muted-foreground truncate opacity-70">
-                                                {macro}
-                                            </span>
-                                        )}
+                                        <span className="font-medium">{macro.title}</span>
+                                        <span className="text-[10px] text-muted-foreground truncate opacity-70">
+                                            {macro.description.length > 60 ? macro.description.substring(0, 60) + "..." : macro.description}
+                                        </span>
                                     </div>
                                 </CommandItem>
                             ))}

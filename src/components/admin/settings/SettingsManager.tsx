@@ -2,16 +2,16 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, X, Settings, Database, Users, BookOpen,
-  Share2, Save, CheckCircle2, HelpCircle, Pencil, AlertTriangle
+  Share2, Save, CheckCircle2, HelpCircle, Pencil, AlertTriangle, MessageSquare, MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,8 @@ import { ActionConfirmationDialog } from "@/components/admin/ActionConfirmationD
 import { Label } from "@/components/ui/label";
 
 // Import Service & Type
-import { systemService, SystemSettings } from "@/services/systemService";
+import { systemService, SystemSettings, MacroItem } from "@/services/systemService";
+import { MacroManager } from "./MacroManager";
 
 // --- REUSABLE SUB-COMPONENT ---
 interface SettingCardProps {
@@ -126,7 +127,7 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
               onKeyDown={(e) => e.key === "Enter" && handleAddRequest()}
               className="bg-muted/30"
             />
-            <Button onClick={handleAddRequest} size="icon" className="shrink-0">
+            <Button onClick={handleAddRequest} size="icon" className="shrink-0" disabled={!newItem.trim()}>
               <Plus className="w-4 h-4" />
             </Button>
           </div>
@@ -266,7 +267,7 @@ export const SettingsManager = () => {
   }, []);
 
   // 2. Generic Update Handler (Backend Integrated)
-  const updateList = async (key: keyof SystemSettings, newList: string[]) => {
+  const updateList = async <K extends keyof SystemSettings>(key: K, newList: SystemSettings[K]) => {
     if (!settings) return;
 
     // A. Optimistic Update (Instant UI feedback)
@@ -285,22 +286,27 @@ export const SettingsManager = () => {
     }
   };
 
-  // Helper wrappers for SettingCard
+  // Helper wrappers for SettingCard checks
   const createHandlers = (key: keyof SystemSettings) => ({
     onAdd: (item: string) => {
       if (!settings) return;
-      const currentList = settings[key] || [];
+      // We assume this is only used for string[] lists
+      const currentList = (settings[key] || []) as string[];
+      // @ts-ignore - dynamic key access with specific type assumption
       updateList(key, [item, ...currentList]);
     },
     onRemove: (item: string) => {
       if (!settings) return;
-      const currentList = settings[key] || [];
+      const currentList = (settings[key] || []) as string[];
+      // @ts-ignore
       updateList(key, currentList.filter(i => i !== item));
     },
     onEdit: (oldItem: string, newItem: string) => {
       if (!settings) return;
-      const currentList = settings[key] || [];
+      const currentList = (settings[key] || []) as string[];
+      // @ts-ignore
       const updatedList = currentList.map(i => i === oldItem ? newItem : i);
+      // @ts-ignore
       updateList(key, updatedList);
     }
   });
@@ -332,93 +338,89 @@ export const SettingsManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/40 pb-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">System Configurations</h2>
-          <p className="text-muted-foreground">Manage global dropdown options and system values.</p>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <SettingCard
+            title="Batches"
+            description="Active student batches."
+            icon={Database}
+            items={settings.batches || []}
+            {...createHandlers('batches')}
+            placeholder="e.g. Oct 2025"
+          />
+          <SettingCard
+            title="Mentors"
+            description="Faculty members."
+            icon={Users}
+            items={settings.mentors || []}
+            {...createHandlers('mentors')}
+            placeholder="e.g. Dr. Alan Grant"
+          />
+          <SettingCard
+            title="Coordinators"
+            description="Batch staff."
+            icon={CheckCircle2}
+            items={settings.coordinators || []}
+            {...createHandlers('coordinators')}
+            placeholder="e.g. Sarah"
+          />
+          <SettingCard
+            title="Topics"
+            description="Tutor specializations."
+            icon={BookOpen}
+            items={settings.topics || []}
+            {...createHandlers('topics')}
+            placeholder="e.g. Python"
+          />
+          <SettingCard
+            title="Platforms"
+            description="Affiliate sources."
+            icon={Share2}
+            items={settings.platforms || []}
+            {...createHandlers('platforms')}
+            placeholder="e.g. TikTok"
+          />
+          <SettingCard
+            title="FAQ Categories"
+            description="Categories for Help Center."
+            icon={HelpCircle}
+            items={settings.faqCategories || []}
+            {...createHandlers('faqCategories')}
+            placeholder="e.g. Hosting"
+          />
+          <SettingCard
+            title="Ticket Categories"
+            description="Categories for Support Tickets."
+            icon={MessageSquare}
+            items={settings.ticketCategories || []}
+            {...createHandlers('ticketCategories')}
+            placeholder="e.g. Billing, Technical"
+          />
+          <SettingCard
+            title="Blog Categories"
+            description="Categories for Blog Posts."
+            icon={Pencil}
+            items={settings.blogCategories || []}
+            {...createHandlers('blogCategories')}
+            placeholder="e.g. Tech, News"
+          />
+          <SettingCard
+            title="Feedback Categories"
+            description="Categories for Student Feedback."
+            icon={MessageCircle}
+            items={settings.feedbackCategories || []}
+            {...createHandlers('feedbackCategories')}
+            placeholder="e.g. Bug Report, Feature Request"
+          />
         </div>
-        <Button
-          className="bg-primary hover:bg-primary/90"
-          onClick={handleSaveAll}
-          disabled={isSaving}
-        >
-          {isSaving ? <span className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Save className="w-4 h-4 mr-2" />}
-          Sync Changes
-        </Button>
+
+        <div className="w-full">
+          <MacroManager
+            macros={settings.macros || []}
+            onUpdate={(newMacros) => updateList('macros', newMacros)}
+          />
+        </div>
       </div>
-
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="bg-muted/50 p-1">
-          <TabsTrigger value="general" className="px-6">General Data</TabsTrigger>
-          <TabsTrigger value="tickets" className="px-6">Ticketing & Support</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="general" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            <SettingCard
-              title="Batches"
-              description="Active student batches."
-              icon={Database}
-              items={settings.batches || []}
-              {...createHandlers('batches')}
-              placeholder="e.g. Oct 2025"
-            />
-            <SettingCard
-              title="Mentors"
-              description="Faculty members."
-              icon={Users}
-              items={settings.mentors || []}
-              {...createHandlers('mentors')}
-              placeholder="e.g. Dr. Alan Grant"
-            />
-            <SettingCard
-              title="Coordinators"
-              description="Batch staff."
-              icon={CheckCircle2}
-              items={settings.coordinators || []}
-              {...createHandlers('coordinators')}
-              placeholder="e.g. Sarah"
-            />
-            <SettingCard
-              title="Topics"
-              description="Tutor specializations."
-              icon={BookOpen}
-              items={settings.topics || []}
-              {...createHandlers('topics')}
-              placeholder="e.g. Python"
-            />
-            <SettingCard
-              title="Platforms"
-              description="Affiliate sources."
-              icon={Share2}
-              items={settings.platforms || []}
-              {...createHandlers('platforms')}
-              placeholder="e.g. TikTok"
-            />
-            <SettingCard
-              title="FAQ Categories"
-              description="Categories for Help Center."
-              icon={HelpCircle}
-              items={settings.faqCategories || []}
-              {...createHandlers('faqCategories')}
-              placeholder="e.g. Hosting"
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="tickets" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <SettingCard
-              title="Ticket Macros"
-              description="Pre-defined replies for faster support."
-              icon={Settings}
-              items={settings.macros || []}
-              {...createHandlers('macros')}
-              placeholder="e.g. Please check your internet..."
-            />
-          </div>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };

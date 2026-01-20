@@ -18,6 +18,7 @@ import { ProfileContact } from "@/components/profile/ProfileContact";
 import { ProfileExperience } from "@/components/profile/ProfileExperience";
 // Import Editor Modal (reuse admin component)
 import { ProfileEditorModal } from "@/components/admin/user/profile-editor/ProfileEditorModal";
+import { ChangePasswordDialog } from "@/components/common/ChangePasswordDialog";
 
 const StudentProfile = () => {
   const { id } = useParams();
@@ -123,10 +124,13 @@ const StudentProfile = () => {
             </Link>
 
             {canEdit && (
-              <Button onClick={() => setIsEditModalOpen(true)} className="shadow-lg">
-                <Pencil className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
+              <div className="flex gap-2">
+                <ChangePasswordDialog />
+                <Button onClick={() => setIsEditModalOpen(true)} className="shadow-lg">
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </div>
             )}
           </div>
 

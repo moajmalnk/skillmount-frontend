@@ -13,13 +13,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Custom Input Component to match specific design
-const CustomInput = ({ icon: Icon, rightElement, ...props }: any) => (
+const CustomInput = ({ icon: Icon, rightElement, className, ...props }: any) => (
   <div className="relative group">
     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
     </div>
     <Input
       {...props}
-      className="h-10 bg-[#020617]/50 border-slate-800/80 text-slate-100 text-sm placeholder:text-slate-500 rounded-xl pl-3 pr-12 focus:ring-1 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 shadow-inner shadow-black/20"
+      className={`h-10 bg-slate-50 dark:bg-[#020617]/50 border-slate-200 dark:border-slate-800/80 text-slate-900 dark:text-slate-100 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl pl-3 pr-12 focus:ring-1 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 shadow-sm dark:shadow-inner shadow-black/5 dark:shadow-black/20 ${className || ""}`}
     />
     {rightElement ? (
       <div className="absolute inset-y-0 right-2 flex items-center">
@@ -27,7 +27,7 @@ const CustomInput = ({ icon: Icon, rightElement, ...props }: any) => (
       </div>
     ) : Icon ? (
       <div className="absolute inset-y-0 right-2 flex items-center">
-        <div className="h-7 w-7 bg-slate-800/80 rounded-lg flex items-center justify-center text-slate-400 shadow-sm border border-slate-700/50">
+        <div className="h-7 w-7 bg-slate-100 dark:bg-slate-800/80 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-sm border border-slate-200 dark:border-slate-700/50">
           <Icon className="h-3.5 w-3.5" />
         </div>
       </div>
@@ -183,20 +183,20 @@ const Login = () => {
   };
 
   return (
-    <div className="relative w-full min-h-full flex items-center justify-center bg-[#050b14] py-10 font-sans text-slate-100 selection:bg-purple-500/30 overflow-hidden">
+    <div className="relative w-full min-h-full flex items-center justify-center bg-slate-50 dark:bg-[#050b14] py-10 font-sans text-slate-900 dark:text-slate-100 selection:bg-purple-500/30 overflow-hidden">
       {/* Dotted Background Pattern */}
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-20 pointer-events-none"></div>
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-40 dark:opacity-20 pointer-events-none"></div>
 
       {/* Subtle Gradient Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-purple-500/10 dark:bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-500/10 dark:bg-fuchsia-600/10 rounded-full blur-[120px] pointer-events-none"></div>
 
       <div className="relative z-10 w-full max-w-[400px] px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="bg-[#0f172a]/80 backdrop-blur-xl border border-slate-800/60 rounded-[28px] shadow-2xl shadow-black/50 overflow-hidden"
+          className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800/60 rounded-[28px] shadow-2xl shadow-slate-200/50 dark:shadow-black/50 overflow-hidden"
         >
           <div className="p-6 md:p-8">
             {/* Project Icon */}
@@ -219,21 +219,14 @@ const Login = () => {
 
             <div className="text-center mb-8 space-y-1.5">
               <motion.h1
-                className="text-2xl font-bold text-white tracking-tight"
+                className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
                 Welcome back
               </motion.h1>
-              <motion.p
-                className="text-slate-400 text-xs"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                Sign in to your account to continue
-              </motion.p>
+
             </div>
 
             {/* Navigation Tabs */}
@@ -249,11 +242,11 @@ const Login = () => {
                   onClick={() => tab.id === 'google' ? handleGoogleLogin() : setActiveTab(tab.id)}
                   className={`relative group p-2.5 rounded-xl border transition-all duration-300 ${activeTab === tab.id
                     ? `bg-${tab.color}-600 border-${tab.color}-500 text-white shadow-lg ${tab.shadow} scale-110 z-10`
-                    : "bg-[#1e293b]/50 border-slate-700/50 text-slate-400 hover:bg-[#1e293b] hover:text-slate-200 hover:border-slate-600"
+                    : "bg-slate-100 dark:bg-[#1e293b]/50 border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1e293b] hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600"
                     }`}
                 >
                   {activeTab === tab.id && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 border-2 border-[#0f172a] rounded-full"></span>
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 border-2 border-white dark:border-[#0f172a] rounded-full"></span>
                   )}
                   <tab.icon className="w-4 h-4" />
                 </button>
@@ -274,7 +267,7 @@ const Login = () => {
                     className="space-y-4"
                   >
                     <div className="space-y-1.5">
-                      <Label className="text-slate-300 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1.5 opacity-80">
+                      <Label className="text-slate-500 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1.5 opacity-80">
                         <Mail className="w-3 h-3 text-purple-400" /> Email Address
                       </Label>
                       <CustomInput
@@ -289,7 +282,7 @@ const Login = () => {
 
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center px-1">
-                        <Label className="text-slate-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 opacity-80">
+                        <Label className="text-slate-500 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 opacity-80">
                           <Lock className="w-3 h-3 text-purple-400" /> Password
                         </Label>
                       </div>
@@ -311,11 +304,7 @@ const Login = () => {
                           </div>
                         }
                       />
-                      <div className="text-right">
-                        <button type="button" onClick={() => setActiveTab("reset")} className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors font-medium">
-                          Forgot password?
-                        </button>
-                      </div>
+
                     </div>
 
                     <Button
@@ -345,21 +334,21 @@ const Login = () => {
                           <button
                             type="button"
                             onClick={() => setOtpMethod("email")}
-                            className={`h-9 rounded-lg border flex items-center justify-center gap-2 text-xs font-medium transition-all ${otpMethod === "email" ? "bg-slate-800 border-purple-500 text-white" : "border-slate-800 bg-slate-900/50 text-slate-400 hover:bg-slate-800/80"}`}
+                            className={`h-9 rounded-lg border flex items-center justify-center gap-2 text-xs font-medium transition-all ${otpMethod === "email" ? "bg-slate-900 dark:bg-slate-800 border-purple-500 text-white" : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/80"}`}
                           >
                             <Mail className="w-3.5 h-3.5" /> Email
                           </button>
                           <button
                             type="button"
                             onClick={() => setOtpMethod("whatsapp")}
-                            className={`h-9 rounded-lg border flex items-center justify-center gap-2 text-xs font-medium transition-all ${otpMethod === "whatsapp" ? "bg-slate-800 border-purple-500 text-white" : "border-slate-800 bg-slate-900/50 text-slate-400 hover:bg-slate-800/80"}`}
+                            className={`h-9 rounded-lg border flex items-center justify-center gap-2 text-xs font-medium transition-all ${otpMethod === "whatsapp" ? "bg-slate-900 dark:bg-slate-800 border-purple-500 text-white" : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/80"}`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center text-[7px] font-bold">W</span> WhatsApp
                           </button>
                         </div>
 
                         <div className="space-y-1.5">
-                          <Label className="text-slate-300 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1.5 opacity-80">
+                          <Label className="text-slate-500 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1.5 opacity-80">
                             {otpMethod === "email" ? (
                               <>
                                 <Mail className="w-3 h-3 text-purple-400" /> Email Address
@@ -381,7 +370,7 @@ const Login = () => {
                             />
                           ) : (
                             <div className="flex gap-2">
-                              <div className="h-10 w-14 bg-[#020617]/50 border border-slate-800 rounded-xl flex items-center justify-center text-slate-400 font-medium text-xs">
+                              <div className="h-10 w-14 bg-slate-100 dark:bg-[#020617]/50 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-slate-900 dark:text-slate-400 font-medium text-xs">
                                 +91
                               </div>
                               <div className="flex-1">
@@ -409,7 +398,7 @@ const Login = () => {
                     ) : (
                       <>
                         <div className="space-y-1.5">
-                          <Label className="text-slate-300 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1.5 opacity-80">
+                          <Label className="text-slate-500 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1.5 opacity-80">
                             <Key className="w-3 h-3 text-fuchsia-400" /> Enter OTP Code
                           </Label>
                           <CustomInput
@@ -422,7 +411,7 @@ const Login = () => {
                             autoFocus
                             icon={Lock}
                           />
-                          <p className="text-[10px] text-slate-400 ml-1">
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">
                             Sent to your {otpMethod}. <button type="button" onClick={() => setOtpSent(false)} className="text-fuchsia-400 hover:underline">Change?</button>
                           </p>
                         </div>
@@ -450,7 +439,7 @@ const Login = () => {
                     className="space-y-4"
                   >
                     <div className="space-y-1.5">
-                      <Label className="text-slate-300 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1.5 opacity-80">
+                      <Label className="text-slate-500 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1.5 opacity-80">
                         <Mail className="w-3 h-3 text-pink-400" /> Email Address
                       </Label>
                       <CustomInput
@@ -483,17 +472,17 @@ const Login = () => {
             </div>
 
             {/* Footer Section */}
-            <div className="mt-6 pt-4 border-t border-slate-800/50 flex flex-col items-center gap-3">
+            <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800/50 flex flex-col items-center gap-3">
               <div className="flex items-center gap-4 text-[10px] text-slate-500 font-medium">
-                <a href="#" className="hover:text-slate-300 transition-colors flex items-center gap-1">
-                  <span className="w-0.5 h-0.5 rounded-full bg-slate-600"></span> Privacy Policy
+                <a href="#" className="hover:text-slate-700 dark:hover:text-slate-300 transition-colors flex items-center gap-1">
+                  <span className="w-0.5 h-0.5 rounded-full bg-slate-400 dark:bg-slate-600"></span> Privacy Policy
                 </a>
-                <a href="#" className="hover:text-slate-300 transition-colors flex items-center gap-1">
-                  <span className="w-0.5 h-0.5 rounded-full bg-slate-600"></span> Terms of Use
+                <a href="#" className="hover:text-slate-700 dark:hover:text-slate-300 transition-colors flex items-center gap-1">
+                  <span className="w-0.5 h-0.5 rounded-full bg-slate-400 dark:bg-slate-600"></span> Terms of Use
                 </a>
               </div>
               <div className="text-[9px] text-slate-600 font-medium tracking-wide">
-                © 2026 SkillMount | CODO AI Innovations
+                © 2026 SkillMount Educational
               </div>
             </div>
 

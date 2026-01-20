@@ -10,7 +10,7 @@ const transformBlog = (data: any): BlogPost => ({
   excerpt: data.excerpt,
   content: data.content,
   coverImage: data.cover_image,
-  category: data.category,
+  categories: data.categories || [],
   tags: data.tags,
   author: data.author,
   publishedDate: data.date, // Map date -> publishedDate
@@ -63,18 +63,15 @@ export const blogService = {
         if (key === 'isPublished') backendKey = 'is_published';
         if (key === 'authorId') backendKey = 'author_id';
 
-        if (key === 'tags' && Array.isArray(value)) {
-          // JSON Stringify tags array for backend JSONField
-          formData.append('tags', JSON.stringify(value));
+        if ((key === 'tags' || key === 'categories') && Array.isArray(value)) {
+          // JSON Stringify tags/categories array for backend JSONField
+          formData.append(key, JSON.stringify(value));
         } else {
           formData.append(backendKey, value.toString());
         }
       });
 
-      // Append author_id if provided
-      if ((post as any).authorId) {
-        formData.append('author_id', (post as any).authorId);
-      }
+      // (author_id is handled in the loop above)
 
       // Append File if exists
       if (post.coverImageFile) {

@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { ManagementTable } from "@/components/admin/ManagementTable";
-import { TableCell, TableRow } from "@/components/ui/table";
+import { Table, TableCell, TableRow, TableHead, TableHeader, TableBody } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Star, Mic, Paperclip, Trash2, Loader2, Eye, Search } from "lucide-react";
+import { Star, Mic, Paperclip, Trash2, Loader2, Search, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { feedbackService } from "@/services/feedbackService";
@@ -11,6 +10,9 @@ import { FeedbackDetailModal } from "./FeedbackDetailModal";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { systemService } from "@/services/systemService";
+import { Card, CardContent } from "@/components/ui/card";
+import { FeedbackCreateDialog } from "./FeedbackCreateDialog";
 
 export const FeedbackManager = () => {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
@@ -20,10 +22,12 @@ export const FeedbackManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categories, setCategories] = useState<string[]>([]);
 
   // Modal State
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   // Delete State
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -41,7 +45,19 @@ export const FeedbackManager = () => {
   };
 
   useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const settings = await systemService.getSettings();
+        if (settings.feedbackCategories) {
+          setCategories(settings.feedbackCategories);
+        }
+      } catch (e) {
+        console.error("Failed to load categories");
+      }
+    };
+
     loadFeedbacks();
+    loadCategories();
   }, []);
 
   const handleView = (feedback: Feedback) => {
@@ -92,116 +108,171 @@ export const FeedbackManager = () => {
   const feedbackToDelete = feedbacks.find(f => f.id === deleteId);
 
   return (
-    <>
-      <ManagementTable
-        title="Course Feedback"
-        description="Reviews and ratings submitted by students."
-        columns={["Date", "Student", "Category", "Rating", "Message", "Visibility"]}
-        filters={
-          <div className="flex gap-2">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-4">
+      {/* 1. Filter Card */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search student or message..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-9 bg-background"
+                className="pl-9"
               />
             </div>
-            <Select value={ratingFilter} onValueChange={setRatingFilter}>
-              <SelectTrigger className="w-[120px] h-9 bg-background">
-                <SelectValue placeholder="Rating" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Ratings</SelectItem>
-                <SelectItem value="5">5 Stars</SelectItem>
-                <SelectItem value="4">4 Stars</SelectItem>
-                <SelectItem value="3">3 Stars</SelectItem>
-                <SelectItem value="2">2 Stars</SelectItem>
-                <SelectItem value="1">1 Star</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[140px] h-9 bg-background">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Topics</SelectItem>
-                <SelectItem value="Content">Content</SelectItem>
-                <SelectItem value="Platform">Platform</SelectItem>
-                <SelectItem value="Support">Support</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+
+            {/* Rating Filter */}
+            <div className="w-full md:w-[150px]">
+              <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Rating" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ratings</SelectItem>
+                  <SelectItem value="5">5 Stars</SelectItem>
+                  <SelectItem value="4">4 Stars</SelectItem>
+                  <SelectItem value="3">3 Stars</SelectItem>
+                  <SelectItem value="2">2 Stars</SelectItem>
+                  <SelectItem value="1">1 Star</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Category Filter */}
+            <div className="w-full md:w-[180px]">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Topics</SelectItem>
+                  {categories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                  {!categories.includes("Other") && <SelectItem value="Other">Other</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Reset Filters */}
+            {(searchQuery || ratingFilter !== 'all' || categoryFilter !== 'all') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => { setSearchQuery(""); setRatingFilter("all"); setCategoryFilter("all"); }}
+                title="Reset Filters"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+
+            <Button onClick={() => setIsCreateOpen(true)} className="shrink-0">
+              <Plus className="w-4 h-4 mr-2" /> Add Feedback
+            </Button>
           </div>
-        }
-      >
+        </CardContent>
+      </Card>
 
+      {/* 2. Data Card */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[120px]">Date</TableHead>
+                <TableHead className="w-[180px]">Student</TableHead>
+                <TableHead className="w-[120px]">Category</TableHead>
+                <TableHead className="w-[100px]">Rating</TableHead>
+                <TableHead>Message</TableHead>
+                <TableHead className="w-[100px]">Visibility</TableHead>
+                <TableHead className="w-[100px] text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    <div className="flex justify-center items-center gap-2 text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Loading Feedback...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredFeedbacks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    No matching feedback found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredFeedbacks.map((item) => (
+                  <TableRow
+                    key={item.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleView(item)}
+                  >
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{item.date}</TableCell>
+                    <TableCell>
+                      <div className="font-medium truncate max-w-[160px]" title={item.studentName}>{item.studentName}</div>
+                      <div className="text-[10px] text-muted-foreground truncate max-w-[160px]" title={item.studentId}>
+                        {item.studentId}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px] truncate max-w-[100px] block text-center font-normal">
+                        {item.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{renderStars(item.rating)}</TableCell>
+                    <TableCell>
+                      <div className="truncate text-sm text-foreground/80 font-medium max-w-[300px]" title={item.message}>{item.message}</div>
+                      <div className="flex gap-2 mt-1.5 opacity-70">
+                        {item.voiceUrl && <Mic className="w-3 h-3 text-primary" />}
+                        {item.attachmentUrl && <Paperclip className="w-3 h-3 text-primary" />}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {item.isPublic ? (
+                        <Badge variant="default" className="bg-green-600/90 hover:bg-green-700 text-[10px] py-0 px-2 font-normal">Public</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[10px] py-0 px-2 font-normal">Private</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
 
-        {isLoading ? (
-          <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-        ) : filteredFeedbacks.length === 0 ? (
-          <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No matching feedback found.</TableCell></TableRow>
-        ) : (
-          filteredFeedbacks.map((item) => (
-            <TableRow
-              key={item.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleView(item)}
-            >
-              <TableCell className="w-[12%] text-xs text-muted-foreground whitespace-nowrap">{item.date}</TableCell>
-              <TableCell className="w-[18%]">
-                <div className="font-medium">{item.studentName}</div>
-                <div className="text-[10px] text-muted-foreground">{item.studentId}</div>
-              </TableCell>
-              <TableCell className="w-[12%]">
-                <Badge variant="outline" className="text-[10px]">{item.category}</Badge>
-              </TableCell>
-              <TableCell className="w-[12%]">{renderStars(item.rating)}</TableCell>
-              <TableCell className="w-[24%]">
-                <p className="truncate text-sm text-muted-foreground" title={item.message}>{item.message}</p>
-                <div className="flex gap-1 mt-1">
-                  {item.voiceUrl && <Mic className="w-3 h-3 text-primary" />}
-                  {item.attachmentUrl && <Paperclip className="w-3 h-3 text-primary" />}
-                </div>
-              </TableCell>
-              <TableCell className="w-[10%]">
-                {item.isPublic ? (
-                  <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-[10px]">Public</Badge>
-                ) : (
-                  <Badge variant="secondary" className="text-[10px]">Private</Badge>
-                )}
-              </TableCell>
-              <TableCell className="w-[12%] text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-primary"
-                    onClick={(e) => { e.stopPropagation(); handleView(item); }}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                    onClick={(e) => initiateDelete(item.id, e)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </ManagementTable>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          onClick={(e) => initiateDelete(item.id, e)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <FeedbackDetailModal
         feedback={selectedFeedback}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onUpdate={loadFeedbacks}
+      />
+
+      <FeedbackCreateDialog
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={loadFeedbacks}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -213,6 +284,6 @@ export const FeedbackManager = () => {
         description="This will permanently remove the student's rating and review. This action cannot be undone."
         itemName={feedbackToDelete ? `Review by ${feedbackToDelete.studentName}` : undefined}
       />
-    </>
+    </div>
   );
 };

@@ -270,7 +270,7 @@ export const ProfileProjectsManager = ({ projects = [], onChange }: ProfileProje
                     <Label htmlFor="featured" className="cursor-pointer">Feature this project on profile?</Label>
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-2 justify-center">
                     <Button onClick={saveProject} size="sm" className="w-24">
                         <Save className="w-4 h-4 mr-2" /> Save
                     </Button>

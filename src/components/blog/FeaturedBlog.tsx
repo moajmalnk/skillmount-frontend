@@ -37,7 +37,7 @@ export const FeaturedBlog = ({ post }: { post: BlogPost }) => {
           <div className="max-w-3xl space-y-6 animate-in slide-in-from-bottom-10 fade-in duration-700">
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-white/80 text-sm font-medium">
-                <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">{post.category}</span>
+                <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">{post.categories?.[0] || "General"}</span>
                 <span>•</span>
                 <span>{post.readTime}</span>
               </div>
@@ -57,10 +57,7 @@ export const FeaturedBlog = ({ post }: { post: BlogPost }) => {
                   <AvatarImage src={post.author.avatar} />
                   <AvatarFallback>{post.author.name.substring(0, 2)}</AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-white">{post.author.name}</span>
-                  <span className="text-xs text-white/60">{post.author.role}</span>
-                </div>
+                <span className="text-sm font-bold text-white">{post.author.name}</span>
               </div>
 
               <Button size="lg" className="rounded-full px-8 h-14 bg-white text-black hover:bg-white/90 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 group/btn">

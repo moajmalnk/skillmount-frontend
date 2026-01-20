@@ -3,8 +3,10 @@ import { ManagementTable } from "@/components/admin/ManagementTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, Loader2, Eye, CheckCircle2, AlertCircle, Copy } from "lucide-react";
+import { TableCell, TableRow, TableHead, TableHeader, TableBody, Table } from "@/components/ui/table";
+import { Pencil, Trash2, Loader2, Eye, CheckCircle2, AlertCircle, Copy, Search, X, Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +45,23 @@ export const TutorManager = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [topics, setTopics] = useState<string[]>([]); // Dynamic topics
   const [isLoading, setIsLoading] = useState(true);
+
+  // Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterTopic, setFilterTopic] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const filteredTutors = tutors.filter(t => {
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = t.name.toLowerCase().includes(searchLower) ||
+      t.email.toLowerCase().includes(searchLower) ||
+      (t.regId && t.regId.toLowerCase().includes(searchLower));
+
+    const matchesTopic = filterTopic === 'all' || (t.topics && t.topics.includes(filterTopic));
+    const matchesStatus = filterStatus === 'all' || t.status === filterStatus;
+
+    return matchesSearch && matchesTopic && matchesStatus;
+  });
 
   // Dialog State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -211,72 +230,149 @@ export const TutorManager = () => {
   const tutorToDelete = tutors.find(t => t.id === deleteId);
 
   return (
-    <>
-      <ManagementTable
-        title="Tutors"
-        description="Manage faculty and assigned topics."
-        columns={["Reg ID", "Name", "Email", "Phone", "Topic", "Status"]}
-        onAddNew={() => setIsCreateOpen(true)}
-      >
-        {isLoading ? (
-          <TableRow>
-            <TableCell colSpan={7} className="h-24 text-center">
-              <div className="flex justify-center items-center gap-2">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span>Loading Tutors...</span>
-              </div>
-            </TableCell>
-          </TableRow>
-        ) : tutors.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-              No tutors found. Add one to get started.
-            </TableCell>
-          </TableRow>
-        ) : (
-          tutors.map((tutor) => (
-            <TableRow
-              key={tutor.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => handleViewDetails(tutor)}
-            >
-              <TableCell className="font-medium">{tutor.regId}</TableCell>
-              <TableCell>{tutor.name}</TableCell>
-              <TableCell>{tutor.email}</TableCell>
-              <TableCell>{tutor.phone}</TableCell>
-              <TableCell>
-                {tutor.topics && tutor.topics.length > 0 ? tutor.topics[0] : "General"}
-              </TableCell>
-              <TableCell>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tutor.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                  {tutor.status}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-primary"
-                    onClick={(e) => { e.stopPropagation(); handleViewDetails(tutor); }}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                    onClick={(e) => initiateDelete(tutor.id, e)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </ManagementTable>
+    <div className="space-y-4">
+
+
+      {/* 2. Advanced Filter Bar */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, email, or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Topic Filter */}
+            <div className="w-full md:w-[200px]">
+              <Select value={filterTopic} onValueChange={setFilterTopic}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Topics" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Topics</SelectItem>
+                  {topics.map((topic) => (
+                    <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="w-full md:w-[150px]">
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button onClick={() => setIsCreateOpen(true)} className="shrink-0">
+              <Plus className="w-4 h-4 mr-2" /> Add Tutor
+            </Button>
+
+            {/* Clear Button */}
+            {(searchQuery || filterTopic !== 'all' || filterStatus !== 'all') && (
+              <Button variant="ghost" size="icon" onClick={() => { setSearchQuery(""); setFilterTopic("all"); setFilterStatus("all"); }} title="Reset Filters">
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3. Data Table */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[150px]">Reg ID</TableHead>
+                  <TableHead className="w-[200px]">Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Topic</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                      <div className="flex justify-center items-center gap-2">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span>Loading Tutors...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredTutors.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                      No tutors found matching your filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredTutors.map((tutor) => (
+                    <TableRow
+                      key={tutor.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleViewDetails(tutor)}
+                    >
+                      <TableCell className="font-medium font-mono text-xs">{tutor.regId}</TableCell>
+                      <TableCell className="font-medium">{tutor.name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col text-xs text-muted-foreground">
+                          <span>{tutor.email}</span>
+                          <span>{tutor.phone}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {tutor.topics && tutor.topics.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {tutor.topics.slice(0, 2).map(t => <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>)}
+                            {tutor.topics.length > 2 && <Badge variant="outline" className="text-[10px]">+{tutor.topics.length - 2}</Badge>}
+                          </div>
+                        ) : <span className="text-muted-foreground text-xs">General</span>}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${tutor.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                          }`}>
+                          {tutor.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={(e) => initiateDelete(tutor.id, e)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Create Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -338,6 +434,6 @@ export const TutorManager = () => {
         itemName={tutorToDelete?.name}
         description="This will permanently remove the tutor account and revoke their access to the platform."
       />
-    </>
+    </div>
   );
 };

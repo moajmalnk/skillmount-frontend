@@ -2,16 +2,18 @@ import { useState, useEffect } from "react";
 import { TicketList } from "./TicketList";
 import { TicketDetailModal } from "./TicketDetailModal";
 import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ticketService } from "@/services/ticketService";
+import { systemService } from "@/services/systemService";
 import { useAuth } from "@/context/AuthContext"; // Import useAuth
 import { Ticket } from "@/types/ticket";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter, X, Search, Plus } from "lucide-react";
+import { TicketCreateDialog } from "./TicketCreateDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -22,6 +24,7 @@ export const TicketManager = () => {
     const { user } = useAuth();
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("Open"); // Track active tab
@@ -37,6 +40,15 @@ export const TicketManager = () => {
     const [categoryFilter, setCategoryFilter] = useState("");
 
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const settings = await systemService.getSettings();
+            setCategoryOptions(settings.ticketCategories || []);
+        };
+        fetchCategories();
+    }, []);
 
     // Load Tickets (Server-Side Filter)
     const loadTickets = async () => {
@@ -134,33 +146,44 @@ export const TicketManager = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="flex flex-col gap-4">
-                    {/* Top Bar: Tabs & Search & Priority */}
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <TabsList className="bg-muted/50 p-1 rounded-lg w-full md:w-auto flex justify-between md:justify-start">
-                            <TabsTrigger value="Open" className="flex-1 md:flex-none px-2 sm:px-4 text-[10px] sm:text-sm">Open / Pending</TabsTrigger>
-                            <TabsTrigger value="Assigned" className="flex-1 md:flex-none px-2 sm:px-4 text-[10px] sm:text-sm">My Assigned</TabsTrigger>
-                            <TabsTrigger value="Closed" className="flex-1 md:flex-none px-2 sm:px-4 text-[10px] sm:text-sm">Closed</TabsTrigger>
-                        </TabsList>
-
-                        <div className="grid grid-cols-2 md:flex md:flex-row gap-2 w-full md:w-auto">
+        <div className="space-y-4">
+            {/* Filter Bar */}
+            <Card>
+                <CardContent className="p-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        {/* Search */}
+                        <div className="flex-1 relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search..."
+                                placeholder="Search tickets..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="h-9 w-full md:w-48 bg-background text-xs sm:text-sm"
+                                className="pl-9"
                             />
-                            <Select
-                                value={priorityFilter}
-                                onValueChange={(val: any) => setPriorityFilter(val)}
-                            >
-                                <SelectTrigger className="h-9 w-full md:w-32 bg-background text-xs sm:text-sm">
+                        </div>
+
+                        {/* Status View (Tabs Replacement) */}
+                        <div className="w-full md:w-[170px]">
+                            <Select value={activeTab} onValueChange={setActiveTab}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="View" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Open">Open / Pending</SelectItem>
+                                    <SelectItem value="Assigned">My Assigned</SelectItem>
+                                    <SelectItem value="Closed">Closed</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Priority */}
+                        <div className="w-full md:w-[150px]">
+                            <Select value={priorityFilter} onValueChange={(val: any) => setPriorityFilter(val)}>
+                                <SelectTrigger>
                                     <SelectValue placeholder="Priority" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Priority: All</SelectItem>
+                                    <SelectItem value="all">All Priorities</SelectItem>
                                     <SelectItem value="Urgent">Urgent</SelectItem>
                                     <SelectItem value="High">High</SelectItem>
                                     <SelectItem value="Medium">Medium</SelectItem>
@@ -168,133 +191,143 @@ export const TicketManager = () => {
                                 </SelectContent>
                             </Select>
                         </div>
-                    </div>
 
-                    {/* Advanced Filters Bar */}
-                    <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-start sm:items-center bg-muted/20 p-2 rounded-lg border border-border/50">
-                        <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center px-1">
-                            <Filter className="w-3 h-3 mr-1" /> Filters:
+                        {/* Category */}
+                        <div className="w-full md:w-[180px]">
+                            <Select
+                                value={categoryFilter === "" ? "all" : categoryFilter}
+                                onValueChange={(val) => setCategoryFilter(val === "all" ? "" : val)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Categories</SelectItem>
+                                    {categoryOptions.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                            <div className="relative flex-1 sm:flex-none">
-                                <Filter className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-                                <Input
-                                    placeholder="Category..."
-                                    value={categoryFilter}
-                                    onChange={(e) => setCategoryFilter(e.target.value)}
-                                    className="h-8 w-full sm:w-36 pl-8 text-[11px] bg-background border-dashed focus-visible:ring-0 focus-visible:border-primary"
-                                />
-                            </div>
-
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        id="date"
-                                        variant={"outline"}
-                                        className={cn(
-                                            "h-8 w-full sm:w-[200px] justify-start text-left font-normal border-dashed text-[11px]",
-                                            !dateRange && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-3 w-3" />
-                                        <span className="truncate">
-                                            {dateRange?.from ? (
-                                                dateRange.to ? (
-                                                    <>
-                                                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                                                        {format(dateRange.to, "LLL dd, y")}
-                                                    </>
-                                                ) : (
-                                                    format(dateRange.from, "LLL dd, y")
-                                                )
-                                            ) : (
-                                                <span>Pick a date range</span>
-                                            )}
-                                        </span>
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={dateRange?.from}
-                                        selected={dateRange}
-                                        onSelect={setDateRange}
-                                        numberOfMonths={1}
-                                        className="p-3"
-                                        captionLayout="dropdown-buttons"
-                                        fromYear={2024}
-                                        toYear={2030}
-                                    />
-                                </PopoverContent>
-                            </Popover>
-
-                            {(categoryFilter || dateRange) && (
+                        {/* Date Range */}
+                        <Popover>
+                            <PopoverTrigger asChild>
                                 <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => { setCategoryFilter(""); setDateRange(undefined); }}
-                                    className="h-8 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted ml-auto sm:ml-0"
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full md:w-[210px] justify-start text-left font-normal",
+                                        !dateRange && "text-muted-foreground"
+                                    )}
                                 >
-                                    <X className="w-3 h-3 mr-1" />
-                                    Clear
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                            <>{format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd")}</>
+                                        ) : (
+                                            format(dateRange.from, "MMM dd")
+                                        )
+                                    ) : (
+                                        <span>Filter by Date</span>
+                                    )}
                                 </Button>
-                            )}
-                        </div>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={2}
+                                    className="p-3"
+                                />
+                            </PopoverContent>
+                        </Popover>
+
+                        {/* Reset Filters */}
+                        {(categoryFilter || dateRange || searchTerm || priorityFilter !== 'all') && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    setCategoryFilter("");
+                                    setDateRange(undefined);
+                                    setSearchTerm("");
+                                    setPriorityFilter("all");
+                                }}
+                                title="Reset Filters"
+                            >
+                                <X className="w-4 h-4" />
+                            </Button>
+                        )}
+
+                        <Button onClick={() => setIsCreateOpen(true)} className="shrink-0">
+                            <Plus className="w-4 h-4 mr-2" /> Raise Ticket
+                        </Button>
                     </div>
-                </div>
 
-                {/* Content Area */}
-                <div className="mt-4 space-y-4">
-                    <Card className="bg-transparent border-none shadow-none">
-                        <CardContent className="p-0">
-                            {isLoading ? (
-                                <div className="p-10 text-center text-muted-foreground">Loading tickets...</div>
-                            ) : tickets.length === 0 ? (
-                                <div className="text-center py-10 text-muted-foreground">No tickets found matching filters.</div>
-                            ) : (
-                                <>
-                                    <TicketList
-                                        tickets={tickets}
-                                        onSelectTicket={openTicket}
-                                        onDeleteTicket={handleDeleteTicket}
-                                    />
 
-                                    {/* Pagination Controls */}
-                                    <div className="flex items-center justify-between py-4 border-t border-border/50 mt-4">
-                                        <div className="text-xs text-muted-foreground">
-                                            Page {page} of {totalPages}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={page <= 1}
-                                                onClick={() => setPage(p => p - 1)}
-                                                className="h-8 w-8 p-0"
-                                            >
-                                                <ChevronLeft className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={page >= totalPages}
-                                                onClick={() => setPage(p => p + 1)}
-                                                className="h-8 w-8 p-0"
-                                            >
-                                                <ChevronRight className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-            </Tabs>
+                </CardContent>
+            </Card>
 
-            {/* The Detail Modal */}
+            {/* Data Card */}
+            <Card>
+                <CardContent className="p-0">
+                    {isLoading ? (
+                        <div className="p-10 text-center text-muted-foreground flex flex-col items-center gap-2">
+                            {/* Loader icon if available, or just text */}
+                            {/* We didn't import Loader2, but we can rely on text or add import.
+                                 StudentManager used Loader2.
+                                 TicketManager originally just had text "Loading tickets..."
+                                 I'll keep text to avoid import error or add Loader2 later?
+                                 Actually I can assume Loader2 is available if I import it?
+                                 I won't risk it. Text is fine.
+                              */}
+                            Loading tickets...
+                        </div>
+                    ) : tickets.length === 0 ? (
+                        <div className="text-center py-10 text-muted-foreground">No tickets found matching filters.</div>
+                    ) : (
+                        <>
+                            <TicketList
+                                tickets={tickets}
+                                onSelectTicket={openTicket}
+                                onDeleteTicket={handleDeleteTicket}
+                            />
+
+                            {/* Pagination */}
+                            <div className="flex items-center justify-between px-4 py-4 border-t">
+                                <div className="text-xs text-muted-foreground">
+                                    Page {page} of {totalPages}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={page <= 1}
+                                        onClick={() => setPage(p => p - 1)}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={page >= totalPages}
+                                        onClick={() => setPage(p => p + 1)}
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <ChevronRight className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Modal & Dialogs directly in layout space, unrelated to rendering */}
             <TicketDetailModal
                 ticket={selectedTicket}
                 isOpen={isModalOpen}
@@ -309,7 +342,12 @@ export const TicketManager = () => {
                 onUpdate={loadTickets}
             />
 
-            {/* Delete Confirmation Dialog */}
+            <TicketCreateDialog
+                isOpen={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+                onSuccess={loadTickets}
+            />
+
             <DeleteConfirmationDialog
                 open={isDeleteDialogOpen}
                 onOpenChange={setIsDeleteDialogOpen}

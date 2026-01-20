@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Pencil, Trash2, BookOpen, Loader2 } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, BookOpen, Loader2, X } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger 
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -14,7 +15,7 @@ import {
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { toast } from "sonner";
-import { FAQ } from "@/lib/faq-data"; 
+import { FAQ } from "@/lib/faq-data";
 import { faqService } from "@/services/faqService";
 import { systemService } from "@/services/systemService";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog"; // Import the delete dialog
@@ -23,18 +24,20 @@ export const FAQManager = () => {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
   // Store dynamic categories here
   const [categories, setCategories] = useState<string[]>([]);
-  
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  
+
   // Delete State
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  
+
   const [currentFaq, setCurrentFaq] = useState<FAQ | null>(null);
-  
+  const [viewFaq, setViewFaq] = useState<FAQ | null>(null);
+
   const [formQuestion, setFormQuestion] = useState("");
   const [formAnswer, setFormAnswer] = useState("");
   const [formCategory, setFormCategory] = useState("");
@@ -47,10 +50,10 @@ export const FAQManager = () => {
         faqService.getAll(),
         systemService.getSettings()
       ]);
-      
+
       setFaqs(faqData);
       setCategories(settingsData.faqCategories || []);
-      
+
     } catch (error) {
       console.error("Failed to load data", error);
       toast.error("Failed to load data");
@@ -137,17 +140,21 @@ export const FAQManager = () => {
     }
   };
 
-  const filteredFaqs = faqs.filter(faq =>
-    faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    faq.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    faq.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredFaqs = faqs.filter(faq => {
+    const matchesSearch = faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      faq.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      faq.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory = categoryFilter === "all" || faq.category === categoryFilter;
+
+    return matchesSearch && matchesCategory;
+  });
 
   const quillModules = {
     toolbar: [
       [{ 'header': [1, 2, 3, false] }],
       ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
       [{ 'color': [] }, { 'background': [] }],
       ['link', 'code-block'],
       ['clean']
@@ -158,95 +165,150 @@ export const FAQManager = () => {
   const faqToDelete = faqs.find(f => f.id === deleteId);
 
   return (
-    <div className="space-y-6">
-      {/* Action Bar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search FAQs..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add New FAQ
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New FAQ</DialogTitle>
-              <DialogDescription>Add a new frequently asked question.</DialogDescription>
-            </DialogHeader>
-            <FAQForm 
-              category={formCategory} setCategory={setFormCategory}
-              question={formQuestion} setQuestion={setFormQuestion}
-              answer={formAnswer} setAnswer={setFormAnswer}
-              modules={quillModules}
-              categories={categories}
-            />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreate}>Create FAQ</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* FAQ List */}
+    <div className="space-y-4">
+      {/* 1. Filter Card */}
       <Card>
-        <CardHeader>
-          <CardTitle>All FAQs ({filteredFaqs.length})</CardTitle>
-          <CardDescription>Manage your frequently asked questions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-             <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-             </div>
-          ) : filteredFaqs.length === 0 ? (
-            <div className="text-center py-12">
-              <BookOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground">
-                 {searchQuery ? "No FAQs match your search" : "No FAQs yet. Create your first one!"}
-              </p>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search FAQs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredFaqs.map((faq) => (
-                <div key={faq.id} className="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{faq.category}</Badge>
-                        <span className="text-xs text-muted-foreground">Updated {new Date(faq.updatedAt).toLocaleDateString()}</span>
+
+            {/* Category Filter */}
+            <div className="w-full md:w-[180px]">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Reset Filters */}
+            {(searchQuery || categoryFilter !== 'all') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => { setSearchQuery(""); setCategoryFilter("all"); }}
+                title="Reset Filters"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+
+            {/* Add Button */}
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm} className="shrink-0">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add FAQ
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create New FAQ</DialogTitle>
+                  <DialogDescription>Add a new frequently asked question.</DialogDescription>
+                </DialogHeader>
+                <FAQForm
+                  category={formCategory} setCategory={setFormCategory}
+                  question={formQuestion} setQuestion={setFormQuestion}
+                  answer={formAnswer} setAnswer={setFormAnswer}
+                  modules={quillModules}
+                  categories={categories}
+                />
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleCreate}>Create FAQ</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 2. FAQ List Card */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50%]">Question</TableHead>
+                <TableHead className="w-[20%]">Category</TableHead>
+                <TableHead className="w-[15%]">Updated</TableHead>
+                <TableHead className="w-[15%] text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    <div className="flex justify-center items-center gap-2 text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Loading FAQs...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredFaqs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                    {searchQuery ? "No FAQs match your search" : "No FAQs yet. Create your first one!"}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredFaqs.map((faq) => (
+                  <TableRow
+                    key={faq.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setViewFaq(faq)}
+                  >
+                    <TableCell>
+                      <div className="font-medium truncate max-w-[400px]" title={faq.question}>{faq.question}</div>
+                      <div className="text-sm text-muted-foreground truncate max-w-[400px] opacity-70 mt-1" dangerouslySetInnerHTML={{ __html: faq.answer.replace(/<[^>]+>/g, '') }} />
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-normal">{faq.category}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(faq.updatedAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); handleEdit(faq); }}
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); setDeleteId(faq.id); }}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <h3 className="font-semibold text-lg">{faq.question}</h3>
-                      <div className="text-sm text-muted-foreground line-clamp-2 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: faq.answer }} />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="icon" onClick={() => handleEdit(faq)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        onClick={() => setDeleteId(faq.id)}
-                        className="text-destructive hover:bg-destructive/10 border-destructive/20"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
@@ -256,7 +318,7 @@ export const FAQManager = () => {
           <DialogHeader>
             <DialogTitle>Edit FAQ</DialogTitle>
           </DialogHeader>
-          <FAQForm 
+          <FAQForm
             category={formCategory} setCategory={setFormCategory}
             question={formQuestion} setQuestion={setFormQuestion}
             answer={formAnswer} setAnswer={setFormAnswer}
@@ -270,9 +332,30 @@ export const FAQManager = () => {
         </DialogContent>
       </Dialog>
 
+      {/* View Details Dialog */}
+      <Dialog open={!!viewFaq} onOpenChange={(open) => !open && setViewFaq(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="secondary">{viewFaq?.category}</Badge>
+              <span className="text-xs text-muted-foreground mr-auto">
+                Updated {viewFaq?.updatedAt ? new Date(viewFaq.updatedAt).toLocaleDateString() : 'N/A'}
+              </span>
+            </div>
+            <DialogTitle className="text-xl sm:text-2xl pt-2">{viewFaq?.question}</DialogTitle>
+          </DialogHeader>
+          <div className="prose prose-sm dark:prose-invert max-w-none mt-4 border-t pt-4">
+            <div dangerouslySetInnerHTML={{ __html: viewFaq?.answer || "" }} />
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setViewFaq(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
-      <DeleteConfirmationDialog 
-        open={!!deleteId} 
+      <DeleteConfirmationDialog
+        open={!!deleteId}
         onOpenChange={(open) => !open && setDeleteId(null)}
         onConfirm={confirmDelete}
         itemName={faqToDelete?.question}

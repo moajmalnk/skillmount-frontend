@@ -4,9 +4,9 @@ import api from "@/lib/api";
 export interface DashboardStat {
   label: string;
   value: string | number;
-  change: number; 
+  change: number;
   trend: "up" | "down" | "neutral";
-  icon: "users" | "money" | "ticket" | "activity" | "book" | "message" | "award";
+  icon: "users" | "money" | "ticket" | "activity" | "book" | "message" | "award" | "star" | "rupee" | "affiliate";
 }
 
 export interface ChartData {
@@ -65,12 +65,12 @@ export const statsService = {
 
     // Map Backend 'ActivityLog' format to Frontend UI format
     return data.activity.map((log: any) => ({
-        id: log.id,
-        user: log.actor_name || "System",
-        action: log.description,
-        // Format simple time string
-        time: new Date(log.timestamp).toLocaleDateString(),
-        type: log.action_type
+      id: log.id,
+      user: log.actor_name || "System",
+      action: log.description,
+      // Format simple time string
+      time: new Date(log.timestamp).toLocaleDateString(),
+      type: log.action_type
     }));
   }
 };

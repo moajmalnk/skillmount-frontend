@@ -1,4 +1,4 @@
-export type MaterialType = "Video" | "Theme" | "Plugin" | "Snippet" | "Asset";
+export type MaterialType = "Template Kit" | "Themes" | "Plugins" | "Docs" | "Snippet" | "Videos";
 
 export interface Material {
   id: string;

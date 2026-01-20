@@ -34,6 +34,7 @@ export interface SocialLinks {
   twitter?: string;
   website?: string;
   behance?: string;
+  instagram?: string;
 }
 
 export interface PlacementData {

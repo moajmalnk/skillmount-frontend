@@ -251,4 +251,17 @@ export const userService = {
       throw error;
     }
   },
+
+  // 7. CHANGE PASSWORD
+  changePassword: async (oldPayload: string, newPayload: string) => {
+    try {
+      await api.post('/auth/change-password/', {
+        old_password: oldPayload,
+        new_password: newPayload
+      });
+    } catch (error) {
+      console.error("Change password failed", error);
+      throw error;
+    }
+  }
 };

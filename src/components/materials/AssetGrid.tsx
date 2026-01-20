@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { WobbleCard } from "@/components/ui/wobble-card";
-import { FolderOpen, Download } from "lucide-react";
+import { FolderOpen, Download, BookOpen, ExternalLink, Layout } from "lucide-react";
 import { Material } from "@/types/material";
 
 export const AssetGrid = ({ assets }: { assets: Material[] }) => {
@@ -16,10 +16,16 @@ export const AssetGrid = ({ assets }: { assets: Material[] }) => {
               <CardHeader className="p-8">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex flex-col gap-2">
-                    <Badge className="rounded-full px-3 py-1 text-xs font-medium">Asset</Badge>
-                    <Badge variant="secondary" className="text-xs rounded-full border-border/40">{asset.category}</Badge>
+                    <Badge className="rounded-full px-3 py-1 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border-0">
+                      {asset.type}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs rounded-full border-border/40 w-fit">{asset.category}</Badge>
                   </div>
-                  <FolderOpen className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
+                  {asset.type === 'Docs' ? (
+                    <BookOpen className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
+                  ) : (
+                    <Layout className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
+                  )}
                 </div>
                 <CardTitle className="text-lg leading-tight mb-3 group-hover:text-primary transition-colors duration-300">{asset.title}</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground leading-relaxed">{asset.description}</CardDescription>
@@ -32,13 +38,21 @@ export const AssetGrid = ({ assets }: { assets: Material[] }) => {
                     ))}
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{asset.fileCount} files</span>
-                    <span>{asset.size}</span>
+                    {asset.fileCount ? <span>{asset.fileCount} files</span> : <span></span>}
+                    {asset.size && <span>{asset.size}</span>}
                   </div>
                   <Separator className="bg-border/30" />
                   <Button size="sm" className="w-full rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105" asChild>
-                    <a href={asset.url} download>
-                      <Download className="w-4 h-4 mr-2" /> Download Asset
+                    <a href={asset.url} target="_blank" rel="noopener noreferrer">
+                      {asset.type === 'Docs' ? (
+                        <>
+                          <ExternalLink className="w-4 h-4 mr-2" /> Read Documentation
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 mr-2" /> Download Kit
+                        </>
+                      )}
                     </a>
                   </Button>
                 </div>

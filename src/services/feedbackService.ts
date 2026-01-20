@@ -13,6 +13,7 @@ export const feedbackService = {
         id: item.id.toString(),
         studentId: item.student ? item.student.toString() : 'N/A', // student ID from FK
         studentName: item.student_name || 'Anonymous',
+        studentAvatar: item.student_avatar,
         rating: item.rating,
         message: item.message,
         date: item.date,
@@ -27,6 +28,31 @@ export const feedbackService = {
       return mappedData;
     } catch (error) {
       console.error("Failed to load feedbacks", error);
+      return [];
+    }
+  },
+
+  // 1b. GET PUBLIC TESTIMONIALS
+  getPublicTestimonials: async (): Promise<Feedback[]> => {
+    try {
+      const response = await api.get<any[]>('/feedbacks/?is_public=true');
+      return response.data.map((item: any) => ({
+        id: item.id.toString(),
+        studentId: item.student ? item.student.toString() : 'N/A',
+        studentName: item.student_name || 'Anonymous',
+        studentAvatar: item.student_avatar,
+        rating: item.rating,
+        message: item.message,
+        date: item.date,
+        status: item.status || 'New',
+        category: item.category || 'Other',
+        attachmentUrl: item.attachment,
+        voiceUrl: item.voice_note,
+        isPublic: item.is_public,
+        adminReply: item.admin_reply
+      }));
+    } catch (error) {
+      console.error("Failed to load public testimonials", error);
       return [];
     }
   },

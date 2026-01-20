@@ -7,7 +7,7 @@ export interface BlogPost {
   excerpt: string;
   content: string; // HTML content
   coverImage: string;
-  category: string;
+  categories: string[];
   tags: string[];
   author: {
     name: string;

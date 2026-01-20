@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
-import { MessageSquare, Sparkles, X, Loader2, ArrowUpRight, Copy, Bot, Info, PanelLeft, Plus, Menu, ChevronLeft, History, Youtube, FileText, Globe, BookOpen } from "lucide-react";
+import { MessageSquare, Sparkles, X, Loader2, ArrowUpRight, Copy, Bot, Info, PanelLeft, Plus, Menu, ChevronLeft, History, Youtube, FileText, Globe, BookOpen, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +77,7 @@ const ChatSidebar = ({
   onSelectSession: (id: string) => void;
 }) => {
   const sidebarWidth = isCollapsed ? "w-[70px]" : "w-[260px]";
-  const commonClasses = `flex flex-col border-r border-white/10 bg-slate-900/50 backdrop-blur-xl transition-all duration-300 ease-in-out h-full overflow-hidden shrink-0 z-20`;
+  const commonClasses = `flex flex-col border-r border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-slate-900/50 backdrop-blur-xl transition-all duration-300 ease-in-out h-full overflow-hidden shrink-0 z-20`;
 
   if (isMobile) {
     return (
@@ -110,11 +110,11 @@ const ChatSidebar = ({
       <div className="flex flex-col h-full">
         <div className={`p-4 flex items-center shrink-0 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
           {!isCollapsed && (
-            <span className="font-semibold text-sm tracking-wide text-slate-200 animate-in fade-in duration-300">
+            <span className="font-semibold text-sm tracking-wide text-slate-700 dark:text-slate-200 animate-in fade-in duration-300">
               History
             </span>
           )}
-          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10 text-slate-400 hover:text-white transition-colors" onClick={toggleCollapse}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-200/50 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" onClick={toggleCollapse}>
             <PanelLeft className="w-4 h-4" />
           </Button>
         </div>
@@ -256,6 +256,7 @@ export const ChatWidget = () => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Sidebar State
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -586,27 +587,25 @@ export const ChatWidget = () => {
           size="lg"
           className="shadow-xl rounded-full gap-2 pointer-events-auto bg-white text-slate-900 hover:bg-slate-100 hover:scale-105 transition-all duration-300"
         >
-          <Sparkles className="w-4 h-4 text-indigo-500" />
+          <img src="https://moajmalnk.in/assets/img/logo/logo-lightaj.png" alt="SkillMount" className="w-6 h-6 object-contain" />
           Study Assistant
         </Button>
       </div>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:px-4 sm:py-6 animate-in fade-in duration-200">
-          <Card className="w-full h-[100dvh] sm:h-[85vh] sm:max-w-5xl flex flex-col overflow-hidden relative border-none sm:shadow-2xl bg-background/95 backdrop-blur-md sm:rounded-2xl rounded-none">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm ${isExpanded ? "p-0" : "p-0 sm:px-4 sm:py-6"} animate-in fade-in duration-200`}>
+          <Card className={`w-full flex flex-col overflow-hidden relative border-none sm:shadow-2xl bg-background/95 backdrop-blur-md ${isExpanded ? "h-full max-w-none rounded-none" : "h-[100dvh] sm:h-[85vh] sm:max-w-5xl sm:rounded-2xl"}`}>
 
             <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
 
             {/* Header with Antigravity feel */}
-            <CardHeader className="flex flex-row items-center justify-between shrink-0 bg-white/40 dark:bg-black/40 backdrop-blur-md border-b border-white/10 z-20 relative px-4 md:px-6 py-4">
+            <CardHeader className="flex flex-row items-center justify-between shrink-0 bg-white/80 dark:bg-black/40 backdrop-blur-md border-b border-slate-200 dark:border-white/10 z-20 relative px-4 md:px-6 py-4">
               <div className="flex items-center gap-3">
                 <Button variant="ghost" size="icon" className="sm:hidden -ml-2 text-slate-400 hover:text-white" onClick={() => setIsMobileNavOpen(true)}>
                   <Menu className="w-5 h-5" />
                 </Button>
                 <CardTitle className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
-                    <MessageSquare className="w-5 h-5 text-white" />
-                  </div>
+                  <img src="https://moajmalnk.in/assets/img/logo/logo-lightaj.png" alt="Logo" className="h-10 w-auto object-contain" />
                   <div className="flex flex-col">
                     <span className="font-bold text-lg tracking-tight">Study Assistant</span>
                     <span className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">AI Powered</span>
@@ -614,11 +613,14 @@ export const ChatWidget = () => {
                 </CardTitle>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="icon" variant="ghost" className="rounded-full hover:bg-white/20" onClick={() => setShowHelp(true)}>
+                <Button size="icon" variant="ghost" className="rounded-full hover:bg-white/20 hidden sm:flex" onClick={() => setIsExpanded(!isExpanded)}>
+                  {isExpanded ? <Minimize2 className="w-4 h-4 text-muted-foreground hover:text-indigo-500" /> : <Maximize2 className="w-4 h-4 text-muted-foreground hover:text-indigo-500" />}
+                </Button>
+                <Button size="icon" variant="ghost" className="rounded-full hover:bg-slate-100 dark:hover:bg-white/20" onClick={() => setShowHelp(true)}>
                   <Info className="w-5 h-5 text-muted-foreground hover:text-indigo-500 transition-colors" />
                 </Button>
-                <Separator orientation="vertical" className="h-6 mx-1 bg-white/20 hidden sm:block" />
-                <Button size="icon" variant="ghost" className="rounded-full hover:bg-red-500/10 hover:text-red-500 transition-colors" onClick={() => setIsOpen(false)}>
+                <Separator orientation="vertical" className="h-6 mx-1 bg-slate-200 dark:bg-white/20 hidden sm:block" />
+                <Button size="icon" variant="ghost" className="rounded-full hover:bg-red-100 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors" onClick={() => setIsOpen(false)}>
                   <X className="w-5 h-5" />
                 </Button>
               </div>
@@ -721,7 +723,7 @@ export const ChatWidget = () => {
                           <div className="max-w-[95%] sm:max-w-[90%] md:max-w-[85%] rounded-2xl rounded-tl-sm bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 px-4 py-3 sm:px-5 sm:py-4 text-sm shadow-sm space-y-3">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <div className="flex items-center gap-2">
-                                <Bot className="w-4 h-4 text-indigo-500" />
+                                <img src="https://moajmalnk.in/assets/img/logo/logo-lightaj.png" alt="Bot" className="w-5 h-5 object-contain" />
                                 <span className="font-semibold text-foreground text-xs uppercase tracking-wide">Assistant</span>
                               </div>
                               {!turn.isTyping && (

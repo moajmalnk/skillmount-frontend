@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/layout/NotificationBell";
-import { Menu, X, User as UserIcon, LogOut, LayoutDashboard, Ticket, Sparkles } from "lucide-react";
+import { Menu, X, User as UserIcon, LogOut, LayoutDashboard, Ticket, Sparkles, KeyRound } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
@@ -25,11 +25,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+import { ChangePasswordDialog } from "@/components/common/ChangePasswordDialog";
+
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false); // New State
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
@@ -154,6 +157,15 @@ const Navbar = () => {
                       </>
                     )}
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={(e) => { e.preventDefault(); setIsChangePasswordOpen(true); }}
+                      className="cursor-pointer"
+                    >
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      <span>Change Password</span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
                     {/* Trigger Logout Dialog */}
                     <DropdownMenuItem
                       onSelect={(e) => { e.preventDefault(); setIsLogoutDialogOpen(true); }}
@@ -276,8 +288,14 @@ const Navbar = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* CHANGE PASSWORD DIALOG */}
+      <ChangePasswordDialog
+        open={isChangePasswordOpen}
+        onOpenChange={setIsChangePasswordOpen}
+        trigger={null}
+      />
     </>
   );
 };
-
 export default Navbar;

@@ -1,13 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, DollarSign, Ticket, Activity, TrendingUp, TrendingDown, Minus, BookOpen, MessageSquare, Award } from "lucide-react";
+import { Users, DollarSign, Ticket, Activity, TrendingUp, TrendingDown, Minus, BookOpen, MessageSquare, Award, Star, IndianRupee, Share2 } from "lucide-react";
 
 interface StatCardProps {
   label: string;
   value: string | number;
   change: number;
   trend: "up" | "down" | "neutral";
-  // Added 'award' to the allowed icons
-  icon: "users" | "money" | "ticket" | "activity" | "book" | "message" | "award"; 
+  // Added 'award' and 'star' to the allowed icons
+  icon: "users" | "money" | "ticket" | "activity" | "book" | "message" | "award" | "star" | "rupee" | "affiliate";
 }
 
 export const StatCard = ({ label, value, change, trend, icon }: StatCardProps) => {
@@ -18,7 +18,10 @@ export const StatCard = ({ label, value, change, trend, icon }: StatCardProps) =
     activity: Activity,
     book: BookOpen,
     message: MessageSquare,
-    award: Award // Map the new icon
+    award: Award,
+    star: Star,
+    rupee: IndianRupee,
+    affiliate: Share2
   };
 
   const IconComponent = IconMap[icon] || Activity;
@@ -26,8 +29,8 @@ export const StatCard = ({ label, value, change, trend, icon }: StatCardProps) =
   // Color logic
   // For tickets/messages, trend DOWN is usually good (green), UP is bad (red)
   // For Students/Placements/Materials, trend UP is good (green)
-  const isPositiveGood = icon !== "ticket" && icon !== "message"; 
-  
+  const isPositiveGood = icon !== "ticket" && icon !== "message";
+
   let colorClass = "text-muted-foreground";
   if (trend === "up") colorClass = isPositiveGood ? "text-green-500" : "text-red-500";
   if (trend === "down") colorClass = isPositiveGood ? "text-red-500" : "text-green-500";

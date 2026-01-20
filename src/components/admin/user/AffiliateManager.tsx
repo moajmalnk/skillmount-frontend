@@ -3,8 +3,9 @@ import { ManagementTable } from "@/components/admin/ManagementTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, RefreshCw, Loader2, Copy, CheckCircle2, AlertCircle } from "lucide-react";
+import { TableCell, TableRow, TableHead, TableHeader, TableBody, Table } from "@/components/ui/table";
+import { Pencil, Trash2, RefreshCw, Loader2, Copy, CheckCircle2, AlertCircle, Search, X, Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -27,6 +28,22 @@ export const AffiliateManager = () => {
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const filteredAffiliates = affiliates.filter(a => {
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = a.name.toLowerCase().includes(searchLower) ||
+      a.email.toLowerCase().includes(searchLower) ||
+      (a.regId && a.regId.toLowerCase().includes(searchLower)) ||
+      (a.couponCode && a.couponCode.toLowerCase().includes(searchLower));
+
+    const matchesStatus = filterStatus === 'all' || a.status === filterStatus;
+
+    return matchesSearch && matchesStatus;
+  });
 
   // Dialog & Form State
   // Dialog & Form State (Create Only)
@@ -230,77 +247,138 @@ export const AffiliateManager = () => {
   };
 
   return (
-    <>
-      <ManagementTable
-        title="Affiliates & Partners"
-        description="Manage partners, referral links, and coupon codes."
-        columns={["Reg ID", "Name", "Platform", "Coupon Code", "Status"]}
-        onAddNew={openCreateDialog}
-      >
-        {isLoading ? (
-          <TableRow>
-            <TableCell colSpan={6} className="h-24 text-center">
-              <div className="flex justify-center items-center gap-2">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span>Loading Partners...</span>
-              </div>
-            </TableCell>
-          </TableRow>
-        ) : affiliates.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-              No affiliates found. Add one to get started.
-            </TableCell>
-          </TableRow>
-        ) : (
-          affiliates.map((affiliate) => (
-            <TableRow key={affiliate.id}>
-              <TableCell className="font-medium">{affiliate.regId}</TableCell>
-              <TableCell>
-                <div className="font-medium">{affiliate.name}</div>
-                <div className="text-xs text-muted-foreground">{affiliate.email}</div>
-              </TableCell>
-              <TableCell>{affiliate.platform}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="font-mono bg-primary/5 border-primary/20 text-primary">
-                    {affiliate.couponCode}
-                  </Badge>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyCode(affiliate.couponCode)}>
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-              </TableCell>
-              <TableCell>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${affiliate.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                  {affiliate.status}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 hover:text-primary"
-                    onClick={() => handleEdit(affiliate)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                    onClick={(e) => initiateDelete(affiliate.id, e)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </ManagementTable>
+    <div className="space-y-4">
+
+
+      {/* 2. Advanced Filter Bar */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, email, or coupon..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="w-full md:w-[180px]">
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button onClick={openCreateDialog} className="shrink-0">
+              <Plus className="w-4 h-4 mr-2" /> Add Partner
+            </Button>
+
+            {/* Clear Button */}
+            {(searchQuery || filterStatus !== 'all') && (
+              <Button variant="ghost" size="icon" onClick={() => { setSearchQuery(""); setFilterStatus("all"); }} title="Reset Filters">
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3. Data Table */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[150px]">Reg ID</TableHead>
+                  <TableHead>Partner Details</TableHead>
+                  <TableHead>Platform</TableHead>
+                  <TableHead>Coupon Code</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                      <div className="flex justify-center items-center gap-2">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span>Loading Partners...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredAffiliates.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                      No affiliates found matching your filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredAffiliates.map((affiliate) => (
+                    <TableRow
+                      key={affiliate.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleEdit(affiliate)}
+                    >
+                      <TableCell className="font-medium font-mono text-xs">{affiliate.regId}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{affiliate.name}</div>
+                        <div className="text-xs text-muted-foreground">{affiliate.email}</div>
+                      </TableCell>
+                      <TableCell>{affiliate.platform}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="font-mono bg-primary/5 border-primary/20 text-primary">
+                            {affiliate.couponCode}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => { e.stopPropagation(); copyCode(affiliate.couponCode || ""); }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${affiliate.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                          {affiliate.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={(e) => initiateDelete(affiliate.id, e)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -386,6 +464,6 @@ export const AffiliateManager = () => {
         itemName={affiliateToDelete?.name}
         description="This will permanently delete the affiliate account and deactivate their coupon code."
       />
-    </>
+    </div>
   );
 };

@@ -27,7 +27,7 @@ export const BlogCard = ({ post }: BlogCardProps) => {
           {/* Badges */}
           <div className="absolute top-4 left-4 flex gap-2">
             <Badge className="bg-background/90 text-foreground hover:bg-background backdrop-blur-md border-none shadow-sm">
-              {post.category}
+              {post.categories?.[0] || "General"}
             </Badge>
             {post.isEditorsPick && (
               <Badge className="bg-green-500 text-white border-none shadow-sm gap-1">

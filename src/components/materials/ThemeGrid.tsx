@@ -50,7 +50,7 @@ export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
                       )}
 
                       <Button size="sm" asChild className="rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105">
-                        <a href={theme.url} download>
+                        <a href={theme.url} target="_blank" rel="noopener noreferrer">
                           <Download className="w-4 h-4 mr-2" /> Download
                         </a>
                       </Button>

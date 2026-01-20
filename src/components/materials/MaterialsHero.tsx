@@ -9,6 +9,8 @@ interface MaterialsHeroProps {
     themes: number;
     plugins: number;
     snippets: number;
+    templateKits: number;
+    docs: number;
   };
 }
 
@@ -22,7 +24,7 @@ export const MaterialsHero = ({ isVisible, counts }: MaterialsHeroProps) => {
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/60"></div>
         <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
       </div>
-      
+
       <div className="container mx-auto px-6 max-w-7xl relative z-10">
         <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className="text-center pt-20 pb-16">
@@ -31,36 +33,44 @@ export const MaterialsHero = ({ isVisible, counts }: MaterialsHeroProps) => {
               <Sparkles className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-medium text-foreground tracking-wide">Learning Resources</span>
             </div>
-            
+
             <div className="space-y-8 mb-16">
-              <TextGenerateEffect 
-                words="Learning Materials & Resources" 
+              <TextGenerateEffect
+                words="Learning Materials & Resources"
                 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-tight text-foreground tracking-tight max-w-6xl mx-auto"
                 duration={2}
               />
               <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-4xl mx-auto font-light">
-                Access comprehensive WordPress, Elementor, and WooCommerce resources. 
+                Access comprehensive WordPress, Elementor, and WooCommerce resources.
                 Everything you need to build professional websites and launch your career.
               </p>
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-8 border-t border-border/20 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 py-8 border-t border-border/20 max-w-6xl mx-auto">
               <div className="space-y-2">
-                <div className="text-4xl md:text-5xl font-bold text-primary">{counts.videos}</div>
-                <div className="text-sm text-muted-foreground font-medium">Video Tutorials</div>
+                <div className="text-3xl md:text-4xl font-bold text-primary">{counts.templateKits}</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Template Kits</div>
               </div>
               <div className="space-y-2">
-                <div className="text-4xl md:text-5xl font-bold text-primary">{counts.themes}</div>
-                <div className="text-sm text-muted-foreground font-medium">Themes & Templates</div>
+                <div className="text-3xl md:text-4xl font-bold text-primary">{counts.themes}</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Themes</div>
               </div>
               <div className="space-y-2">
-                <div className="text-4xl md:text-5xl font-bold text-primary">{counts.plugins}</div>
-                <div className="text-sm text-muted-foreground font-medium">Plugin Guides</div>
+                <div className="text-3xl md:text-4xl font-bold text-primary">{counts.plugins}</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Plugins</div>
               </div>
               <div className="space-y-2">
-                <div className="text-4xl md:text-5xl font-bold text-primary">{counts.snippets}</div>
-                <div className="text-sm text-muted-foreground font-medium">Code Snippets</div>
+                <div className="text-3xl md:text-4xl font-bold text-primary">{counts.docs}</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Docs</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">{counts.snippets}</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Snippets</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary">{counts.videos}</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Videos</div>
               </div>
             </div>
           </div>

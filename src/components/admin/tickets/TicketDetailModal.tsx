@@ -15,14 +15,18 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { X, Trash2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, Mic, Loader2 } from "lucide-react";
+import { X, Trash2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, Mic, Loader2, ScrollText, Edit, XCircle, Maximize2, Minimize2 } from "lucide-react";
 import { VoiceRecorder } from "@/components/tickets/VoiceRecorder";
+import { TicketAudioPlayer } from "@/components/tickets/TicketAudioPlayer";
 import { toast } from "sonner";
 import { Ticket } from "@/types/ticket";
 import { ticketService } from "@/services/ticketService";
 import { systemService } from "@/services/systemService";
 import { MacroSelector } from "@/components/tickets/MacroSelector";
 import { useAuth } from "@/context/AuthContext";
+import { MacroItem } from "@/services/systemService";
+import { EditTicketDialog } from "./EditTicketDialog";
+import { TicketLogView } from "./TicketLogView";
 
 interface TicketDetailModalProps {
   ticket: Ticket | null;
@@ -44,18 +48,24 @@ export const TicketDetailModal = ({
   onUpdate
 }: TicketDetailModalProps) => {
   const { user } = useAuth(); // Needed for 'ME' avatar fallback
+
   const [ticket, setTicket] = useState<Ticket | null>(initialTicket);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     setTicket(initialTicket);
-  }, [initialTicket]);
+    if (isOpen) {
+      setActiveView("details");
+    }
+  }, [initialTicket, isOpen]);
 
-  const [activeView, setActiveView] = useState<"details" | "summary">("details");
+  const [activeView, setActiveView] = useState<"details" | "summary" | "log">("details");
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [macros, setMacros] = useState<string[]>([]);
+  const [macros, setMacros] = useState<MacroItem[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -90,10 +100,11 @@ export const TicketDetailModal = ({
 
   if (!ticket) return null;
 
-  const handleMacroSelect = (value: string) => {
-    setReplyText((prev) => prev + (prev ? "\n" : "") + value);
+  const handleMacroSelect = (description: string) => {
+    setReplyText((prev) => prev + (prev ? "\n" : "") + description);
     setTimeout(() => textareaRef.current?.focus(), 50);
   };
+  // ...
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -294,7 +305,7 @@ export const TicketDetailModal = ({
   const DetailsView = () => (
     <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
       {/* Messages Header - Compact - Increased padding to strictly avoid Close button overlap */}
-      <div className="px-4 sm:px-6 pr-16 border-b border-border/40 bg-background/50 backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center shrink-0 h-[60px] sm:h-[72px]">
+      <div className="px-4 sm:px-6 pr-36 border-b border-border/40 bg-background/50 backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center shrink-0 h-[60px] sm:h-[72px]">
         <div className="overflow-hidden mr-2">
           <h2 className="font-bold text-base sm:text-lg leading-tight truncate" title={ticket.title}>{ticket.title}</h2>
           <div className="flex items-center gap-2 mt-0.5 text-[10px] sm:text-xs text-muted-foreground">
@@ -303,9 +314,10 @@ export const TicketDetailModal = ({
             <span className="truncate">{new Date(ticket.created_at).toLocaleDateString()}</span>
           </div>
         </div>
-        <div className="flex gap-1 sm:gap-2 shrink-0 mr-8 sm:mr-10">
+        <div className="flex gap-1 sm:gap-2 shrink-0">
           <Badge variant={ticket.status === 'Open' ? 'default' : 'secondary'} className="text-[10px] px-1.5">{ticket.status}</Badge>
           <Badge variant="outline" className="text-[10px] px-1.5 hidden xs:inline-flex">{ticket.priority}</Badge>
+          <div className="w-16 sm:w-20 shrink-0" /> {/* Spacer for global controls */}
         </div>
       </div>
 
@@ -366,36 +378,36 @@ export const TicketDetailModal = ({
             return (
               <div
                 key={msg.id}
-                className={`flex gap-2 w-full animate-in fade-in slide-in-from-bottom-1 duration-200 ${isMe ? "justify-end" : "justify-start"}`}
+                className={`flex gap-1 w-full animate-in fade-in slide-in-from-bottom-1 duration-200 group ${isMe ? "justify-end" : "justify-start"}`}
               >
                 {/* Avatar (Only for others) */}
                 {!isMe && (
-                  <Avatar className="h-8 w-8 mt-0.5 border border-white/40 shadow-sm shrink-0">
-                    <AvatarFallback className="bg-white text-muted-foreground text-[10px]">
+                  <Avatar className="h-6 w-6 mt-0 border border-border shadow-sm shrink-0 self-start">
+                    <AvatarFallback className="bg-muted text-muted-foreground text-[8px]">
                       {msg.sender_name?.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 )}
 
-                <div className={`flex flex-col items-${isMe ? "end" : "start"} max-w-[85%] sm:max-w-[65%]`}>
+                <div className={`flex flex-col items-${isMe ? "end" : "start"} max-w-[85%] sm:max-w-[70%]`}>
                   {/* Bubble */}
                   <div
                     className={`
-                      relative shadow-sm text-sm break-words flex flex-col transition-all hover:shadow-md
+                      relative shadow-sm text-sm break-words flex flex-col transition-all
                       ${isMe
-                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm"
-                        : "bg-muted/40 border border-border/50 rounded-2xl rounded-tl-sm text-foreground"
+                        ? "bg-primary text-primary-foreground dark:bg-muted dark:text-foreground dark:border-primary/30 dark:border rounded-xl rounded-tr-none"
+                        : "bg-muted/40 border border-border/50 rounded-xl rounded-tl-none text-foreground"
                       }
-                      ${isImage ? "p-1.5" : "p-3 px-4"}
+                      ${isImage ? "p-1" : "p-2 px-3"}
                     `}
                   >
                     {/* Image Preview */}
                     {isImage && (
-                      <div className="relative mb-2 overflow-hidden rounded-xl cursor-pointer bg-black/5 dark:bg-white/5 border border-black/5" onClick={() => window.open(msg.attachment, '_blank')}>
+                      <div className="relative mb-1 overflow-hidden rounded-lg cursor-pointer bg-black/5 dark:bg-white/5 border border-black/5" onClick={() => window.open(msg.attachment, '_blank')}>
                         <img
                           src={msg.attachment}
                           alt="Attachment"
-                          className="w-full h-auto max-h-[300px] object-cover hover:scale-105 transition-transform duration-500"
+                          className="w-full h-auto max-h-[300px] object-cover"
                           loading="lazy"
                         />
                       </div>
@@ -403,54 +415,49 @@ export const TicketDetailModal = ({
 
                     {/* Text */}
                     {showText && (
-                      <p className="whitespace-pre-wrap leading-relaxed mb-1.5">
+                      <p className="whitespace-pre-wrap leading-relaxed mb-0 min-w-[60px] pr-12 pb-1 relative">
                         {msg.message}
+                        <span className={`text-[9px] font-medium leading-none ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'} absolute bottom-0 right-0 select-none`}>
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </p>
                     )}
 
                     {/* Voice Note */}
                     {msg.voice_note && (
-                      <div className={`flex items-center gap-3 mt-1 mb-1 min-w-[200px] p-2 rounded-lg ${isMe ? 'bg-white/10' : 'bg-background/50 border border-border/50'}`}>
-                        <div className={`p-1.5 rounded-full ${isMe ? 'bg-white/20' : 'bg-primary/10 text-primary'}`}>
-                          <Mic className="w-4 h-4" />
-                        </div>
-                        <audio
-                          controls
-                          className="h-8 w-full max-w-[220px]"
-                          src={msg.voice_note}
-                          style={{ boxShadow: 'none', background: 'transparent' }}
-                        />
+                      <div className="min-w-[260px] pb-4 relative">
+                        <TicketAudioPlayer src={msg.voice_note} isMe={isMe} timestamp={msg.timestamp} />
                       </div>
                     )}
 
                     {/* Generic File Attachment (Non-Image) */}
                     {msg.attachment && !isImage && (
-                      <a
-                        href={msg.attachment}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`
-                          flex items-center gap-3 p-2.5 rounded-lg mb-1 transition-colors border
+                      <div className="relative pb-4">
+                        <a
+                          href={msg.attachment}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`
+                          flex items-center gap-3 p-2 rounded-lg mb-0 transition-colors border
                           ${isMe
-                            ? 'bg-white/10 border-white/10 hover:bg-white/20 text-white'
-                            : 'bg-background hover:bg-background/80 border-border/60 text-foreground'
-                          }
+                              ? 'bg-white/10 border-white/10 hover:bg-white/20 text-white'
+                              : 'bg-background hover:bg-background/80 border-border/60 text-foreground'
+                            }
                         `}
-                      >
-                        <div className={`p-1.5 rounded-md ${isMe ? 'bg-white/20' : 'bg-primary/10 text-primary'}`}>
-                          <FileText className="w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col overflow-hidden max-w-[160px]">
-                          <span className="text-xs truncate font-medium">Document</span>
-                          <span className={`text-[10px] uppercase truncate opacity-70 ${isMe ? 'text-white/70' : 'text-muted-foreground'}`}>Click to open</span>
-                        </div>
-                      </a>
+                        >
+                          <div className={`p-1.5 rounded-md ${isMe ? 'bg-white/20' : 'bg-primary/10 text-primary'}`}>
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col overflow-hidden max-w-[160px]">
+                            <span className="text-xs truncate font-medium">Document</span>
+                            <span className={`text-[10px] uppercase truncate opacity-70 ${isMe ? 'text-white/70' : 'text-muted-foreground'}`}>Click to open</span>
+                          </div>
+                        </a>
+                        <span className={`text-[9px] font-medium leading-none ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'} absolute bottom-0 right-0 select-none`}>
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     )}
-
-                    {/* Timestamp */}
-                    <div className={`text-[9px] font-medium leading-none ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'} text-right select-none ml-2`}>
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -548,8 +555,13 @@ export const TicketDetailModal = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
-          className="max-w-4xl p-0 w-[95vw] sm:w-[90vw] md:w-full h-[90vh] sm:h-[85vh] max-h-[850px] overflow-hidden flex flex-col sm:flex-row gap-0 outline-none border-none shadow-2xl rounded-2xl bg-background"
+          className={`p-0 overflow-hidden flex flex-col sm:flex-row gap-0 outline-none border-none shadow-2xl bg-background transition-all duration-300 ${isExpanded
+            ? "w-screen h-screen max-w-none max-h-none rounded-none"
+            : "max-w-4xl w-[95vw] sm:w-[90vw] md:w-full h-[90vh] sm:h-[85vh] max-h-[850px] rounded-2xl"
+            }`}
         >
+          {/* ... */}
+
           {/* LEFT SIDEBAR - Adaptive for Mobile */}
           <div className="w-full sm:w-64 bg-muted/20 border-b sm:border-r border-border flex flex-row sm:flex-col justify-between p-2 sm:p-4 shrink-0 overflow-hidden">
             <div className="flex flex-row sm:flex-col gap-2 sm:gap-6 flex-1 items-center sm:items-stretch overflow-x-auto no-scrollbar">
@@ -576,93 +588,117 @@ export const TicketDetailModal = ({
                     </div>
                     <span>Info & Metadata</span>
                   </Button>
+
+                  {/* Additional Actions */}
+                  <div className="my-1 border-t border-border/50 hidden sm:block" />
+
+                  <Button
+                    variant={activeView === "log" ? "secondary" : "ghost"}
+                    className={`flex-1 sm:flex-none justify-center sm:justify-start text-xs sm:text-sm font-medium h-9 sm:h-10 ${activeView === 'log' ? 'bg-white shadow-sm dark:bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                    onClick={() => setActiveView("log")}
+                  >
+                    <div className={`sm:mr-3 p-1 rounded-md ${activeView === 'log' ? 'bg-primary/10 text-primary' : ''}`}>
+                      <ScrollText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span>Ticket Log</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    className="flex-1 sm:flex-none justify-center sm:justify-start text-xs sm:text-sm font-medium h-9 sm:h-10 text-muted-foreground hover:bg-muted"
+                    onClick={() => setShowEditDialog(true)}
+                  >
+                    <div className="sm:mr-3 p-1 rounded-md">
+                      <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span>Edit Ticket</span>
+                  </Button>
+
+                  {ticket.status !== 'Closed' ? (
+                    <Button
+                      variant="ghost"
+                      className="flex-1 sm:flex-none justify-center sm:justify-start text-xs sm:text-sm font-medium h-9 sm:h-10 text-muted-foreground hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/20"
+                      onClick={() => handleStatusChange("Closed")}
+                    >
+                      <div className="sm:mr-3 p-1 rounded-md">
+                        <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <span>Close Ticket</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      className="flex-1 sm:flex-none justify-center sm:justify-start text-xs sm:text-sm font-medium h-9 sm:h-10 text-muted-foreground hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-950/20"
+                      onClick={() => handleStatusChange("Reopened")}
+                    >
+                      <div className="sm:mr-3 p-1 rounded-md">
+                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <span>Open Ticket</span>
+                    </Button>
+                  )}
+
+                  {role === "admin" && (
+                    <Button
+                      variant="ghost"
+                      className="flex-1 sm:flex-none justify-center sm:justify-start text-xs sm:text-sm font-medium h-9 sm:h-10 text-muted-foreground hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/20"
+                      onClick={handleDelete}
+                    >
+                      <div className="sm:mr-3 p-1 rounded-md">
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <span>Delete Ticket</span>
+                    </Button>
+                  )}
                 </div>
               </div>
 
               {/* Assignment Section - Hidden on Mobile Sidebar (exists in Summary) */}
-              {isSupportRole && (
-                <div className="hidden sm:block space-y-3 pt-4 border-t border-border/50">
-                  <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-3">Assignment</h3>
-
-                  <div className="bg-background rounded-xl p-3 border border-border shadow-sm mx-1">
-                    {ticket?.assigned_to ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 border">
-                            <AvatarFallback className="text-[10px]">
-                              {ticket.assigned_to_details?.name?.substring(0, 2).toUpperCase() || "ID"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col overflow-hidden">
-                            <span className="text-xs font-semibold truncate">{ticket.assigned_to_details?.name}</span>
-                            <span className="text-[10px] text-muted-foreground">Assignee</span>
-                          </div>
-                        </div>
-
-                        {(role === "admin" || String(currentUserId) === String(ticket.assigned_to)) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAssign(null)}
-                            className="w-full text-xs h-8 border-dashed hover:border-solid hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
-                          >
-                            Unassign
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground mb-3">No one is assigned</div>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => handleAssign(Number(currentUserId))}
-                          className="w-full text-xs h-8"
-                        >
-                          Claim Ticket
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Assignment Section Removed */}
             </div>
 
-            <div className="flex items-center gap-2 px-1 shrink-0">
-              {role === "admin" && onDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleDelete}
-                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8 sm:h-9 sm:w-9 shrink-0"
-                  title="Delete Ticket"
-                >
-                  <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </Button>
-              )}
-              {/* Close Button adapted for mobile spacing - REMOVED since we have global X now
-              <Button variant="ghost" className="text-[10px] sm:text-xs text-muted-foreground h-8 px-2 sm:px-3" onClick={onClose}>
-                Close
-              </Button>
-              */}
-            </div>
+
           </div>
 
           {/* RIGHT CONTENT */}
           <div className="flex-1 bg-background relative flex flex-col min-h-0">
-            {activeView === "details" ? DetailsView() : SummaryView()}
+            {activeView === "details" ? DetailsView() : activeView === "summary" ? SummaryView() : <TicketLogView ticket={ticket} />}
           </div>
 
           {/* Global Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 z-50 p-2 rounded-full bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-all border border-border/50 shadow-sm backdrop-blur-sm"
-            title="Close"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          {/* Global Controls (Expand + Close) */}
+          <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="h-8 w-8 rounded-full shadow-sm bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-muted"
+              title={isExpanded ? "Collapse" : "Expand"}
+            >
+              {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 rounded-full shadow-sm bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-muted"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
+
+      <EditTicketDialog
+        ticket={ticket}
+        isOpen={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onUpdate={(updated) => {
+          setTicket(updated);
+          if (onUpdate) onUpdate();
+        }}
+      />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>

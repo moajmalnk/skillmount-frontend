@@ -34,6 +34,7 @@ import { FAQManager } from "@/components/admin/FAQManager";
 import { InquiryManager } from "@/components/admin/InquiryManager";
 import { FeedbackManager } from "@/components/admin/FeedbackManager";
 import { BlogManager } from "@/components/admin/blog/BlogManager";
+import { ChangePasswordDialog } from "@/components/common/ChangePasswordDialog";
 
 const Admin = () => {
   // 3. Use Global Auth State
@@ -143,12 +144,17 @@ const Admin = () => {
                 <div className="font-medium">{user?.name}</div>
                 <div className="text-xs text-muted-foreground capitalize">Super Admin</div>
               </div>
+
+              <div className="hidden sm:flex gap-2">
+                <ChangePasswordDialog />
+                <Button variant="outline" onClick={() => setIsLogoutDialogOpen(true)}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+
               <Button variant="ghost" size="sm" className="text-muted-foreground sm:hidden" onClick={() => setIsLogoutDialogOpen(true)}>
                 <LogOut className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" className="hidden sm:flex" onClick={() => setIsLogoutDialogOpen(true)}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
               </Button>
             </div>
           </div>

@@ -32,11 +32,11 @@ const Footer = () => {
         from_email: email,
         reply_to: email,
         subject: "🎉 New Newsletter Subscription - moajmalnk.in",
-        current_date: currentDate.toLocaleDateString('en-US', { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
+        current_date: currentDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
         }),
         timestamp: currentDate.toLocaleString('en-US', {
           year: 'numeric',
@@ -179,7 +179,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer 
+    <footer
       className="relative bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 border-t border-gray-200 dark:border-gray-800 mt-20"
       role="contentinfo"
       aria-label="Site footer"
@@ -221,17 +221,17 @@ const Footer = () => {
           {/* Brand Section - Card Style */}
           <div className="xl:col-span-5 lg:col-span-6">
             <div className="group">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="inline-block mb-6 transition-transform duration-300 hover:scale-105"
                 aria-label="moajmalnk.in home"
               >
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                moajmalnk.in
+                  moajmalnk.in
                 </h2>
               </Link>
               <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-8 max-w-lg">
-                Empowering the next generation of developers through innovative learning, 
+                Empowering the next generation of developers through innovative learning,
                 collaborative projects, and real-world experience.
               </p>
 
@@ -339,7 +339,7 @@ const Footer = () => {
               <p>
                 &copy; {currentYear}{" "}
                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  moajmalnk.in
+                  SkillMount Educational - moajmalnk.in
                 </span>
                 . All rights reserved.
               </p>
@@ -371,104 +371,106 @@ const Footer = () => {
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
       {/* Newsletter Subscription Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Subscribe to Newsletter
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Get updates on new courses and features
-                </p>
-              </div>
-              <button
-                onClick={closeModal}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                aria-label="Close modal"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6">
-              {isSuccess ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    Successfully Subscribed!
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Your subscription request has been sent to moajmalnk@gmail.com. You'll be added to our newsletter list soon!
+      {
+        isModalOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Subscribe to Newsletter
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Get updates on new courses and features
                   </p>
                 </div>
-              ) : (
-                <form onSubmit={handleSubscribe} className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email address"
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-gray-100 transition-colors"
-                      required
-                    />
-                  </div>
+                <button
+                  onClick={closeModal}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  aria-label="Close modal"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
 
-                  {error && (
-                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                      <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              {/* Modal Content */}
+              <div className="p-6">
+                {isSuccess ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
                     </div>
-                  )}
-
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={closeModal}
-                      className="flex-1 px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors font-medium"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="flex-1 px-4 py-3 bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Subscribing...
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="w-4 h-4" />
-                          Subscribe
-                        </>
-                      )}
-                    </button>
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                      Successfully Subscribed!
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Your subscription request has been sent to moajmalnk@gmail.com. You'll be added to our newsletter list soon!
+                    </p>
                   </div>
+                ) : (
+                  <form onSubmit={handleSubscribe} className="space-y-4">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email address"
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-gray-100 transition-colors"
+                        required
+                      />
+                    </div>
 
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    Your email will be sent to{" "}
-                    <span className="font-medium text-primary">moajmalnk@gmail.com</span>{" "}
-                    for subscription processing.
-                  </p>
-                </form>
-              )}
+                    {error && (
+                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={closeModal}
+                        className="flex-1 px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors font-medium"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex-1 px-4 py-3 bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Subscribing...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-4 h-4" />
+                            Subscribe
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                      Your email will be sent to{" "}
+                      <span className="font-medium text-primary">moajmalnk@gmail.com</span>{" "}
+                      for subscription processing.
+                    </p>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </footer>
+        )
+      }
+    </footer >
   );
 };
 

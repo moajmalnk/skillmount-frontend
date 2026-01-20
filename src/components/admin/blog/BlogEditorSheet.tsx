@@ -7,10 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { BlogPost } from "@/types/blog";
 import { blogService } from "@/services/blogService";
+import { systemService } from "@/services/systemService";
 import { userService } from "@/services/userService";
 import { User } from "@/types/user";
 import { toast } from "sonner";
@@ -29,7 +32,7 @@ export const BlogEditorSheet = ({ isOpen, onClose, blog, onSave }: BlogEditorShe
     excerpt: "",
     content: "",
     coverImage: "",
-    category: "",
+    categories: [],
     tags: [],
     isFeatured: false,
     isEditorsPick: false,
@@ -39,29 +42,32 @@ export const BlogEditorSheet = ({ isOpen, onClose, blog, onSave }: BlogEditorShe
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [availableAuthors, setAvailableAuthors] = useState<User[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [selectedAuthorId, setSelectedAuthorId] = useState<string>("");
 
   // Fetch available authors (admins and tutors) when sheet opens
   useEffect(() => {
     if (isOpen) {
-      const fetchAuthors = async () => {
+      const fetchData = async () => {
         try {
-          const [admins, tutors] = await Promise.all([
+          const [admins, tutors, settings] = await Promise.all([
             userService.getElementsByRole('super_admin'),
-            userService.getElementsByRole('tutor')
+            userService.getElementsByRole('tutor'),
+            systemService.getSettings()
           ]);
           const allAuthors = [...admins, ...tutors];
           setAvailableAuthors(allAuthors);
-          
+          setAvailableCategories(settings.blogCategories || []);
+
           // Set default author to current user if available, or first author
           if (allAuthors.length > 0 && !selectedAuthorId) {
             setSelectedAuthorId(allAuthors[0].id);
           }
         } catch (error) {
-          console.error("Failed to fetch authors", error);
+          console.error("Failed to fetch data", error);
         }
       };
-      fetchAuthors();
+      fetchData();
     }
   }, [isOpen]);
 
@@ -87,7 +93,7 @@ export const BlogEditorSheet = ({ isOpen, onClose, blog, onSave }: BlogEditorShe
         excerpt: "",
         content: "",
         coverImage: "",
-        category: "",
+        categories: [],
         tags: [],
         isFeatured: false,
         isEditorsPick: false,
@@ -109,8 +115,8 @@ export const BlogEditorSheet = ({ isOpen, onClose, blog, onSave }: BlogEditorShe
       return;
     }
 
-    // Auto-generate slug if missing
-    const slug = formData.slug || formData.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+    // Let backend handle slug generation if empty (ensures uniqueness)
+    const slug = formData.slug;
 
     // Calculate Read Time
     const wordCount = formData.content.split(/\s+/).length;
@@ -160,8 +166,32 @@ export const BlogEditorSheet = ({ isOpen, onClose, blog, onSave }: BlogEditorShe
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Category</Label>
-                <Input value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
+                <Label>Categories</Label>
+                <div className="flex flex-wrap gap-2 mb-2 min-h-[24px]">
+                  {formData.categories?.map(cat => (
+                    <Badge key={cat} variant="secondary" className="gap-1 cursor-pointer" onClick={() => {
+                      const newCats = formData.categories?.filter(c => c !== cat) || [];
+                      setFormData({ ...formData, categories: newCats });
+                    }}>
+                      {cat} <X size={12} />
+                    </Badge>
+                  ))}
+                </div>
+                <Select value="" onValueChange={(val) => {
+                  const current = formData.categories || [];
+                  if (val && !current.includes(val)) {
+                    setFormData({ ...formData, categories: [...current, val] });
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Add Category..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Author</Label>

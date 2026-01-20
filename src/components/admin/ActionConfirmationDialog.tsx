@@ -79,15 +79,17 @@ export const ActionConfirmationDialog = ({
                         <Icon className={cn("w-5 h-5", styles.iconColor)} />
                         {title}
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="space-y-3 pt-2">
-                        {itemName && (
-                            <div className="bg-muted/50 p-3 rounded-md border border-border/50 font-medium text-sm flex items-center gap-2 text-foreground/80">
-                                <span className="text-muted-foreground font-normal">Item:</span>
-                                {itemName}
+                    <AlertDialogDescription asChild>
+                        <div className="space-y-3 pt-2 text-sm text-muted-foreground">
+                            {itemName && (
+                                <div className="bg-muted/50 p-3 rounded-md border border-border/50 font-medium text-sm flex items-center gap-2 text-foreground/80">
+                                    <span className="text-muted-foreground font-normal">Item:</span>
+                                    {itemName}
+                                </div>
+                            )}
+                            <div className="text-muted-foreground/90 leading-relaxed">
+                                {description}
                             </div>
-                        )}
-                        <div className="text-muted-foreground/90 leading-relaxed">
-                            {description}
                         </div>
                     </AlertDialogDescription>
                 </AlertDialogHeader>

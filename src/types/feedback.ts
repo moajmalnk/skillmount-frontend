@@ -2,6 +2,7 @@ export interface Feedback {
   id: string;
   studentId: string;
   studentName: string;
+  studentAvatar?: string | null;
   rating: number;
   message: string;
   date: string;

@@ -219,16 +219,7 @@ export const StudentManager = () => {
   return (
     <div className="space-y-4">
 
-      {/* 1. Header & Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Students Directory</h2>
-          <p className="text-muted-foreground">Manage enrollments, track progress, and highlight achievers.</p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="shrink-0">
-          <Plus className="w-4 h-4 mr-2" /> Enroll Student
-        </Button>
-      </div>
+
 
       {/* 2. Advanced Filter Bar */}
       <Card>
@@ -243,6 +234,20 @@ export const StudentManager = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
               />
+            </div>
+
+            {/* Student Type Filter (Moved from Tabs) */}
+            <div className="w-full md:w-[170px]">
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="View" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Students</SelectItem>
+                  <SelectItem value="top">Top Performers</SelectItem>
+                  <SelectItem value="featured">Graduates</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Batch Filter */}
@@ -274,6 +279,10 @@ export const StudentManager = () => {
               </Select>
             </div>
 
+            <Button onClick={() => setIsCreateOpen(true)} className="shrink-0">
+              <Plus className="w-4 h-4 mr-2" /> Enroll Student
+            </Button>
+
             {/* Clear Button */}
             {(searchQuery || filterBatch !== 'all' || filterProfileStatus !== 'all' || filterType !== 'all') && (
               <Button variant="ghost" size="icon" onClick={clearFilters} title="Reset Filters">
@@ -283,29 +292,7 @@ export const StudentManager = () => {
           </div>
 
           {/* Secondary Filters (Tabs style) */}
-          <div className="flex gap-2 mt-4">
-            <Badge
-              variant={filterType === 'all' ? 'default' : 'outline'}
-              className="cursor-pointer"
-              onClick={() => setFilterType('all')}
-            >
-              All Students
-            </Badge>
-            <Badge
-              variant={filterType === 'top' ? 'default' : 'outline'}
-              className="cursor-pointer border-amber-200 text-amber-700 hover:bg-amber-100"
-              onClick={() => setFilterType('top')}
-            >
-              <Star className="w-3 h-3 mr-1" /> Top Performers
-            </Badge>
-            <Badge
-              variant={filterType === 'featured' ? 'default' : 'outline'}
-              className="cursor-pointer border-blue-200 text-blue-700 hover:bg-blue-100"
-              onClick={() => setFilterType('featured')}
-            >
-              <GraduationCap className="w-3 h-3 mr-1" /> Graduates
-            </Badge>
-          </div>
+
         </CardContent>
       </Card>
 
@@ -343,7 +330,8 @@ export const StudentManager = () => {
                   filteredStudents.map((student) => (
                     <TableRow
                       key={student.id}
-                      className="group hover:bg-muted/50 transition-colors"
+                      className="group hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => handleViewDetails(student)}
                     >
                       {/* 1. Student Info */}
                       <TableCell>
@@ -425,14 +413,6 @@ export const StudentManager = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                            onClick={() => handleViewDetails(student)}
-                          >
-                            <EyeIcon className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
                             className="h-8 w-8 text-destructive hover:bg-destructive/10"
                             onClick={(e) => requestDelete(e, student)}
                           >
@@ -493,6 +473,7 @@ export const StudentManager = () => {
         onClose={() => setIsSheetOpen(false)}
         user={selectedStudent}
         type="student"
+        onUpdate={loadData}
       />
     </div>
   );

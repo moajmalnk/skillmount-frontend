@@ -20,8 +20,8 @@ export const FeedbackForm = () => {
     const loadTopics = async () => {
       try {
         const settings = await systemService.getSettings();
-        if (settings.topics && settings.topics.length > 0) {
-          setTopics(settings.topics);
+        if (settings.feedbackCategories && settings.feedbackCategories.length > 0) {
+          setTopics(settings.feedbackCategories);
         }
       } catch (error) {
         console.error("Failed to load topics", error);
@@ -160,19 +160,11 @@ export const FeedbackForm = () => {
               <SelectValue placeholder="Select Topic" />
             </SelectTrigger>
             <SelectContent>
-              {topics.length > 0 ? (
-                topics.map((topic) => (
-                  <SelectItem key={topic} value={topic}>
-                    {topic}
-                  </SelectItem>
-                ))
-              ) : (
-                <>
-                  <SelectItem value="Content">Content Quality</SelectItem>
-                  <SelectItem value="Platform">Platform UI/UX</SelectItem>
-                  <SelectItem value="Support">Support Service</SelectItem>
-                </>
-              )}
+              {topics.map((topic) => (
+                <SelectItem key={topic} value={topic}>
+                  {topic}
+                </SelectItem>
+              ))}
               {!topics.includes("Other") && <SelectItem value="Other">Other</SelectItem>}
             </SelectContent>
           </Select>

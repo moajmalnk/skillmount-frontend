@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Loader2, Video, Palette, Package, FolderOpen, Code } from "lucide-react";
+import { Loader2, Video, Palette, Package, FolderOpen, Code, BookOpen } from "lucide-react";
 import { ContainerScrollAnimation } from "@/components/ui/container-scroll-animation";
 import { FollowingPointer } from "@/components/ui/following-pointer";
 import SEO from "@/components/SEO";
@@ -18,11 +18,11 @@ import { AssetGrid } from "@/components/materials/AssetGrid";
 import { SnippetGrid } from "@/components/materials/SnippetGrid";
 
 const Materials = () => {
-  const [activeTab, setActiveTab] = useState("videos");
+  const [activeTab, setActiveTab] = useState("template-kits");
   const [isVisible, setIsVisible] = useState(false);
   const [allMaterials, setAllMaterials] = useState<Material[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -40,55 +40,58 @@ const Materials = () => {
   }, []);
 
   // Filter Data
-  const videos = allMaterials.filter(m => m.type === "Video");
-  const themes = allMaterials.filter(m => m.type === "Theme");
-  const plugins = allMaterials.filter(m => m.type === "Plugin");
-  const assets = allMaterials.filter(m => m.type === "Asset");
+  const videos = allMaterials.filter(m => m.type === "Videos");
+  const themes = allMaterials.filter(m => m.type === "Themes");
+  const plugins = allMaterials.filter(m => m.type === "Plugins");
+  const templateKits = allMaterials.filter(m => m.type === "Template Kit");
+  const docs = allMaterials.filter(m => m.type === "Docs");
   const snippets = allMaterials.filter(m => m.type === "Snippet");
 
   return (
     <FollowingPointer>
-      <SEO 
-        title="Learning Materials - WordPress & No-Code Resources | SkillMount" 
+      <SEO
+        title="Learning Materials - WordPress & No-Code Resources | SkillMount"
         url="https://students.moajmalnk.in/materials"
         description="Access comprehensive learning materials including video tutorials, themes, plugins, and code snippets."
       />
 
       <div className="min-h-screen bg-background">
-        
+
         {/* 1. Hero Section with Stats */}
-        <MaterialsHero 
-          isVisible={isVisible} 
+        <MaterialsHero
+          isVisible={isVisible}
           counts={{
             videos: videos.length,
             themes: themes.length,
             plugins: plugins.length,
-            snippets: snippets.length
+            snippets: snippets.length,
+            templateKits: templateKits.length,
+            docs: docs.length
           }}
         />
-        
+
         {isLoading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-10 h-10 animate-spin text-primary" />
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            
+
             {/* 2. Navigation Tabs */}
             <MaterialsTabs />
 
             {/* 3. Content Tabs */}
             <ContainerScrollAnimation direction="up" speed="normal">
-              
-              <TabsContent value="videos" className="space-y-6">
+
+              <TabsContent value="template-kits" className="space-y-6">
                 <div className="text-center mb-12 px-6">
                   <div className="inline-flex items-center gap-2.5 bg-primary/[0.03] border border-primary/10 rounded-full px-5 py-2 mb-8">
-                    <Video className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-medium text-foreground tracking-wide">Video Tutorials</span>
+                    <FolderOpen className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-medium text-foreground tracking-wide">Template Kits</span>
                   </div>
-                  <TextGenerateEffect words="Master with Video Learning" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
+                  <TextGenerateEffect words="Start with Complete Kits" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
-                <VideoGrid videos={videos} />
+                <AssetGrid assets={templateKits} />
               </TabsContent>
 
               <TabsContent value="themes" className="space-y-6">
@@ -106,22 +109,22 @@ const Materials = () => {
                 <div className="text-center mb-12 px-6">
                   <div className="inline-flex items-center gap-2.5 bg-primary/[0.03] border border-primary/10 rounded-full px-5 py-2 mb-8">
                     <Package className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-medium text-foreground tracking-wide">Plugin Guides</span>
+                    <span className="text-xs font-medium text-foreground tracking-wide">Plugins</span>
                   </div>
-                  <TextGenerateEffect words="Essential Documentation" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
+                  <TextGenerateEffect words="Extend Functionality" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
                 <PluginGrid plugins={plugins} />
               </TabsContent>
 
-              <TabsContent value="assets" className="space-y-6">
+              <TabsContent value="docs" className="space-y-6">
                 <div className="text-center mb-12 px-6">
                   <div className="inline-flex items-center gap-2.5 bg-primary/[0.03] border border-primary/10 rounded-full px-5 py-2 mb-8">
-                    <FolderOpen className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-medium text-foreground tracking-wide">Project Assets</span>
+                    <BookOpen className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-medium text-foreground tracking-wide">Documentation</span>
                   </div>
-                  <TextGenerateEffect words="Design Assets & Resources" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
+                  <TextGenerateEffect words="Guides & Docs" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
-                <AssetGrid assets={assets} />
+                <AssetGrid assets={docs} />
               </TabsContent>
 
               <TabsContent value="snippets" className="space-y-6">
@@ -133,6 +136,17 @@ const Materials = () => {
                   <TextGenerateEffect words="Ready-to-Use Code" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
                 <SnippetGrid snippets={snippets} />
+              </TabsContent>
+
+              <TabsContent value="videos" className="space-y-6">
+                <div className="text-center mb-12 px-6">
+                  <div className="inline-flex items-center gap-2.5 bg-primary/[0.03] border border-primary/10 rounded-full px-5 py-2 mb-8">
+                    <Video className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-medium text-foreground tracking-wide">Video Tutorials</span>
+                  </div>
+                  <TextGenerateEffect words="Master with Video Learning" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
+                </div>
+                <VideoGrid videos={videos} />
               </TabsContent>
 
             </ContainerScrollAnimation>
