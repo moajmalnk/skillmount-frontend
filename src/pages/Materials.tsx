@@ -6,6 +6,7 @@ import { FollowingPointer } from "@/components/ui/following-pointer";
 import SEO from "@/components/SEO";
 import { materialService } from "@/services/materialService";
 import { Material } from "@/types/material";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 
 // Import Reusable Components
@@ -40,12 +41,13 @@ const Materials = () => {
   }, []);
 
   // Filter Data
-  const videos = allMaterials.filter(m => m.type === "Videos");
-  const themes = allMaterials.filter(m => m.type === "Themes");
-  const plugins = allMaterials.filter(m => m.type === "Plugins");
-  const templateKits = allMaterials.filter(m => m.type === "Template Kit");
-  const docs = allMaterials.filter(m => m.type === "Docs");
-  const snippets = allMaterials.filter(m => m.type === "Snippet");
+  const materials = Array.isArray(allMaterials) ? allMaterials : [];
+  const videos = materials.filter(m => m.type === "Videos");
+  const themes = materials.filter(m => m.type === "Themes");
+  const plugins = materials.filter(m => m.type === "Plugins");
+  const templateKits = materials.filter(m => m.type === "Template Kit");
+  const docs = materials.filter(m => m.type === "Docs");
+  const snippets = materials.filter(m => m.type === "Snippet");
 
   return (
     <FollowingPointer>
@@ -71,8 +73,21 @@ const Materials = () => {
         />
 
         {isLoading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <div className="container mx-auto px-6 max-w-7xl mt-12 overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex flex-col gap-4 p-5 rounded-3xl border border-border/50 bg-card/50">
+                  <Skeleton className="w-full aspect-video rounded-2xl" />
+                  <Skeleton className="h-7 w-3/4 mb-1" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <div className="flex justify-between items-center mt-4">
+                    <Skeleton className="h-8 w-24 rounded-full" />
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

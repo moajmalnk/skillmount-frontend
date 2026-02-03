@@ -7,6 +7,7 @@ import { TableCell, TableRow, TableHead, TableHeader, TableBody, Table } from "@
 import { Pencil, Trash2, Loader2, Eye, CheckCircle2, AlertCircle, Copy, Search, X, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -151,7 +152,7 @@ export const TutorManager = () => {
 
       // Parse Notification Status
       // Parse Notification Status
-      const notifStatus = result?.meta?.notification_status || {};
+      const notifStatus = (result as any)?.meta?.notification_status || {};
       const emailStatus = notifStatus.email === 'ok';
       // WhatsApp status might be 'ok', 'skipped...', or 'error...'
       const waStatusRaw = notifStatus.whatsapp || 'error';
@@ -309,14 +310,19 @@ export const TutorManager = () => {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      <div className="flex justify-center items-center gap-2">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span>Loading Tutors...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-40 mb-1" />
+                        <Skeleton className="h-3 w-28" />
+                      </TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))
                 ) : filteredTutors.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
@@ -376,41 +382,61 @@ export const TutorManager = () => {
 
       {/* Create Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add New Tutor</DialogTitle>
-            <DialogDescription>Enter mandatory details. ID and Password will be auto-generated.</DialogDescription>
+        <DialogContent className="modal-admin-uniform">
+          <DialogHeader className="modal-header-standard">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <DialogTitle>Add New Tutor</DialogTitle>
+                <DialogDescription>Enter mandatory details. ID and Password will be auto-generated.</DialogDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setIsCreateOpen(false)} className="h-8 w-8 text-muted-foreground">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="topic">Primary Topic</Label>
-              <Select value={formData.topic} onValueChange={(val) => setFormData({ ...formData, topic: val })}>
-                <SelectTrigger><SelectValue placeholder="Select a topic" /></SelectTrigger>
-                <SelectContent>
-                  {topics.length > 0 ? (
-                    topics.map((topic) => <SelectItem key={topic} value={topic}>{topic}</SelectItem>)
-                  ) : (
-                    <SelectItem value="General">General (No topics found)</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+          <div className="modal-body-standard">
+            <div className="grid gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="t-name">Full Name</Label>
+                <Input id="t-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Enter tutor's full name" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="t-email">Email Address</Label>
+                <Input id="t-email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="tutor@example.com" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="t-phone">Phone Number</Label>
+                  <Input
+                    id="t-phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, ""); // Remove all non-digits
+                      setFormData({ ...formData, phone: val });
+                    }}
+                    placeholder="Numbers only"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="t-topic">Primary Topic</Label>
+                  <Select value={formData.topic} onValueChange={(val) => setFormData({ ...formData, topic: val })}>
+                    <SelectTrigger id="t-topic"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {topics.length > 0 ? (
+                        topics.map((topic) => <SelectItem key={topic} value={topic}>{topic}</SelectItem>)
+                      ) : (
+                        <SelectItem value="General">General</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="modal-footer-standard">
             <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={isSubmitting}>
+            <Button onClick={handleCreate} disabled={isSubmitting} className="px-8">
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Create Account
             </Button>

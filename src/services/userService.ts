@@ -7,7 +7,7 @@ const buildUserFormData = (data: Partial<User> & { avatarFile?: File; resumeFile
   const formData = new FormData();
 
   // 1. Standard Fields
-  const appendIfPresent = (key: string, value: any) => {
+  const appendIfPresent = (key: string, value: string | number | boolean | null | undefined) => {
     if (value !== undefined && value !== null) {
       formData.append(key, value.toString());
     }
@@ -28,6 +28,7 @@ const buildUserFormData = (data: Partial<User> & { avatarFile?: File; resumeFile
 
   // 2. Role Specific Fields (FLATTENED for Backend)
   if (data.role === 'student') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sData = data as any;
     // Basic Profile
     appendIfPresent('headline', sData.headline);
@@ -64,12 +65,12 @@ const buildUserFormData = (data: Partial<User> & { avatarFile?: File; resumeFile
   }
 
   if (data.role === 'tutor') {
-    const tData = data as any;
+    const tData = data as Tutor;
     if (tData.topics) formData.append('topics', JSON.stringify(tData.topics));
   }
 
   if (data.role === 'affiliate') {
-    const aData = data as any;
+    const aData = data as Affiliate;
     appendIfPresent('platform', aData.platform);
     if (aData.couponCode) formData.append('coupon_code', aData.couponCode);
 
@@ -87,6 +88,7 @@ const buildUserFormData = (data: Partial<User> & { avatarFile?: File; resumeFile
 
 // --- Helper: Clean JSON Payload ---
 const buildUserJsonPayload = (data: Partial<User>) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const payload: any = { ...data };
 
   // Remove File objects and frontend-only aliases
@@ -109,6 +111,8 @@ const buildUserJsonPayload = (data: Partial<User>) => {
 
   // Ensure Flattened Fields for Student
   if (data.role === 'student') {
+    // Casting to any to handle legacy/mixed fields safely without strict type errors
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sData = data as any;
     if (sData.batch || sData.batch_id) {
       payload.batch_id = sData.batch || sData.batch_id;
@@ -130,7 +134,7 @@ const buildUserJsonPayload = (data: Partial<User>) => {
 
   // Ensure Flattened Fields for Affiliate
   if (data.role === 'affiliate') {
-    const aData = data as any;
+    const aData = data as Affiliate;
     if (aData.couponCode) payload.coupon_code = aData.couponCode;
     if (aData.platform) payload.platform = aData.platform;
     if (aData.whatsappNumber) payload.whatsapp_number = aData.whatsappNumber;
@@ -144,7 +148,7 @@ const buildUserJsonPayload = (data: Partial<User>) => {
   }
 
   if (data.role === 'tutor') {
-    const tData = data as any;
+    const tData = data as Tutor;
     if (tData.topics) payload.topics = tData.topics;
   }
 
@@ -171,25 +175,90 @@ export const userService = {
     }
   },
 
-  // 2. GET USERS BY ROLE
+  // 2. GET USERS BY ROLE (Standard List)
   getElementsByRole: async (role: UserRole): Promise<User[]> => {
     try {
-      const response = await api.get<User[]>(`/users/?role=${role}`);
-      return response.data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await api.get<any>(`/users/?role=${role}`);
+      // Handle global pagination (extract results if paginated)
+      if (response.data && response.data.results) {
+        return response.data.results;
+      }
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error(`Failed to fetch ${role}s`, error);
       return [];
     }
   },
 
-  // 2.5 PUBLIC DIRECTORY (For Home Page Showcase)
-  getPublicDirectory: async (): Promise<User[]> => {
+  // 2.1 GET STUDENTS (ADMIN - Paginated & Filtered)
+  getAdminStudents: async (
+    page = 1,
+    pageSize = 10,
+    search = "",
+    batch = "",
+    status = "",
+    type = "" // top, featured
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any> => {
     try {
-      const response = await api.get<User[]>('/users/public_directory/');
+      const params = new URLSearchParams();
+      params.append("role", "student");
+      params.append("page", page.toString());
+      params.append("page_size", pageSize.toString());
+
+      if (search) params.append("search", search);
+
+      // Batch filter (Backend uses student_profile__batch_id)
+      if (batch && batch !== "all") params.append("student_profile__batch_id", batch);
+
+      // Status filter
+      if (status && status !== "all") {
+        if (status === 'complete') {
+          params.append('is_profile_complete', 'True');
+        } else if (status === 'incomplete') {
+          params.append('is_profile_complete', 'False');
+        } else if (['Active', 'Inactive', 'Pending'].includes(status)) {
+          params.append("status", status);
+        }
+      }
+
+      // Type filter
+      if (type === "top") params.append("student_profile__is_top_performer", "true");
+      if (type === "featured") params.append("student_profile__is_featured_graduate", "true");
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await api.get<any>(`/users/?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch admin students", error);
+      return { results: [], count: 0 };
+    }
+  },
+
+  // 2.5 PUBLIC DIRECTORY (For Home Page Showcase)
+  getPublicDirectory: async (
+    page = 1,
+    pageSize = 12,
+    search = "",
+    batch = "",
+    skills: string[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any> => {
+    try {
+      const params = new URLSearchParams();
+      params.append("page", page.toString());
+      params.append("page_size", pageSize.toString());
+      if (search) params.append("search", search);
+      if (batch && batch !== "all") params.append("batch", batch);
+      if (skills.length > 0) params.append("skills", skills.join(","));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await api.get<any>(`/users/public_directory/?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch public directory", error);
-      return [];
+      return { results: [], count: 0 };
     }
   },
 
@@ -205,7 +274,7 @@ export const userService = {
   },
 
   // 4. CREATE USER
-  create: async (user: Partial<User>): Promise<any> => {
+  create: async (user: Partial<User>): Promise<User> => {
     try {
       // Use the JSON Helper to ensure consistent flattening!
       // The previous implementation wrongly nested simple fields into 'student_profile',
@@ -224,8 +293,10 @@ export const userService = {
   update: async (id: string, data: Partial<User> & { avatarFile?: File; resumeFile?: File }): Promise<void> => {
     try {
       const isMultipart = !!data.avatarFile || !!data.resumeFile;
-      let payload: any;
       let headers = {};
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let payload: any;
 
       if (isMultipart) {
         payload = buildUserFormData(data);

@@ -16,8 +16,12 @@ export const inquiryService = {
   // 1. GET ALL (Admin)
   getAll: async (): Promise<Inquiry[]> => {
     try {
-      const response = await api.get<Inquiry[]>('/inquiries/');
-      return response.data;
+      const response = await api.get<any>('/inquiries/');
+      // Handle global pagination (extract results if paginated)
+      if (response.data && response.data.results) {
+        return response.data.results;
+      }
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error("Failed to load inquiries", error);
       return [];

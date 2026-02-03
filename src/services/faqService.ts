@@ -16,8 +16,11 @@ export const faqService = {
   // 1. GET ALL FAQs (Public)
   getAll: async (): Promise<FAQ[]> => {
     try {
-      const response = await api.get<any[]>('/faqs/');
-      return response.data.map(transformFAQ);
+      const response = await api.get<any>('/faqs/');
+      const data = response.data.results || response.data;
+
+      if (!Array.isArray(data)) return [];
+      return data.map(transformFAQ);
     } catch (error) {
       console.error("Failed to load FAQs", error);
       return [];

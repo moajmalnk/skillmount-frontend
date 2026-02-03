@@ -25,8 +25,11 @@ export const blogService = {
   // 1. GET ALL POSTS
   getAll: async (): Promise<BlogPost[]> => {
     try {
-      const response = await api.get<any[]>('/blogs/');
-      return response.data.map(transformBlog);
+      const response = await api.get<any>('/blogs/');
+      const data = response.data.results || response.data;
+
+      if (!Array.isArray(data)) return [];
+      return data.map(transformBlog);
     } catch (error) {
       console.error("Failed to fetch blogs", error);
       return [];

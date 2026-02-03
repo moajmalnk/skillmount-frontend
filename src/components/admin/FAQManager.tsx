@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Search, Plus, Pencil, Trash2, BookOpen, Loader2, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger
 } from "@/components/ui/dialog";
@@ -140,7 +141,7 @@ export const FAQManager = () => {
     }
   };
 
-  const filteredFaqs = faqs.filter(faq => {
+  const filteredFaqs = (Array.isArray(faqs) ? faqs : []).filter(faq => {
     const matchesSearch = faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
       faq.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
       faq.category.toLowerCase().includes(searchQuery.toLowerCase());
@@ -216,19 +217,28 @@ export const FAQManager = () => {
                   Add FAQ
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create New FAQ</DialogTitle>
-                  <DialogDescription>Add a new frequently asked question.</DialogDescription>
+              <DialogContent className="modal-admin-uniform">
+                <DialogHeader className="modal-header-standard">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <DialogTitle>Create New FAQ</DialogTitle>
+                      <DialogDescription>Add a new frequently asked question.</DialogDescription>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setIsCreateDialogOpen(false)} className="h-8 w-8 text-muted-foreground">
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </DialogHeader>
-                <FAQForm
-                  category={formCategory} setCategory={setFormCategory}
-                  question={formQuestion} setQuestion={setFormQuestion}
-                  answer={formAnswer} setAnswer={setFormAnswer}
-                  modules={quillModules}
-                  categories={categories}
-                />
-                <DialogFooter>
+                <div className="modal-body-standard">
+                  <FAQForm
+                    category={formCategory} setCategory={setFormCategory}
+                    question={formQuestion} setQuestion={setFormQuestion}
+                    answer={formAnswer} setAnswer={setFormAnswer}
+                    modules={quillModules}
+                    categories={categories}
+                  />
+                </div>
+                <DialogFooter className="modal-footer-standard">
                   <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
                   <Button onClick={handleCreate}>Create FAQ</Button>
                 </DialogFooter>
@@ -252,14 +262,14 @@ export const FAQManager = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
-                    <div className="flex justify-center items-center gap-2 text-muted-foreground">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Loading FAQs...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
               ) : filteredFaqs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
@@ -314,18 +324,25 @@ export const FAQManager = () => {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit FAQ</DialogTitle>
+        <DialogContent className="modal-admin-uniform">
+          <DialogHeader className="modal-header-standard">
+            <div className="flex items-start justify-between">
+              <DialogTitle>Edit FAQ</DialogTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(false)} className="h-8 w-8 text-muted-foreground">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </DialogHeader>
-          <FAQForm
-            category={formCategory} setCategory={setFormCategory}
-            question={formQuestion} setQuestion={setFormQuestion}
-            answer={formAnswer} setAnswer={setFormAnswer}
-            modules={quillModules}
-            categories={categories}
-          />
-          <DialogFooter>
+          <div className="modal-body-standard">
+            <FAQForm
+              category={formCategory} setCategory={setFormCategory}
+              question={formQuestion} setQuestion={setFormQuestion}
+              answer={formAnswer} setAnswer={setFormAnswer}
+              modules={quillModules}
+              categories={categories}
+            />
+          </div>
+          <DialogFooter className="modal-footer-standard">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleUpdate}>Update FAQ</Button>
           </DialogFooter>
@@ -334,21 +351,30 @@ export const FAQManager = () => {
 
       {/* View Details Dialog */}
       <Dialog open={!!viewFaq} onOpenChange={(open) => !open && setViewFaq(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="secondary">{viewFaq?.category}</Badge>
-              <span className="text-xs text-muted-foreground mr-auto">
-                Updated {viewFaq?.updatedAt ? new Date(viewFaq.updatedAt).toLocaleDateString() : 'N/A'}
-              </span>
+        <DialogContent className="modal-admin-uniform">
+          <DialogHeader className="modal-header-standard">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary" className="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider">{viewFaq?.category}</Badge>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
+                    Updated {viewFaq?.updatedAt ? new Date(viewFaq.updatedAt).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+                <DialogTitle className="text-xl sm:text-2xl pt-2 leading-tight">{viewFaq?.question}</DialogTitle>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setViewFaq(null)} className="h-8 w-8 text-muted-foreground">
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-            <DialogTitle className="text-xl sm:text-2xl pt-2">{viewFaq?.question}</DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none mt-4 border-t pt-4">
-            <div dangerouslySetInnerHTML={{ __html: viewFaq?.answer || "" }} />
+          <div className="modal-body-standard">
+            <div className="prose prose-sm dark:prose-invert max-w-none bg-muted/5 p-6 rounded-2xl border border-border/50 shadow-inner">
+              <div dangerouslySetInnerHTML={{ __html: viewFaq?.answer || "" }} />
+            </div>
           </div>
-          <DialogFooter>
-            <Button onClick={() => setViewFaq(null)}>Close</Button>
+          <DialogFooter className="modal-footer-standard">
+            <Button onClick={() => setViewFaq(null)} className="px-8 font-medium">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

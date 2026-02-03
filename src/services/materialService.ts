@@ -35,8 +35,12 @@ export const materialService = {
   // 1. GET ALL MATERIALS
   getAll: async (): Promise<Material[]> => {
     try {
-      const response = await api.get<Material[]>('/materials/');
-      return response.data;
+      const response = await api.get<any>('/materials/');
+      // Handle global pagination (extract results if paginated)
+      if (response.data && response.data.results) {
+        return response.data.results;
+      }
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error("Failed to load materials", error);
       toast.error("Could not fetch materials");

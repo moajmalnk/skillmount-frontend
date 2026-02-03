@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -140,42 +140,57 @@ export const BlogEditorSheet = ({ isOpen, onClose, blog, onSave }: BlogEditorShe
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-3xl p-0 flex flex-col">
-        <SheetHeader className="p-6 border-b">
-          <SheetTitle>{blog ? "Edit Post" : "New Blog Post"}</SheetTitle>
-        </SheetHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="modal-admin-uniform">
+        <DialogHeader className="modal-header-standard">
+          <div className="flex items-start justify-between">
+            <DialogTitle className="text-2xl">{blog ? "Edit Post" : "Create New Blog Post"}</DialogTitle>
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-muted-foreground">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </DialogHeader>
 
-        <ScrollArea className="flex-1 p-6">
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+        <ScrollArea className="flex-1">
+          <div className="p-8 space-y-8 max-w-4xl mx-auto">
+            {/* Title & Slug */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Title</Label>
-                <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+                <Label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Post Title</Label>
+                <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Enter catchy title..." className="h-11" />
               </div>
               <div className="space-y-2">
-                <Label>Slug (URL)</Label>
-                <Input value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} placeholder="auto-generated" />
+                <Label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">URL Slug</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-mono">/blog/</span>
+                  <Input value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} placeholder="auto-generated" className="h-11 font-mono text-sm" />
+                </div>
               </div>
             </div>
 
+            {/* Excerpt */}
             <div className="space-y-2">
-              <Label>Excerpt</Label>
-              <Textarea value={formData.excerpt} onChange={e => setFormData({ ...formData, excerpt: e.target.value })} />
+              <Label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Short Excerpt / Summary</Label>
+              <Textarea value={formData.excerpt} onChange={e => setFormData({ ...formData, excerpt: e.target.value })} placeholder="Brief summary for list view..." className="min-h-[80px] resize-none" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Meta Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Categories</Label>
-                <div className="flex flex-wrap gap-2 mb-2 min-h-[24px]">
-                  {formData.categories?.map(cat => (
-                    <Badge key={cat} variant="secondary" className="gap-1 cursor-pointer" onClick={() => {
-                      const newCats = formData.categories?.filter(c => c !== cat) || [];
-                      setFormData({ ...formData, categories: newCats });
-                    }}>
-                      {cat} <X size={12} />
-                    </Badge>
-                  ))}
+                <Label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Primary Categories</Label>
+                <div className="flex flex-wrap gap-2 mb-3 min-h-[32px] p-2 bg-muted/30 rounded-lg border border-border/50">
+                  {formData.categories && formData.categories.length > 0 ? (
+                    formData.categories.map(cat => (
+                      <Badge key={cat} variant="secondary" className="gap-1.5 py-1 pl-2.5 pr-1.5 group hover:bg-destructive hover:text-white transition-all cursor-pointer" onClick={() => {
+                        const newCats = formData.categories?.filter(c => c !== cat) || [];
+                        setFormData({ ...formData, categories: newCats });
+                      }}>
+                        {cat} <X size={12} className="opacity-50 group-hover:opacity-100" />
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic px-2">No categories selected</span>
+                  )}
                 </div>
                 <Select value="" onValueChange={(val) => {
                   const current = formData.categories || [];
@@ -183,7 +198,7 @@ export const BlogEditorSheet = ({ isOpen, onClose, blog, onSave }: BlogEditorShe
                     setFormData({ ...formData, categories: [...current, val] });
                   }
                 }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Add Category..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -193,16 +208,20 @@ export const BlogEditorSheet = ({ isOpen, onClose, blog, onSave }: BlogEditorShe
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
-                <Label>Author</Label>
+                <Label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Assign Author</Label>
                 <Select value={selectedAuthorId} onValueChange={setSelectedAuthorId}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select author" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableAuthors.map((author) => (
                       <SelectItem key={author.id} value={author.id}>
-                        {author.name} ({author.role === 'super_admin' ? 'Admin' : 'Tutor'})
+                        <div className="flex flex-col">
+                          <span className="font-medium">{author.name}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">{author.role.replace('_', ' ')}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -210,63 +229,103 @@ export const BlogEditorSheet = ({ isOpen, onClose, blog, onSave }: BlogEditorShe
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Tags (Comma separated)</Label>
-              <Input
-                value={formData.tags?.join(', ') || ''}
-                onChange={e => setFormData({ ...formData, tags: e.target.value.split(',').map(t => t.trim()) })}
-                placeholder="React, Tutorial, Guide"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Cover Image</Label>
-              <div className="flex flex-col gap-2">
+            {/* Tags & Image */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Tags (Comma separated)</Label>
                 <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => e.target.files?.[0] && setCoverFile(e.target.files[0])}
+                  value={formData.tags?.join(', ') || ''}
+                  onChange={e => setFormData({ ...formData, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                  placeholder="React, Tutorial, Tips"
+                  className="h-11"
                 />
-                {formData.coverImage && typeof formData.coverImage === 'string' && (
-                  <p className="text-xs text-muted-foreground">Current: {formData.coverImage}</p>
-                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Cover Image</Label>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Input
+                      type="file"
+                      id="cover-upload"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => e.target.files?.[0] && setCoverFile(e.target.files[0])}
+                    />
+                    <Button variant="outline" className="flex-1 h-11 border-dashed" asChild>
+                      <label htmlFor="cover-upload" className="cursor-pointer">
+                        {coverFile ? coverFile.name : (formData.coverImage ? "Change Cover Image" : "Upload Cover Image")}
+                      </label>
+                    </Button>
+                    {(coverFile || formData.coverImage) && (
+                      <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => { setCoverFile(null); setFormData({ ...formData, coverImage: "" }); }}>
+                        <X size={16} />
+                      </Button>
+                    )}
+                  </div>
+                  {formData.coverImage && typeof formData.coverImage === 'string' && !coverFile && (
+                    <p className="text-[10px] text-muted-foreground truncate px-1">Current: {formData.coverImage}</p>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-              <div className="flex items-center justify-between">
-                <Label>Featured Post</Label>
+            {/* Settings toggles */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 bg-muted/30 rounded-2xl border border-border/50">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-bold">Featured</Label>
+                  <p className="text-[10px] text-muted-foreground">Show in slider</p>
+                </div>
                 <Switch checked={formData.isFeatured} onCheckedChange={c => setFormData({ ...formData, isFeatured: c })} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label>Editor's Pick</Label>
+              <div className="flex items-center justify-between gap-4 sm:border-x border-border/40 sm:px-4">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-bold">Editor's Pick</Label>
+                  <p className="text-[10px] text-muted-foreground">Curated section</p>
+                </div>
                 <Switch checked={formData.isEditorsPick} onCheckedChange={c => setFormData({ ...formData, isEditorsPick: c })} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label>Published</Label>
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-bold">Published</Label>
+                  <p className="text-[10px] text-muted-foreground">Live on site</p>
+                </div>
                 <Switch checked={formData.isPublished} onCheckedChange={c => setFormData({ ...formData, isPublished: c })} />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Content</Label>
-              <div className="h-[400px] pb-12">
+            {/* Editor */}
+            <div className="space-y-3">
+              <Label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Post Content</Label>
+              <div className="min-h-[500px] pb-14 bg-background border border-border rounded-xl overflow-hidden shadow-inner">
                 <ReactQuill
                   theme="snow"
                   value={formData.content}
                   onChange={c => setFormData({ ...formData, content: c })}
-                  className="h-full"
+                  className="h-full border-none"
+                  modules={{
+                    toolbar: [
+                      [{ 'header': [1, 2, 3, false] }],
+                      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                      ['link', 'image', 'code-block'],
+                      ['clean']
+                    ],
+                  }}
                 />
               </div>
             </div>
           </div>
         </ScrollArea>
 
-        <SheetFooter className="p-6 border-t">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Save Post</Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        <DialogFooter className="modal-footer-standard">
+          <Button variant="ghost" onClick={onClose} className="px-8 font-medium hover:bg-muted">Cancel</Button>
+          <Button onClick={handleSave} className="min-w-[140px] shadow-lg shadow-primary/20 font-semibold px-10">
+            {blog ? "Update Post" : "Publish Post"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

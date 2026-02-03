@@ -188,17 +188,24 @@ const Admin = () => {
 
       {/* LOGOUT CONFIRMATION DIALOG */}
       <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ready to leave?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Select "Logout" below if you are ready to end your current session.
-            </AlertDialogDescription>
+        <AlertDialogContent className="modal-layout-standard modal-sm">
+          <AlertDialogHeader className="modal-header-standard">
+            <AlertDialogTitle className="flex items-center gap-3 text-destructive text-xl font-bold">
+              <div className="p-2 bg-destructive/10 rounded-lg">
+                <LogOut className="w-5 h-5" />
+              </div>
+              End Session?
+            </AlertDialogTitle>
+            <div className="modal-body-standard !p-0 mt-4">
+              <AlertDialogDescription className="text-sm leading-relaxed text-muted-foreground">
+                Are you sure you want to log out? You will need to sign in again to access the administrative panel.
+              </AlertDialogDescription>
+            </div>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogoutConfirm} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-              Logout
+          <AlertDialogFooter className="modal-footer-standard px-6 py-4 bg-muted/5">
+            <AlertDialogCancel className="font-medium">Stay Logged In</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogoutConfirm} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold px-8 shadow-lg shadow-destructive/20">
+              Logout Now
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

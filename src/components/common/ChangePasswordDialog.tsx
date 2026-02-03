@@ -80,50 +80,55 @@ export function ChangePasswordDialog({ open: controlledOpen, onOpenChange: setCo
                     </Button>
                 </DialogTrigger>
             )}
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
+            <DialogContent className="modal-layout-standard modal-sm">
+                <DialogHeader className="modal-header-standard">
                     <DialogTitle>Change Password</DialogTitle>
                     <DialogDescription>
                         Enter your current password and a new secure password.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="old-pass">Current Password</Label>
-                        <Input
-                            id="old-pass"
-                            type="password"
-                            placeholder="••••••"
-                            value={oldPassword}
-                            onChange={(e) => setOldPassword(e.target.value)}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="new-pass">New Password</Label>
-                        <Input
-                            id="new-pass"
-                            type="password"
-                            placeholder="••••••"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="confirm-pass">Confirm Password</Label>
-                        <Input
-                            id="confirm-pass"
-                            type="password"
-                            placeholder="••••••"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                        />
+                <div className="modal-body-standard">
+                    <div className="grid gap-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="old-pass">Current Password</Label>
+                            <Input
+                                id="old-pass"
+                                type="password"
+                                placeholder="••••••"
+                                value={oldPassword}
+                                onChange={(e) => setOldPassword(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid gap-2 pt-2 border-t border-border/40">
+                            <div className="grid gap-2">
+                                <Label htmlFor="new-pass">New Password</Label>
+                                <Input
+                                    id="new-pass"
+                                    type="password"
+                                    placeholder="••••••"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="confirm-pass">Confirm Password</Label>
+                                <Input
+                                    id="confirm-pass"
+                                    type="password"
+                                    placeholder="••••••"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="modal-footer-standard">
                     <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
                         Cancel
                     </Button>
-                    <Button onClick={handleUpdate} disabled={loading}>
+                    <Button onClick={handleUpdate} disabled={loading} className="px-8">
                         {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Update Password
                     </Button>

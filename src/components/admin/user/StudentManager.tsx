@@ -39,6 +39,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ActionConfirmationDialog } from "../ActionConfirmationDialog";
 import { StudentCreateDialog } from "./dialogs/StudentCreateDialog";
 import { Copy } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 
 export const StudentManager = () => {
@@ -48,9 +56,15 @@ export const StudentManager = () => {
 
   // --- FILTERS STATE ---
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterBatch, setFilterBatch] = useState("all");
   const [filterProfileStatus, setFilterProfileStatus] = useState("all"); // all, complete, incomplete
   const [filterType, setFilterType] = useState("all"); // all, top, featured
+
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 20;
 
   // --- MODAL STATES ---
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -64,16 +78,40 @@ export const StudentManager = () => {
   } | null;
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
-  // 1. Fetch Data (Students + Batches)
+  // Debounce Effect
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset page on search
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterBatch, filterProfileStatus, filterType]);
+
   // 1. Fetch Data (Students + Batches)
   const loadData = async () => {
     setIsLoading(true);
 
-    // Independent Fetch for Saftey
     try {
-      const usersData = await userService.getElementsByRole("student");
+      // Fetch Students with Pagination & Filters
+      const data = await userService.getAdminStudents(
+        currentPage,
+        pageSize,
+        debouncedSearch,
+        filterBatch,
+        filterProfileStatus, // Pass status directly (Note: backend filtering for complete/incomplete might depend on status field)
+        filterType
+      );
 
-      const formattedStudents: Student[] = usersData.map((u: any) => ({
+      const rawResults = data.results || [];
+      setTotalCount(data.count || 0);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formattedStudents: Student[] = rawResults.map((u: any) => ({
         ...u,
         createdAt: u.date_joined || u.created_at || new Date().toISOString(),
         role: "student",
@@ -102,53 +140,36 @@ export const StudentManager = () => {
         projects: u.student_profile?.projects || [],
       }));
 
+      // Client-side filtering for attributes NOT supported by backend yet (e.g., Profile Status computed field)
+      // Since backend doesn't fully support 'isProfileComplete' filter in basic search, we might need to filter manually if backend returned mixed results.
+      // However, for pagination to work correctly, backend MUST handle filtering.
+      // For now, we assume backend handles what it can, and we display what we get. 
+      // If we filter client-side here after pagination, the page size will be inconsistent (e.g. only 2 items on page 1).
+      // So we use the results as is.
+
       setStudents(formattedStudents);
     } catch (error) {
       console.error("Failed to load students", error);
       toast.error("Failed to load students");
     }
 
-    try {
-      const settingsData = await systemService.getSettings();
-      setBatches(settingsData.batches || []);
-    } catch (error) {
-      console.error("Failed to load settings", error);
-      // Do not block student display if settings fail
-    } finally {
-      setIsLoading(false);
+    // Load Settings (Batches) - only once
+    if (batches.length === 0) {
+      try {
+        const settingsData = await systemService.getSettings();
+        setBatches(settingsData.batches || []);
+      } catch (error) {
+        console.error("Failed to load settings", error);
+      }
     }
+
+    setIsLoading(false);
   };
 
   useEffect(() => {
     loadData();
-  }, []);
-
-  // 2. Filter Logic
-  const filteredStudents = students.filter(student => {
-    // Search
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch =
-      student.name.toLowerCase().includes(searchLower) ||
-      student.email.toLowerCase().includes(searchLower) ||
-      (student.regId && student.regId.toLowerCase().includes(searchLower));
-
-    // Batch
-    const matchesBatch = filterBatch === "all" || student.batch === filterBatch;
-
-    // Profile Status
-    const matchesProfile =
-      filterProfileStatus === "all" ? true :
-        filterProfileStatus === "complete" ? student.isProfileComplete :
-          !student.isProfileComplete;
-
-    // Type (Top Performer / Graduated)
-    const matchesType =
-      filterType === "all" ? true :
-        filterType === "top" ? student.isTopPerformer :
-          filterType === "featured" ? student.isFeatured : true;
-
-    return matchesSearch && matchesBatch && matchesProfile && matchesType;
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, debouncedSearch, filterBatch, filterProfileStatus, filterType]);
 
   // 3. Quick Actions (Requests)
   const requestToggle = (e: React.MouseEvent, student: Student, field: 'isTopPerformer' | 'isFeatured') => {
@@ -173,8 +194,8 @@ export const StudentManager = () => {
       if (type === 'delete') {
         await userService.delete(student.id);
         toast.success("Student deleted successfully");
-        setStudents(prev => prev.filter(s => s.id !== student.id));
-        loadData(); // To be safe
+        // Refetch to maintain pagination state
+        loadData();
       } else {
         // Toggles
         const field = type === 'toggleTop' ? 'isTopPerformer' : 'isFeatured';
@@ -184,6 +205,7 @@ export const StudentManager = () => {
         await userService.update(student.id, {
           role: 'student',
           [field]: newValue
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         // Local update
@@ -211,9 +233,19 @@ export const StudentManager = () => {
 
   const clearFilters = () => {
     setSearchQuery("");
+    setDebouncedSearch("");
     setFilterBatch("all");
     setFilterProfileStatus("all");
     setFilterType("all");
+    // This will trigger effect -> loadData
+  };
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   return (
@@ -275,6 +307,9 @@ export const StudentManager = () => {
                   <SelectItem value="all">All Profiles</SelectItem>
                   <SelectItem value="complete">✅ Completed</SelectItem>
                   <SelectItem value="incomplete">⚠️ Incomplete</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -320,14 +355,14 @@ export const StudentManager = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : filteredStudents.length === 0 ? (
+                ) : students.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                       No students found matching your filters.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredStudents.map((student) => (
+                  students.map((student) => (
                     <TableRow
                       key={student.id}
                       className="group hover:bg-muted/50 transition-colors cursor-pointer"
@@ -426,6 +461,39 @@ export const StudentManager = () => {
               </TableBody>
             </Table>
           </div>
+
+          {/* PAGINATION FOOTER */}
+          {totalCount > 0 && (
+            <div className="p-4 border-t flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {students.length} of {totalCount} students
+              </div>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+
+                  <PaginationItem>
+                    <span className="flex h-9 min-w-9 items-center justify-center text-sm font-medium px-4">
+                      Page {currentPage} of {Math.max(1, totalPages)}
+                    </span>
+                  </PaginationItem>
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+
         </CardContent>
       </Card>
 

@@ -6,10 +6,13 @@ export const feedbackService = {
   // 1. GET ALL
   getAll: async (): Promise<Feedback[]> => {
     try {
-      const response = await api.get<any[]>('/feedbacks/');
+      const response = await api.get<any>('/feedbacks/');
+      const data = response.data.results || response.data;
+
+      if (!Array.isArray(data)) return [];
 
       // Map Backend (Snake) -> Frontend (Camel) structure
-      const mappedData: Feedback[] = response.data.map((item: any) => ({
+      const mappedData: Feedback[] = data.map((item: any) => ({
         id: item.id.toString(),
         studentId: item.student ? item.student.toString() : 'N/A', // student ID from FK
         studentName: item.student_name || 'Anonymous',
@@ -35,8 +38,12 @@ export const feedbackService = {
   // 1b. GET PUBLIC TESTIMONIALS
   getPublicTestimonials: async (): Promise<Feedback[]> => {
     try {
-      const response = await api.get<any[]>('/feedbacks/?is_public=true');
-      return response.data.map((item: any) => ({
+      const response = await api.get<any>('/feedbacks/?is_public=true');
+      const data = response.data.results || response.data;
+
+      if (!Array.isArray(data)) return [];
+
+      return data.map((item: any) => ({
         id: item.id.toString(),
         studentId: item.student ? item.student.toString() : 'N/A',
         studentName: item.student_name || 'Anonymous',

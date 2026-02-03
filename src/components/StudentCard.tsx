@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PlacementData } from "@/types/user";
 
 interface StudentCardProps {
   id: string | number;
@@ -31,7 +32,7 @@ interface StudentCardProps {
   avatar?: string;
   headline?: string; // Added Headline
   projectCount?: number; // Added Project Count
-  placement?: any; // Added Placement Data
+  placement?: PlacementData; // Added Placement Data
 }
 
 const StudentCard = ({

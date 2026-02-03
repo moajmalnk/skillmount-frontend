@@ -228,37 +228,47 @@ export const MacroManager = ({ macros, onUpdate }: MacroManagerProps) => {
 
             {/* ADD/EDIT DIALOG */}
             <Dialog open={isAddOpen} onOpenChange={(val) => !val && resetForm()}>
-                <DialogContent className="sm:max-w-[550px]">
-                    <DialogHeader>
-                        <DialogTitle>{editingMacro ? "Edit Macro" : "Create New Macro"}</DialogTitle>
-                        <DialogDescription>
-                            Define quick replies for your support team.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="macro-title">Title</Label>
-                            <Input
-                                id="macro-title"
-                                placeholder="e.g. Internet Check"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                            />
+                <DialogContent className="modal-admin-uniform">
+                    <DialogHeader className="modal-header-standard">
+                        <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                                <DialogTitle>{editingMacro ? "Edit Macro" : "Create New Macro"}</DialogTitle>
+                                <DialogDescription>
+                                    Define quick replies for your support team.
+                                </DialogDescription>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => resetForm()} className="h-8 w-8 text-muted-foreground">
+                                <X className="w-4 h-4" />
+                            </Button>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="macro-desc">Content</Label>
-                            <Textarea
-                                id="macro-desc"
-                                placeholder="The full text response..."
-                                className="min-h-[150px] custom-scrollbar"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                            />
+                    </DialogHeader>
+                    <div className="modal-body-standard">
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="macro-title" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Macro Title</Label>
+                                <Input
+                                    id="macro-title"
+                                    placeholder="e.g. Internet Check"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    className="h-11"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="macro-desc" className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Response Content</Label>
+                                <Textarea
+                                    id="macro-desc"
+                                    placeholder="The full text response..."
+                                    className="min-h-[200px] resize-none"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => resetForm()}>Cancel</Button>
-                        <Button onClick={editingMacro ? handleEditRequest : handleAddRequest}>
+                    <DialogFooter className="modal-footer-standard px-6 py-4 bg-muted/5">
+                        <Button variant="ghost" onClick={() => resetForm()} className="px-8 font-medium">Cancel</Button>
+                        <Button onClick={editingMacro ? handleEditRequest : handleAddRequest} className="px-10 font-semibold shadow-lg shadow-primary/20">
                             {editingMacro ? "Save Changes" : "Create Macro"}
                         </Button>
                     </DialogFooter>
@@ -267,22 +277,29 @@ export const MacroManager = ({ macros, onUpdate }: MacroManagerProps) => {
 
             {/* VIEW DETAILS DIALOG */}
             <Dialog open={!!viewingMacro} onOpenChange={(open) => !open && setViewingMacro(null)}>
-                <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl">{viewingMacro?.title}</DialogTitle>
-                        <DialogDescription>
-                            Created on {formatDate(viewingMacro?.dateAdded)}
-                        </DialogDescription>
+                <DialogContent className="modal-admin-uniform">
+                    <DialogHeader className="modal-header-standard">
+                        <div className="flex items-start justify-between">
+                            <div className="flex flex-col gap-1">
+                                <DialogTitle className="text-xl">{viewingMacro?.title}</DialogTitle>
+                                <DialogDescription className="text-[10px] uppercase font-bold tracking-wider">
+                                    Created on {formatDate(viewingMacro?.dateAdded)}
+                                </DialogDescription>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => setViewingMacro(null)} className="h-8 w-8 text-muted-foreground">
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
                     </DialogHeader>
-                    <div className="py-4">
-                        <div className="p-4 bg-muted/30 rounded-lg border border-border/50 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                    <div className="modal-body-standard">
+                        <div className="p-6 bg-muted/5 rounded-2xl border border-border/50 shadow-inner">
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
                                 {viewingMacro?.description}
                             </p>
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button onClick={() => setViewingMacro(null)}>Close</Button>
+                    <DialogFooter className="modal-footer-standard px-6 py-4 bg-muted/5">
+                        <Button onClick={() => setViewingMacro(null)} className="px-10 font-medium">Close</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

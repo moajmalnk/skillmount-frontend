@@ -2,6 +2,7 @@ import { Search, BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { WobbleCard } from "@/components/ui/wobble-card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
@@ -16,10 +17,10 @@ interface FAQListProps {
   isLoading: boolean;
 }
 
-export const FAQList = ({ 
-  searchQuery, 
-  setSearchQuery, 
-  selectedCategory, 
+export const FAQList = ({
+  searchQuery,
+  setSearchQuery,
+  selectedCategory,
   setSelectedCategory,
   filteredFaqs,
   isLoading
@@ -27,14 +28,14 @@ export const FAQList = ({
   return (
     <section className="pt-4 sm:pt-16 bg-background relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/[0.015] rounded-full blur-3xl pointer-events-none"></div>
-      
+
       <div className="container mx-auto px-6 max-w-6xl relative">
-        
+
         {/* Search Area & Header */}
         <div className="max-w-md mx-auto mb-12 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input 
-            placeholder="Search specific questions..." 
+          <Input
+            placeholder="Search specific questions..."
             className="pl-10 h-12 rounded-full border-border/50 bg-card/50 backdrop-blur-sm focus:ring-primary/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -48,7 +49,7 @@ export const FAQList = ({
           </div>
           <TextGenerateEffect words={selectedCategory === "all" ? "All Questions" : selectedCategory} className="text-4xl md:text-6xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-light">
-            {filteredFaqs.length > 0 
+            {filteredFaqs.length > 0
               ? `Found ${filteredFaqs.reduce((total, cat) => total + cat.questions.length, 0)} questions in ${filteredFaqs.length} ${filteredFaqs.length === 1 ? 'category' : 'categories'}`
               : 'No questions found matching your search'
             }
@@ -57,7 +58,24 @@ export const FAQList = ({
 
         {/* List or Empty State */}
         {isLoading ? (
-            <div className="text-center py-20 text-muted-foreground">Loading FAQs...</div>
+          <div className="space-y-12">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="p-8 md:p-10 rounded-3xl border border-border/30 bg-card/30 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="w-12 h-12 rounded-2xl" />
+                    <Skeleton className="h-8 w-40" />
+                  </div>
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                </div>
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, j) => (
+                    <Skeleton key={j} className="h-16 w-full rounded-2xl" />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filteredFaqs.length > 0 ? (
           <div className="space-y-12">
             {filteredFaqs.map((category, categoryIdx) => (

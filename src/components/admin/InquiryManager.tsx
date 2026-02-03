@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -78,7 +80,7 @@ export const InquiryManager = () => {
     }
   };
 
-  const filteredInquiries = inquiries.filter((inq) => {
+  const filteredInquiries = (Array.isArray(inquiries) ? inquiries : []).filter((inq) => {
     // Search Filter
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
@@ -171,7 +173,16 @@ export const InquiryManager = () => {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-12"><Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-32 mb-1" /><Skeleton className="h-3 w-40" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))
                 ) : filteredInquiries.length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                     {searchQuery ? "No inquiries match your search." : "No inquiries found."}
@@ -236,45 +247,58 @@ export const InquiryManager = () => {
 
       {/* Detail Modal */}
       <Dialog open={!!selectedInquiry} onOpenChange={() => setSelectedInquiry(null)}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex justify-between items-center">
-              <span>Inquiry Details</span>
-              {selectedInquiry && getStatusBadge(selectedInquiry.status)}
-            </DialogTitle>
-            <DialogDescription>Received on {selectedInquiry?.date}</DialogDescription>
+        <DialogContent className="modal-admin-uniform">
+          <DialogHeader className="modal-header-standard">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <DialogTitle className="flex items-center gap-3">
+                  <span>Inquiry Details</span>
+                  {selectedInquiry && getStatusBadge(selectedInquiry.status)}
+                </DialogTitle>
+                <DialogDescription>Received on {selectedInquiry?.date}</DialogDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedInquiry(null)} className="h-8 w-8 text-muted-foreground">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </DialogHeader>
 
-          {selectedInquiry && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground text-xs block">Name</span>
-                  <span className="font-medium">{selectedInquiry.name}</span>
+          <div className="modal-body-standard">
+            {selectedInquiry && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-6 text-sm">
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground text-[10px] uppercase tracking-wider block">Sender Name</span>
+                    <span className="font-semibold text-foreground">{selectedInquiry.name}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground text-[10px] uppercase tracking-wider block">Phone Number</span>
+                    <span className="font-semibold text-foreground">{selectedInquiry.phone}</span>
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <span className="text-muted-foreground text-[10px] uppercase tracking-wider block">Email Address</span>
+                    <span className="font-semibold text-primary underline underline-offset-4 cursor-pointer" onClick={() => window.location.href = `mailto:${selectedInquiry.email}`}>
+                      {selectedInquiry.email}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground text-xs block">Phone</span>
-                  <span className="font-medium">{selectedInquiry.phone}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-muted-foreground text-xs block">Email</span>
-                  <span className="font-medium">{selectedInquiry.email}</span>
-                </div>
-              </div>
 
-              <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
-                <span className="text-muted-foreground text-xs block mb-1">Message</span>
-                <p className="text-sm leading-relaxed">{selectedInquiry.message}</p>
+                <div className="bg-muted/30 p-5 rounded-xl border border-border/50 shadow-inner">
+                  <span className="text-muted-foreground text-[10px] uppercase tracking-wider block mb-2">Message Content</span>
+                  <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">{selectedInquiry.message}</p>
+                </div>
               </div>
+            )}
+          </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setSelectedInquiry(null)}>Close</Button>
-                <Button onClick={() => window.location.href = `mailto:${selectedInquiry.email}`}>
-                  <Mail className="w-4 h-4 mr-2" /> Reply via Email
-                </Button>
-              </div>
-            </div>
-          )}
+          <DialogFooter className="modal-footer-standard">
+            <Button variant="outline" onClick={() => setSelectedInquiry(null)}>Close</Button>
+            {selectedInquiry && (
+              <Button onClick={() => window.location.href = `mailto:${selectedInquiry.email}`} className="px-6">
+                <Mail className="w-4 h-4 mr-2" /> Reply via Email
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

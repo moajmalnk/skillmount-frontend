@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { userService } from "@/services/userService";
 import { systemService } from "@/services/systemService";
-import { Loader2, CheckCircle2, AlertCircle, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, AlertTriangle, X } from "lucide-react";
 
 interface StudentCreateDialogProps {
     isOpen: boolean;
@@ -65,7 +65,7 @@ export const StudentCreateDialog = ({ isOpen, onClose, onSuccess }: StudentCreat
             });
 
             // Parse Notification Status
-            const meta = response.meta || {};
+            const meta = (response as any).meta || {};
             const notifyStatus = meta.notification_status || {};
 
             const emailStatus = notifyStatus.email === 'ok';
@@ -126,70 +126,85 @@ export const StudentCreateDialog = ({ isOpen, onClose, onSuccess }: StudentCreat
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[400px]">
-                <DialogHeader>
-                    <DialogTitle>Enroll New Student</DialogTitle>
-                    <DialogDescription>
-                        Enter mandatory details. Profile will be marked incomplete.
-                    </DialogDescription>
+            <DialogContent className="modal-admin-uniform">
+                <DialogHeader className="modal-header-standard">
+                    <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                            <DialogTitle>Enroll New Student</DialogTitle>
+                            <DialogDescription>
+                                Enter mandatory details. Profile will be marked incomplete.
+                            </DialogDescription>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-muted-foreground">
+                            <X className="w-4 h-4" />
+                        </Button>
+                    </div>
                 </DialogHeader>
 
-                {isLoadingOptions ? (
-                    <div className="flex justify-center py-8"><Loader2 className="animate-spin" /></div>
-                ) : (
-                    <div className="grid gap-4 py-4">
-                        {/* 1. Full Name */}
-                        <div className="grid gap-2">
-                            <Label htmlFor="name">Full Name</Label>
-                            <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder=""
-                            />
-                        </div>
+                <div className="modal-body-standard">
+                    {isLoadingOptions ? (
+                        <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary w-8 h-8" /></div>
+                    ) : (
+                        <div className="grid gap-6">
+                            {/* 1. Full Name */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="name">Full Name</Label>
+                                <Input
+                                    id="name"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="Enter student's full name"
+                                />
+                            </div>
 
-                        {/* 2. Email */}
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                placeholder=""
-                            />
-                        </div>
+                            {/* 2. Email */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="email">Email Address</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    placeholder="student@example.com"
+                                />
+                            </div>
 
-                        {/* 3. Phone */}
-                        <div className="grid gap-2">
-                            <Label htmlFor="phone">Phone</Label>
-                            <Input
-                                id="phone"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                placeholder=""
-                            />
-                        </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* 3. Phone */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="phone">Phone Number</Label>
+                                    <Input
+                                        id="phone"
+                                        type="tel"
+                                        value={formData.phone}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, ""); // Remove all non-digits
+                                            setFormData({ ...formData, phone: val });
+                                        }}
+                                        placeholder="Numbers only"
+                                    />
+                                </div>
 
-                        {/* 4. Batch */}
-                        <div className="grid gap-2">
-                            <Label htmlFor="batch">Batch</Label>
-                            <Select value={formData.batch} onValueChange={(val) => setFormData({ ...formData, batch: val })}>
-                                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                                <SelectContent>
-                                    {batches.map((batch) => (
-                                        <SelectItem key={batch} value={batch}>{batch}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                {/* 4. Batch */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="batch">Assign Batch</Label>
+                                    <Select value={formData.batch} onValueChange={(val) => setFormData({ ...formData, batch: val })}>
+                                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectContent>
+                                            {batches.map((batch) => (
+                                                <SelectItem key={batch} value={batch}>{batch}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
-                <DialogFooter>
+                <DialogFooter className="modal-footer-standard">
                     <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-                    <Button onClick={handleCreate} disabled={isSubmitting || isLoadingOptions}>
+                    <Button onClick={handleCreate} disabled={isSubmitting || isLoadingOptions} className="px-8">
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                         Create
                     </Button>

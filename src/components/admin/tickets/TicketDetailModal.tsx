@@ -557,7 +557,7 @@ export const TicketDetailModal = ({
           onInteractOutside={(e) => e.preventDefault()}
           className={`p-0 overflow-hidden flex flex-col sm:flex-row gap-0 outline-none border-none shadow-2xl bg-background transition-all duration-300 ${isExpanded
             ? "w-screen h-screen max-w-none max-h-none rounded-none"
-            : "max-w-4xl w-[95vw] sm:w-[90vw] md:w-full h-[90vh] sm:h-[85vh] max-h-[850px] rounded-2xl"
+            : "modal-admin-uniform rounded-2xl"
             }`}
         >
           {/* ... */}

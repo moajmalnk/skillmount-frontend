@@ -13,6 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { systemService } from "@/services/systemService";
 import { Card, CardContent } from "@/components/ui/card";
 import { FeedbackCreateDialog } from "./FeedbackCreateDialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export const FeedbackManager = () => {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
@@ -28,6 +35,10 @@ export const FeedbackManager = () => {
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
 
   // Delete State
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -95,7 +106,7 @@ export const FeedbackManager = () => {
     </div>
   );
 
-  const filteredFeedbacks = feedbacks.filter(item => {
+  const filteredFeedbacks = (Array.isArray(feedbacks) ? feedbacks : []).filter(item => {
     const matchesSearch = item.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.message.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -104,6 +115,24 @@ export const FeedbackManager = () => {
 
     return matchesSearch && matchesRating && matchesCategory;
   });
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, ratingFilter, categoryFilter]);
+
+  // Pagination calculations
+  const totalCount = filteredFeedbacks.length;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedFeedbacks = filteredFeedbacks.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   const feedbackToDelete = feedbacks.find(f => f.id === deleteId);
 
@@ -208,7 +237,7 @@ export const FeedbackManager = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredFeedbacks.map((item) => (
+                paginatedFeedbacks.map((item) => (
                   <TableRow
                     key={item.id}
                     className="cursor-pointer hover:bg-muted/50"
@@ -261,6 +290,35 @@ export const FeedbackManager = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Pagination Controls */}
+      {totalCount > 0 && (
+        <div className="mt-6 pb-4">
+          <Pagination className="justify-end">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              <PaginationItem>
+                <span className="flex h-9 min-w-9 items-center justify-center text-sm font-medium px-4">
+                  Page {currentPage} of {Math.max(1, totalPages)}
+                </span>
+              </PaginationItem>
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       <FeedbackDetailModal
         feedback={selectedFeedback}

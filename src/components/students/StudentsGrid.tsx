@@ -2,36 +2,38 @@ import { Users, Search, X, Sparkles, ExternalLink, ArrowRight } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import StudentCard from "@/components/StudentCard";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { Student } from "@/types/user";
 
 interface StudentsGridProps {
-  students: any[];
+  students: Student[];
   clearFilters: () => void;
+  totalCount?: number;
 }
 
-export const StudentsGrid = ({ students, clearFilters }: StudentsGridProps) => {
+export const StudentsGrid = ({ students, clearFilters, totalCount }: StudentsGridProps) => {
   return (
     <section className="pt-0 sm:pt-2 bg-background relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/[0.015] rounded-full blur-3xl pointer-events-none"></div>
-      
+
       <div className="container mx-auto px-6 max-w-7xl relative">
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2.5 bg-primary/[0.03] border border-primary/10 rounded-full px-5 py-2 mb-6">
             <Users className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-medium text-foreground tracking-wide">Student Showcase</span>
           </div>
-          <TextGenerateEffect 
-            words="Student Portfolios" 
+          <TextGenerateEffect
+            words="Student Portfolios"
             className="text-4xl md:text-6xl font-bold text-foreground mb-4 tracking-tight leading-[0.95]"
             duration={1.5}
           />
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-light">
-            {students.length > 0 
-              ? `Discover ${students.length} talented students and their exceptional work`
+            {students.length > 0
+              ? `Discover ${totalCount || students.length} talented students and their exceptional work`
               : "No students match your current filters"
             }
           </p>
         </div>
-        
+
         {/* Grid */}
         {students.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-8">
@@ -55,7 +57,7 @@ export const StudentsGrid = ({ students, clearFilters }: StudentsGridProps) => {
             </Button>
           </div>
         )}
-        
+
         {/* Footer CTA */}
         {students.length > 0 && (
           <div className="text-center pt-8 border-t border-border/20">

@@ -73,27 +73,27 @@ export const ActionConfirmationDialog = ({
 
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
+            <AlertDialogContent className="modal-layout-standard modal-sm">
+                <AlertDialogHeader className="modal-header-standard">
                     <AlertDialogTitle className={cn("flex items-center gap-2", styles.headerClass)}>
-                        <Icon className={cn("w-5 h-5", styles.iconColor)} />
+                        <Icon className={cn("w-5 h-5 shrink-0", styles.iconColor)} />
                         {title}
                     </AlertDialogTitle>
                     <AlertDialogDescription asChild>
-                        <div className="space-y-3 pt-2 text-sm text-muted-foreground">
+                        <div className="modal-body-standard !p-0 space-y-4">
                             {itemName && (
-                                <div className="bg-muted/50 p-3 rounded-md border border-border/50 font-medium text-sm flex items-center gap-2 text-foreground/80">
-                                    <span className="text-muted-foreground font-normal">Item:</span>
-                                    {itemName}
+                                <div className="bg-muted/50 p-3 rounded-md border border-border/50 font-medium text-sm flex items-center gap-2 text-foreground/80 mt-2">
+                                    <span className="text-muted-foreground font-normal shrink-0">Item:</span>
+                                    <span className="truncate">{itemName}</span>
                                 </div>
                             )}
-                            <div className="text-muted-foreground/90 leading-relaxed">
+                            <div className="text-muted-foreground/90 leading-relaxed text-sm">
                                 {description}
                             </div>
                         </div>
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter className="gap-2 sm:gap-0">
+                <AlertDialogFooter className="modal-footer-standard gap-2 sm:gap-0">
                     <AlertDialogCancel onClick={() => onOpenChange(false)}>{cancelLabel}</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={(e) => {

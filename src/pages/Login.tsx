@@ -158,7 +158,8 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     // Redirect to Django Backend Google Auth
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const API_URL = isLocal ? 'http://localhost:8000/api' : 'https://skillapi.moajmalnk.in/api';
     window.location.href = `${API_URL}/auth/google/login/`;
   };
 

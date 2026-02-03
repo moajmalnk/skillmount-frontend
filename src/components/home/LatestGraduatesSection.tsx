@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import StudentCard from "@/components/StudentCard";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { ContainerScrollAnimation } from "@/components/ui/container-scroll-animation";
@@ -29,7 +30,7 @@ export const LatestGraduatesSection = ({ students, isLoading }: LatestGraduatesS
     <ContainerScrollAnimation direction="up" speed="normal">
       <section className="pt-4 sm:pt-16 bg-background relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.01]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
-        
+
         <div className="container mx-auto px-6 max-w-7xl relative">
           <div className="text-center mb-24">
             <div className="inline-flex items-center gap-2.5 bg-gradient-to-r from-primary/8 to-primary/5 border border-primary/15 rounded-full px-5 py-2 mb-8">
@@ -39,19 +40,29 @@ export const LatestGraduatesSection = ({ students, isLoading }: LatestGraduatesS
             <TextGenerateEffect words="Latest Graduates" className="text-5xl md:text-7xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-light">Meet our newest batch of talented students ready to make their mark in the digital world</p>
           </div>
-        
+
           {isLoading ? (
-             <div className="flex justify-center py-12">
-               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16 px-4 sm:px-0">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex flex-col gap-4 p-5 rounded-3xl border border-border/50 bg-card/50">
+                  <Skeleton className="w-full aspect-square rounded-2xl" />
+                  <Skeleton className="h-6 w-3/4 mb-1 mx-auto" />
+                  <Skeleton className="h-4 w-1/2 mx-auto" />
+                  <div className="flex gap-2 justify-center mt-2">
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : displayStudents.length > 0 ? (
             // Added items-stretch
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16 items-stretch">
               {visibleStudents.map((student, index) => (
-                <div 
-                    key={student.id} 
-                    className="animate-elegant-entrance h-full" // Added h-full
-                    style={{ animationDelay: `${index * 80}ms`, animationFillMode: 'both' }}
+                <div
+                  key={student.id}
+                  className="animate-elegant-entrance h-full" // Added h-full
+                  style={{ animationDelay: `${index * 80}ms`, animationFillMode: 'both' }}
                 >
                   {/* @ts-ignore */}
                   <StudentCard {...student} id={student.id as any} />
@@ -59,11 +70,11 @@ export const LatestGraduatesSection = ({ students, isLoading }: LatestGraduatesS
               ))}
             </div>
           ) : (
-             <div className="text-center py-12 text-muted-foreground">
-               No graduates to show yet.
-             </div>
+            <div className="text-center py-12 text-muted-foreground">
+              No graduates to show yet.
+            </div>
           )}
-          
+
           {!showAll && displayStudents.length > 8 && (
             <div className="text-center">
               <Button size="lg" variant="outline" className="rounded-full px-12 h-14 border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 group shadow-sm hover:shadow-lg hover:shadow-primary/10 text-base font-semibold" onClick={() => setShowAll(true)}>

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
 import { UserDetailSheet } from "./UserDetailSheet";
 
@@ -165,7 +166,7 @@ export const AffiliateManager = () => {
 
       // Parse Notification Status
       // Parse Notification Status
-      const notifStatus = result?.meta?.notification_status || {};
+      const notifStatus = (result as any)?.meta?.notification_status || {};
       const emailStatus = notifStatus.email === 'ok';
       // WhatsApp status might be 'ok', 'skipped...', or 'error...'
       const waStatusRaw = notifStatus.whatsapp || 'error';
@@ -311,14 +312,19 @@ export const AffiliateManager = () => {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      <div className="flex justify-center items-center gap-2">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span>Loading Partners...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-40 mb-1" />
+                        <Skeleton className="h-3 w-32" />
+                      </TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-24 font-mono" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))
                 ) : filteredAffiliates.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
@@ -382,17 +388,24 @@ export const AffiliateManager = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add New Affiliate</DialogTitle>
-            <DialogDescription>
-              Create a partner account and assign a unique coupon code.
-            </DialogDescription>
+        <DialogContent className="modal-admin-uniform">
+          <DialogHeader className="modal-header-standard">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <DialogTitle>Add New Affiliate</DialogTitle>
+                <DialogDescription>
+                  Create a partner account and assign a unique coupon code.
+                </DialogDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setIsDialogOpen(false)} className="h-8 w-8 text-muted-foreground">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {/* Basic Details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
+          <div className="modal-body-standard">
+            <div className="grid gap-6">
+              {/* Basic Details */}
+              <div className="space-y-2">
                 <Label htmlFor="name">Full Name / Entity</Label>
                 <Input
                   id="name"
@@ -401,47 +414,46 @@ export const AffiliateManager = () => {
                   placeholder="e.g. John Doe"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="partner@example.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="Phone with country code" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+
+              <div className="space-y-2 pt-2 border-t border-border/50 transition-all">
+                <Label htmlFor="coupon" className="flex items-center gap-2">
+                  Coupon Code
+                  <span className="text-xs text-muted-foreground font-normal">(Auto-generated)</span>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="coupon"
+                    value={formData.couponCode}
+                    onChange={(e) => setFormData({ ...formData, couponCode: e.target.value.toUpperCase() })}
+                    className="font-mono uppercase bg-primary/5 focus:bg-background transition-colors"
+                  />
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => setFormData(prev => ({ ...prev, couponCode: generateCoupon(prev.name) }))}
+                    title="Regenerate"
+                    className="shrink-0"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="coupon" className="flex items-center gap-2">
-                Coupon Code
-                <span className="text-xs text-muted-foreground font-normal">(Auto-generated)</span>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="coupon"
-                  value={formData.couponCode}
-                  onChange={(e) => setFormData({ ...formData, couponCode: e.target.value.toUpperCase() })}
-                  className="font-mono uppercase"
-                />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setFormData(prev => ({ ...prev, couponCode: generateCoupon(prev.name) }))}
-                  title="Regenerate"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-
           </div>
-          <DialogFooter>
+          <DialogFooter className="modal-footer-standard">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="px-8">
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Create Partner
             </Button>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { blogService } from "@/services/blogService";
 import { BlogPost } from "@/types/blog";
 import SEO from "@/components/SEO";
@@ -79,7 +80,23 @@ const Blog = () => {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>
+            <div className="space-y-16">
+              <Skeleton className="w-full h-[400px] rounded-3xl" />
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-4 p-5 rounded-3xl border border-border/50 bg-card/50">
+                    <Skeleton className="w-full aspect-video rounded-2xl" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-4 w-16 rounded-full" />
+                      <Skeleton className="h-4 w-16 rounded-full" />
+                    </div>
+                    <Skeleton className="h-7 w-3/4 mb-1" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="space-y-16">
 

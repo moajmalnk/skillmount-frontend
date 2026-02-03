@@ -6,11 +6,11 @@ export const ticketService = {
   // 1. GET ALL TICKETS (Filtered by User Role automatically by Backend)
   getAll: async (params?: Record<string, any>): Promise<any> => {
     try {
-      const response = await api.get('/tickets/', { params });
+      const response = await api.get<any>('/tickets/', { params });
       return response.data;
     } catch (error) {
       console.error("Failed to load tickets", error);
-      throw error;
+      return { results: [], count: 0 };
     }
   },
 

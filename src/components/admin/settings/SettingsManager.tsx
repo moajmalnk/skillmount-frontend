@@ -218,26 +218,28 @@ const SettingCard = ({ title, description, icon: Icon, items = [], onAdd, onRemo
 
       {/* EDIT ITEM DIALOG */}
       <Dialog open={!!itemToEdit} onOpenChange={() => setItemToEdit(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
-            <DialogDescription>
-              Update the name of this configuration option.
+        <DialogContent className="modal-layout-standard modal-sm">
+          <DialogHeader className="modal-header-standard">
+            <DialogTitle className="text-xl font-bold">Edit Entry</DialogTitle>
+            <DialogDescription className="text-xs uppercase font-bold text-muted-foreground tracking-widest">
+              Update configuration value
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-value">Value</Label>
+          <div className="modal-body-standard">
+            <div className="grid gap-3">
+              <Label htmlFor="edit-value" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">New Value Name</Label>
               <Input
                 id="edit-value"
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
+                className="h-11 font-medium"
+                placeholder="Enter value..."
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setItemToEdit(null)}>Cancel</Button>
-            <Button onClick={handleEditRequest}>Save Changes</Button>
+          <DialogFooter className="modal-footer-standard px-6 py-4 bg-muted/5">
+            <Button variant="ghost" onClick={() => setItemToEdit(null)} className="font-medium">Cancel</Button>
+            <Button onClick={handleEditRequest} className="font-semibold px-8 shadow-lg shadow-primary/20">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

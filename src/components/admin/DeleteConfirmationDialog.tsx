@@ -29,30 +29,32 @@ export const DeleteConfirmationDialog = ({
 }: DeleteConfirmationDialogProps) => {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+      <AlertDialogContent className="modal-layout-standard modal-sm">
+        <AlertDialogHeader className="modal-header-standard">
           <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="w-5 h-5" />
+            <AlertTriangle className="w-5 h-5 shrink-0" />
             {title}
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-2">
-            {itemName && (
-              <div className="bg-destructive/5 p-2 rounded-md border border-destructive/10 text-destructive-foreground font-medium text-sm flex items-center gap-2">
-                <Trash2 className="w-4 h-4" />
-                Deleting: "{itemName}"
-              </div>
-            )}
-            <span>{description}</span>
+          <AlertDialogDescription className="space-y-4 pt-2" asChild>
+            <div className="modal-body-standard !p-0">
+              {itemName && (
+                <div className="bg-destructive/5 p-3 rounded-md border border-destructive/10 text-destructive-foreground font-medium text-sm flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Deleting: "{itemName}"</span>
+                </div>
+              )}
+              <span className="block text-muted-foreground/90 leading-relaxed">{description}</span>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        <AlertDialogFooter className="modal-footer-standard">
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
               onConfirm();
             }}
-            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground px-6"
           >
             Delete Permanently
           </AlertDialogAction>

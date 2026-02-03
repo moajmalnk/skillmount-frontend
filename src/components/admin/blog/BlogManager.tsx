@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Table, TableCell, TableRow, TableHead, TableHeader, TableBody } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Edit2, Trash2, Eye, Loader2, Search, Plus, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -73,7 +74,7 @@ export const BlogManager = () => {
     loadBlogs();
   };
 
-  const filteredBlogs = blogs.filter(blog => {
+  const filteredBlogs = (Array.isArray(blogs) ? blogs : []).filter(blog => {
     const matchesSearch = blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       blog.categories.some(cat => cat.toLowerCase().includes(searchQuery.toLowerCase())) ||
       blog.author.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -154,14 +155,15 @@ export const BlogManager = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    <div className="flex justify-center items-center gap-2">
-                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                      <span>Loading Posts...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-48 mb-1" /><Skeleton className="h-3 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
               ) : filteredBlogs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">

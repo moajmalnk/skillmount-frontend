@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 // 1. Base Configuration
-// We use an environment variable for the URL, defaulting to Django's standard port
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Dynamically determine API URL based on current window location
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = isLocal ? 'http://localhost:8000/api' : 'https://skillapi.moajmalnk.in/api';
 
 const api = axios.create({
   baseURL: API_URL,
