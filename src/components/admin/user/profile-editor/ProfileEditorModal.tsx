@@ -81,15 +81,15 @@ export const ProfileEditorModal = ({ isOpen, onClose, student }: ProfileEditorMo
 
         {/* Scrollable Content Area */}
         <div className="flex-1 flex flex-col min-h-0 bg-background/50">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <div className="px-6 pt-4 border-b bg-muted/20">
-              <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+              <TabsList className="grid w-full max-w-[400px] grid-cols-2 mx-auto">
                 <TabsTrigger value="basic" className="text-xs uppercase font-bold tracking-tight">Basic Info</TabsTrigger>
                 <TabsTrigger value="projects" className="text-xs uppercase font-bold tracking-tight">Portfolio</TabsTrigger>
               </TabsList>
             </div>
 
-            <div className="modal-body-standard !p-8">
+            <div className="modal-body-standard !p-4 md:!p-8">
               <TabsContent value="basic" className="mt-0 space-y-6">
                 <ProfileBasicForm
                   data={formData}

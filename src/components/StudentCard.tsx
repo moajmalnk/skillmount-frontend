@@ -51,12 +51,13 @@ const StudentCard = ({
   projectCount = 0,
   placement
 }: StudentCardProps) => {
-  const { isAuthenticated } = useAuth(); // Check login status
+  const { isAuthenticated } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const cardRef = useRef<HTMLElement>(null);
+  const navigate = useNavigate();
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
-  // Progressive loading
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -73,11 +74,20 @@ const StudentCard = ({
     return () => observer.disconnect();
   }, []);
 
-  const navigate = useNavigate();
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
-
-  // Handle Card Click
   const handleCardClick = (e: React.MouseEvent) => {
+    // If not authenticated and trying to click restricted areas, show dialog
+    // Ideally the card itself can be clicked to go to profile if auth
+    if (!isAuthenticated) {
+      // e.preventDefault();
+      // setShowLoginDialog(true);
+      // We let the Link inside handle navigation, or show dialog if clicking elsewhere?
+      // Let's keep simple: The whole card is clickable but protected routes handle auth, 
+      // OR we intercept here.
+    }
+  };
+
+  const onRestrictedAction = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!isAuthenticated) {
       e.preventDefault();
       setShowLoginDialog(true);
@@ -89,172 +99,142 @@ const StudentCard = ({
       <article
         ref={cardRef}
         className={cn(
-          "group relative flex flex-col bg-card border border-border/40 rounded-2xl overflow-hidden transition-all duration-500 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-2 portfolio-card h-full cursor-pointer",
+          "group relative flex flex-col bg-card hover:bg-card/50 border border-border/40 rounded-3xl overflow-hidden transition-all duration-500 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 h-full",
           !isVisible && "opacity-0",
           isVisible && !isLoaded && "opacity-50",
           isLoaded && "opacity-100"
         )}
-        onClick={handleCardClick}
       >
-        {/* Badges Container */}
+        {/* PRO Badge - Absolute Top Right */}
         <div className="absolute top-3 right-3 z-20 flex flex-col gap-2 items-end">
-          {/* Top Performer Badge */}
           {isTopPerformer && (
-            <div className="flex items-center gap-1.5 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-white px-3 py-1.5 rounded-full text-[10px] font-bold shadow-lg backdrop-blur-sm animate-badge-pulse">
+            <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-orange-500/20 animate-in zoom-in duration-300">
               <Star className="w-3 h-3 fill-current" />
-              <span>Top Performer</span>
+              <span>TOP VALUED</span>
             </div>
           )}
-
-          {/* Placement Badge */}
           {placement?.company && (
-            <div className="flex items-center gap-1.5 bg-gradient-to-br from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-full text-[10px] font-bold shadow-lg">
-              <Sparkles className="w-3 h-3" />
-              <span>Placed at {placement.company}</span>
+            <div className="flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-green-500/20 animate-in zoom-in duration-300 delay-100">
+              <Sparkles className="w-3 h-3 text-white" />
+              <span className="truncate max-w-[100px]">{placement.company}</span>
             </div>
           )}
         </div>
 
-        {/* Portfolio Preview / Cover Section */}
-        <div className="relative block w-full aspect-[4/3] bg-gradient-to-br from-muted via-muted/80 to-muted/60 overflow-hidden group/preview">
+        {/* 1. Header Art / Banner - Cosmic Intelligent Style */}
+        <div className="h-24 w-full relative overflow-hidden group-hover:h-28 transition-all duration-500 ease-out">
+          {/* Vibrant Professional Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 opacity-90 dark:opacity-80"></div>
 
-          {isAuthenticated ? (
-            <Link to={`/students/${id}`} className="absolute inset-0 z-10" />
-          ) : null}
+          {/* Abstract Shapes for Depth */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 mix-blend-overlay"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
 
-          {/* Overlay Text */}
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 flex items-center justify-center pointer-events-none">
-            <span className="bg-white/90 text-black px-4 py-2 rounded-full text-sm font-bold transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 shadow-lg flex items-center gap-2">
-              {isAuthenticated ? (
-                <>
-                  <ExternalLink className="w-4 h-4" /> View Profile
-                </>
+          {/* Noise Texture */}
+          <div className="absolute inset-0 opacity-[0.15] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+
+          {/* Shine Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-50"></div>
+        </div>
+
+        {/* 2. Profile Content */}
+        <div className="px-5 pb-5 flex flex-col flex-grow items-center -mt-12 relative z-10">
+
+          {/* Avatar */}
+          <div className="relative mb-3 group-hover:scale-105 transition-transform duration-500">
+            <div className="w-24 h-24 rounded-2xl rotate-3 overflow-hidden border-4 border-card shadow-xl bg-card">
+              {avatar ? (
+                <img src={avatar} alt={name} className="w-full h-full object-cover -rotate-3 scale-110" loading="lazy" />
               ) : (
-                <>
-                  <Lock className="w-4 h-4" /> Login to View
-                </>
+                <div className="w-full h-full bg-muted flex items-center justify-center -rotate-3 text-muted-foreground">
+                  <User className="w-10 h-10" />
+                </div>
               )}
-            </span>
+            </div>
+            {/* Batch Badge on Avatar */}
+            <div className="absolute -bottom-2 -right-2 bg-background border border-border text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm uppercase tracking-wider text-muted-foreground">
+              {batch}
+            </div>
           </div>
 
-          {/* Avatar Image or Fallback */}
-          {avatar ? (
-            <img
-              src={avatar}
-              alt={name}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 relative overflow-hidden">
-              <div className="absolute inset-0 opacity-[0.05]" style={{
-                backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
-                backgroundSize: '24px 24px'
-              }}></div>
-              <div className="relative z-10 text-center p-4">
-                <div className="w-16 h-16 mx-auto bg-background rounded-full flex items-center justify-center mb-3 shadow-sm">
-                  <User className="w-8 h-8 text-primary/40" />
-                </div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">{batch}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Content Section - Flex Grow to push footer down */}
-        <CardContent className="flex flex-col flex-grow p-5 pointer-events-none"> {/* Added pointer-events-none to prevent double clicks */}
           {/* Name & Headline */}
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-foreground mb-0.5 group-hover:text-primary transition-colors duration-300 line-clamp-1">
-              {name}
+          <div className="text-center space-y-1 w-full mb-4">
+            <h3 className="text-xl md:text-2xl font-extrabold text-foreground group-hover:text-primary transition-colors duration-300 truncate px-2 tracking-tight">
+              {isAuthenticated ? (
+                <Link to={`/students/${id}`} className="hover:underline decoration-primary/30 underline-offset-4 decoration-2">
+                  {name}
+                </Link>
+              ) : name}
             </h3>
-
-            {/* Headline - NEW */}
             {headline && (
-              <p className="text-sm text-foreground/80 font-medium mb-1 line-clamp-1" title={headline}>
+              <p className="text-xs text-muted-foreground line-clamp-2 px-2 h-8 leading-relaxed">
                 {headline}
               </p>
             )}
-
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-[10px] text-muted-foreground font-semibold tracking-wider uppercase bg-muted px-2 py-0.5 rounded">
-                {batch}
-              </p>
-              {/* Project Count Badge */}
-              {projectCount > 0 && (
-                <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
-                  {projectCount} Project{projectCount !== 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
           </div>
 
-          {/* Skills Tags - Fixed height area or fluid */}
-          <div className="flex-grow">
-            {skills && skills.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {skills.slice(0, 3).map((skill, idx) => (
-                  <Badge
-                    key={idx}
-                    variant="secondary"
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-muted/50 font-medium border border-transparent"
-                  >
-                    {skill}
-                  </Badge>
-                ))}
-                {skills.length > 3 && (
-                  <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-md bg-muted/50">
-                    +{skills.length - 3}
-                  </Badge>
-                )}
-              </div>
-            ) : (
-              <div className="h-6 mb-4 text-xs text-muted-foreground italic">No skills listed</div>
+          {/* Skills */}
+          <div className="w-full flex flex-wrap gap-1.5 justify-center mb-5 h-[52px] content-start overflow-hidden">
+            {skills.slice(0, 4).map((skill, i) => (
+              <Badge key={i} variant="secondary" className="bg-muted/50 hover:bg-primary/10 text-[10px] font-medium px-2 py-0 transition-colors border-transparent hover:border-primary/20">
+                {skill}
+              </Badge>
+            ))}
+            {skills.length > 4 && (
+              <Badge variant="secondary" className="bg-muted/30 text-[10px] px-1.5 py-0">+{skills.length - 4}</Badge>
             )}
           </div>
 
-          {/* ACTIONS / CONTACT INFO */}
-          <div className="mt-4 pt-4 border-t border-border/40">
-            {/* LOGGED IN VIEW: Show Socials & Contact */}
+          {/* Divider */}
+          <div className="w-full h-px bg-border/40 mb-4"></div>
+
+          {/* Footer / Actions */}
+          <div className="w-full flex items-center justify-between gap-2 mt-auto">
             {isAuthenticated ? (
-              <div className="space-y-3 pointer-events-auto"> {/* Re-enable pointer events for buttons */}
-                <div className="flex gap-2">
-                  {domain && (
-                    <Button size="sm" variant="outline" asChild className="h-8 flex-1 text-xs rounded-lg hover:bg-primary/5 hover:text-primary z-20 relative" onClick={(e) => e.stopPropagation()}>
-                      <a href={domain} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-3 h-3 mr-1.5" /> Website
-                      </a>
-                    </Button>
-                  )}
+              <>
+                <div className="flex items-center gap-1">
                   {github && (
-                    <Button size="sm" variant="outline" asChild className="h-8 flex-1 text-xs rounded-lg hover:bg-primary/5 hover:text-primary z-20 relative" onClick={(e) => e.stopPropagation()}>
-                      <a href={github} target="_blank" rel="noopener noreferrer">
-                        <Github className="w-3 h-3 mr-1.5" /> GitHub
-                      </a>
-                    </Button>
+                    <a href={github} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()} title="GitHub">
+                      <Github className="w-4 h-4" />
+                    </a>
+                  )}
+                  {linkedin && (
+                    <a href={linkedin} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-blue-600 transition-colors" onClick={(e) => e.stopPropagation()} title="LinkedIn">
+                      <Linkedin className="w-4 h-4" />
+                    </a>
                   )}
                 </div>
-              </div>
+
+                {domain ? (
+                  <a href={domain} target="_blank" rel="noopener noreferrer" className="flex-1 ml-2" onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" className="w-full h-9 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-semibold text-xs shadow-none hover:shadow-lg transition-all">
+                      Visit Website <ExternalLink className="w-3 h-3 ml-1.5" />
+                    </Button>
+                  </a>
+                ) : (
+                  <Button size="sm" variant="ghost" className="flex-1 ml-2 h-9 rounded-full text-xs text-muted-foreground" disabled>
+                    No Website
+                  </Button>
+                )}
+              </>
             ) : (
-              <div className="text-center">
-                <span className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
-                  <Lock className="w-3 h-3" /> Login to view contact info
-                </span>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full rounded-full border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/50 text-xs"
+                onClick={() => setShowLoginDialog(true)}
+              >
+                <Lock className="w-3 h-3 mr-1.5" /> Login to Connect
+              </Button>
             )}
           </div>
-        </CardContent>
 
-        {/* Shine Effect */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
         </div>
       </article>
 
-      {/* Login Required Dialog */}
+      {/* Login Dialog - Preserved */}
       <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <AlertDialogContent className="sm:max-w-[425px] border-border/50 bg-card/95 backdrop-blur-xl">
+        <AlertDialogContent className="sm:max-w-[425px] border-border/50 bg-card/95 backdrop-blur-xl rounded-3xl">
           <AlertDialogHeader>
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 mx-auto">
               <Lock className="w-6 h-6 text-primary" />

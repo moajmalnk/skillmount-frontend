@@ -12,6 +12,7 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 // Import Reusable Components
 import { MaterialsHero } from "@/components/materials/MaterialsHero";
 import { MaterialsTabs } from "@/components/materials/MaterialsTabs";
+import { MaterialsSearchBar } from "@/components/materials/MaterialsSearchBar";
 import { VideoGrid } from "@/components/materials/VideoGrid";
 import { ThemeGrid } from "@/components/materials/ThemeGrid";
 import { PluginGrid } from "@/components/materials/PluginGrid";
@@ -23,6 +24,7 @@ const Materials = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [allMaterials, setAllMaterials] = useState<Material[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -42,12 +44,23 @@ const Materials = () => {
 
   // Filter Data
   const materials = Array.isArray(allMaterials) ? allMaterials : [];
-  const videos = materials.filter(m => m.type === "Videos");
-  const themes = materials.filter(m => m.type === "Themes");
-  const plugins = materials.filter(m => m.type === "Plugins");
-  const templateKits = materials.filter(m => m.type === "Template Kit");
-  const docs = materials.filter(m => m.type === "Docs");
-  const snippets = materials.filter(m => m.type === "Snippet");
+
+  const filterMaterial = (m: Material) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      m.title.toLowerCase().includes(query) ||
+      m.description?.toLowerCase().includes(query) ||
+      m.category?.toLowerCase().includes(query)
+    );
+  };
+
+  const videos = materials.filter(m => m.type === "Videos" && filterMaterial(m));
+  const themes = materials.filter(m => m.type === "Themes" && filterMaterial(m));
+  const plugins = materials.filter(m => m.type === "Plugins" && filterMaterial(m));
+  const templateKits = materials.filter(m => m.type === "Template Kit" && filterMaterial(m));
+  const docs = materials.filter(m => m.type === "Docs" && filterMaterial(m));
+  const snippets = materials.filter(m => m.type === "Snippet" && filterMaterial(m));
 
   return (
     <FollowingPointer>
@@ -94,6 +107,13 @@ const Materials = () => {
 
             {/* 2. Navigation Tabs */}
             <MaterialsTabs />
+
+            {/* Search Bar */}
+            <MaterialsSearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={`Search ${activeTab.replace("-", " ")}...`}
+            />
 
             {/* 3. Content Tabs */}
             <ContainerScrollAnimation direction="up" speed="normal">

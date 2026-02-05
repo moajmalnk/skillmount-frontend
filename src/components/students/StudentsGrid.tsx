@@ -71,7 +71,7 @@ export const StudentsGrid = ({ students, clearFilters, totalCount }: StudentsGri
             <div className="flex flex-row gap-4 justify-center items-center">
               <a href="https://moajmalnk.in" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" className="rounded-full px-8 h-14 text-base font-semibold shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 transition-all duration-500 group">
-                  <ExternalLink className="w-5 h-5 mr-2" /> Visit SkillMount
+                  <ExternalLink className="w-5 h-5 mr-2" /> Visit moajmalnk.in
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>
               </a>

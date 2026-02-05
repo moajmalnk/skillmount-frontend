@@ -65,6 +65,7 @@ const AppContent = () => {
             <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
             <Route path="/students" element={<Students />} />
             <Route path="/students/:id" element={<StudentProfile />} />
+            <Route path="/materials" element={<Materials />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/skelui" element={<SkelUI />} />
 
@@ -76,7 +77,8 @@ const AppContent = () => {
             <Route element={<ProtectedRoute />}>
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/faq" element={<FAQ />} />
-              <Route path="/materials" element={<Materials />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/tickets/manage" element={<TicketInbox />} />
               <Route path="/tickets/manage" element={<TicketInbox />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/affiliate/hub" element={<AffiliateHub />} />

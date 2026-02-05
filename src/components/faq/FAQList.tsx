@@ -32,14 +32,22 @@ export const FAQList = ({
       <div className="container mx-auto px-6 max-w-6xl relative">
 
         {/* Search Area & Header */}
-        <div className="max-w-md mx-auto mb-12 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input
-            placeholder="Search specific questions..."
-            className="pl-10 h-12 rounded-full border-border/50 bg-card/50 backdrop-blur-sm focus:ring-primary/20"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="max-w-2xl mx-auto mb-16 relative group">
+          <div className="absolute inset-0 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-all duration-500 opacity-0 group-hover:opacity-100" />
+          <div className="relative">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/70 group-hover:text-primary transition-colors" />
+            <Input
+              placeholder="Search specific questions..."
+              className="pl-14 pr-20 h-14 rounded-full border-border/40 bg-muted/10 hover:bg-muted/20 focus:bg-background/80 backdrop-blur-md transition-all text-base shadow-sm focus:ring-primary/20 focus:border-primary/30"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:block">
+              <kbd className="inline-flex h-6 select-none items-center gap-1 rounded border border-border/50 bg-muted/50 px-2 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </div>
+          </div>
         </div>
 
         <div className="text-center mb-16">

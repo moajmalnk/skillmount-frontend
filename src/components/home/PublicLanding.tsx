@@ -49,37 +49,37 @@ export const PublicLanding = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Fetch Data on Mount
   useEffect(() => {
     const fetchData = async () => {
-        try {
-            const allUsers = await userService.getAll();
-            // Filter strictly for students
-            const studentList = allUsers.filter(u => u.role === 'student') as Student[];
-            setStudents(studentList);
-        } catch (error) {
-            console.error("Failed to load students", error);
-        } finally {
-            setIsLoading(false);
-            setIsVisible(true);
-        }
+      try {
+        const allUsers = await userService.getAll();
+        // Filter strictly for students
+        const studentList = allUsers.filter(u => u.role === 'student') as Student[];
+        setStudents(studentList);
+      } catch (error) {
+        console.error("Failed to load students", error);
+      } finally {
+        setIsLoading(false);
+        setIsVisible(true);
+      }
     };
     fetchData();
   }, []);
 
   // Filter lists based on flags
   const topPerformers = students.filter(s => s.isTopPerformer).map(s => ({
-      ...s,
-      batch: formatBatchForDisplay(s.batch, false),
-      // Ensure numeric ID for StudentCard
-      id: parseInt(s.id.replace(/\D/g, '')) || Math.floor(Math.random() * 1000) 
+    ...s,
+    batch: formatBatchForDisplay(s.batch, false),
+    // Ensure numeric ID for StudentCard
+    id: parseInt(s.id.replace(/\D/g, '')) || Math.floor(Math.random() * 1000)
   }));
 
   const latestGraduates = students.filter(s => s.isFeatured).slice(0, 8).map(s => ({
-      ...s,
-      batch: formatBatchForDisplay(s.batch, false),
-      id: parseInt(s.id.replace(/\D/g, '')) || Math.floor(Math.random() * 1000)
+    ...s,
+    batch: formatBatchForDisplay(s.batch, false),
+    id: parseInt(s.id.replace(/\D/g, '')) || Math.floor(Math.random() * 1000)
   }));
 
   // Stats
@@ -111,7 +111,7 @@ export const PublicLanding = () => {
             <div className="absolute inset-0 bg-cover bg-center opacity-[0.03]" style={{ backgroundImage: 'url("/tutor-hero.jpg")' }}></div>
             <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/90"></div>
           </div>
-          
+
           <div className="container mx-auto px-6 max-w-7xl relative z-10">
             <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
@@ -124,24 +124,24 @@ export const PublicLanding = () => {
                   <div className="space-y-4">
                     <TextGenerateEffect words="Student Success @ SkillMount" className="text-6xl md:text-8xl font-bold leading-tight" />
                     <div className="text-lg text-muted-foreground leading-relaxed">
-                        Led by <span className="font-semibold text-primary">Mohammed Ajmal NK</span>
+                      Led by <span className="font-semibold text-primary">Mohammed Ajmal NK</span>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-8 py-8 border-t border-border/20">
                     <div className="space-y-2"><div className="text-4xl font-bold text-primary">{stats.totalStudents}</div><div className="text-sm">Students Trained</div></div>
                     <div className="space-y-2"><div className="text-4xl font-bold text-primary">{stats.batchesCompleted}</div><div className="text-sm">Batches Completed</div></div>
                   </div>
 
-                  <div className="flex gap-4">
-                    <Link to="/contact"><Button className="rounded-full px-8 h-12">Get Started <ArrowRight className="ml-2 w-4 h-4"/></Button></Link>
-                    <Link to="/students"><Button variant="outline" className="rounded-full px-8 h-12">View Portfolios</Button></Link>
+                  <div className="flex gap-4 justify-center sm:justify-start">
+                    <Link to="/contact"><Button className="rounded-full px-8 h-12">Get Started <ArrowRight className="ml-2 w-4 h-4" /></Button></Link>
+                    <Link to="/students"><Button variant="outline" className="rounded-full px-8 h-12">View Students</Button></Link>
                   </div>
                 </div>
 
                 {/* Visual */}
                 <div className="relative">
-                    <ProfessionalBackground src="https://moajmalnk.in/assets/img/hero/moajmalnk.webp" alt="Hero" className="w-full h-[600px] rounded-2xl shadow-2xl" overlay={true} />
+                  <ProfessionalBackground src="https://moajmalnk.in/assets/img/hero/moajmalnk.webp" alt="Hero" className="w-full h-[600px] rounded-2xl shadow-2xl" overlay={true} />
                 </div>
               </div>
             </div>
@@ -159,7 +159,7 @@ export const PublicLanding = () => {
                 </div>
                 <TextGenerateEffect words="Top Performers" className="text-5xl font-bold mb-4" />
               </div>
-            
+
               {topPerformers.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   {topPerformers.map((student, index) => (
@@ -198,10 +198,10 @@ export const PublicLanding = () => {
               ) : (
                 <div className="text-center text-muted-foreground py-10">No graduates featured yet.</div>
               )}
-              
+
               <div className="text-center mt-12">
                 <Link to="/students">
-                    <Button variant="outline" className="rounded-full px-12 h-14 text-base">View All Students</Button>
+                  <Button variant="outline" className="rounded-full px-12 h-14 text-base">View All Students</Button>
                 </Link>
               </div>
             </div>
@@ -210,19 +210,19 @@ export const PublicLanding = () => {
 
         {/* FAQ Section */}
         <ContainerScrollAnimation direction="up" speed="slow">
-            <section className="py-20 bg-card/30">
-                <div className="container max-w-4xl mx-auto px-6">
-                    <h2 className="text-4xl font-bold text-center mb-12">Frequently Asked Questions</h2>
-                    <Accordion type="single" collapsible className="space-y-4">
-                        {faqs.map((f, i) => (
-                            <AccordionItem key={i} value={`item-${i}`} className="bg-card border border-border/50 rounded-xl px-6">
-                                <AccordionTrigger className="text-lg font-medium py-6 hover:no-underline">{f.question}</AccordionTrigger>
-                                <AccordionContent className="text-muted-foreground pb-6">{f.answer}</AccordionContent>
-                            </AccordionItem>
-                        ))}
-                    </Accordion>
-                </div>
-            </section>
+          <section className="py-20 bg-card/30">
+            <div className="container max-w-4xl mx-auto px-6">
+              <h2 className="text-4xl font-bold text-center mb-12">Frequently Asked Questions</h2>
+              <Accordion type="single" collapsible className="space-y-4">
+                {faqs.map((f, i) => (
+                  <AccordionItem key={i} value={`item-${i}`} className="bg-card border border-border/50 rounded-xl px-6">
+                    <AccordionTrigger className="text-lg font-medium py-6 hover:no-underline">{f.question}</AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground pb-6">{f.answer}</AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          </section>
         </ContainerScrollAnimation>
 
       </div>

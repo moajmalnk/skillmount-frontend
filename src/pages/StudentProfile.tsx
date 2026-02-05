@@ -51,7 +51,11 @@ const StudentProfile = () => {
 
 
 
-  const canEdit = currentUser && student && (currentUser.id === student.id || currentUser.role === 'super_admin');
+  const canEdit = currentUser && student && (
+    String(currentUser.id) === String(student.id) ||
+    currentUser.role === 'super_admin' ||
+    currentUser.role === 'admin'
+  );
 
   if (isLoading && !student) { // Only show full loader if no student data yet
     return (

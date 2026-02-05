@@ -90,23 +90,37 @@ export const NotificationBell = () => {
         markAllReadMutation.mutate();
     };
 
-    const fixLink = (link?: string) => {
-        if (!link) return "/";
-        if (link.includes("/admin/tickets")) return link.replace("/admin/tickets", "/admin?tab=tickets");
-        if (link.includes("/admin/support")) return "/admin?tab=inquiries";
-        return link;
+    const fixLink = (notification: Notification) => {
+        const link = notification.link;
+        const title = (notification.title || "").toLowerCase();
+
+        // 1. Inquiries (Admin Only Feature)
+        // Detect "New Inquiry" even if link is missing or broken
+        if (title.includes("inquiry") || (link && (link.includes("/admin/support") || link.includes("inquiry")))) {
+            return "/admin?tab=inquiries";
+        }
+
+        // 2. Admin Tickets
+        // Redirect to Ticket Manager if link points to admin tickets
+        if (link && link.includes("/admin/tickets")) {
+            return "/admin?tab=tickets";
+        }
+
+        // 3. Fallback: Use provided link or stay on page (prevent crash)
+        return link || "/";
     };
 
     const handleItemClick = (notification: Notification, e: React.MouseEvent) => {
         if (e.ctrlKey || e.metaKey || e.button === 1) return;
         e.preventDefault();
         setIsOpen(false);
+
         if (!notification.is_read) {
             markReadMutation.mutate(notification.id);
         }
-        if (notification.link) {
-            navigate(fixLink(notification.link));
-        }
+
+        const targetPath = fixLink(notification);
+        navigate(targetPath);
     };
 
     // 5. Icons & Styling Helper
@@ -229,13 +243,12 @@ export const NotificationBell = () => {
 
                                             <div className="flex items-center gap-3 pt-2">
                                                 {notification.link && (
-                                                    <Link
-                                                        to={fixLink(notification.link)}
+                                                    <button
                                                         onClick={(e) => handleItemClick(notification, e)}
-                                                        className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
+                                                        className="text-xs font-medium text-primary hover:underline flex items-center gap-1 bg-transparent border-0 p-0 cursor-pointer"
                                                     >
                                                         View Details <ExternalLink className="w-3 h-3" />
-                                                    </Link>
+                                                    </button>
                                                 )}
 
                                                 {!notification.is_read && (

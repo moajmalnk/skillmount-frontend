@@ -39,15 +39,29 @@ export const ticketService = {
         formData.append('student_id', data.student_id);
       }
 
-      if (data.attachment) {
+      // Build Attachments
+      if (data.attachments && Array.isArray(data.attachments)) {
+        data.attachments.forEach((file: File) => {
+          formData.append('attachment', file);
+        });
+      } else if (data.attachment) {
         formData.append('attachment', data.attachment);
       }
-      if (data.voiceNote) {
+
+      // Build Voice Notes
+      if (data.voiceNotes && Array.isArray(data.voiceNotes)) {
+        data.voiceNotes.forEach((voiceBlob: Blob, index: number) => {
+          const mimeType = voiceBlob.type || '';
+          let ext = 'wav';
+          if (mimeType.includes('webm')) ext = 'webm';
+          else if (mimeType.includes('mp4')) ext = 'mp4';
+          formData.append('voice_note', voiceBlob, `ticket_voice_${index}.${ext}`);
+        });
+      } else if (data.voiceNote) {
         const mimeType = data.voiceNote.type || '';
         let ext = 'wav';
         if (mimeType.includes('webm')) ext = 'webm';
         else if (mimeType.includes('mp4')) ext = 'mp4';
-
         formData.append('voice_note', data.voiceNote, `ticket_voice.${ext}`);
       }
 

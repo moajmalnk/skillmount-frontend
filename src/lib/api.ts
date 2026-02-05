@@ -30,6 +30,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // CHECK: Only attempt refresh if we actually have a session to refresh
+    const hasToken = !!localStorage.getItem('access_token');
+
+    if (error.response?.status === 401 && !hasToken) {
+      // If we don't have a token and get 401, we are just anonymous.
+      // Do NOT refresh, Do NOT reload. Just let the request fail.
+      return Promise.reject(error);
+    }
+
     // If error is 401 (Unauthorized) and we haven't tried refreshing yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -53,12 +62,18 @@ api.interceptors.response.use(
         return api(originalRequest);
 
       } catch (refreshError) {
-        // If refresh fails (token expired/invalid), force logout
+        // If refresh fails (token expired/invalid), force logout (clear state)
         console.error("Session expired", refreshError);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('skillmount_user');
-        window.location.href = '/login';
+
+        // ONLY redirect to login to avoid infinite reloads
+        // And don't redirect if we are already there
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+
         return Promise.reject(refreshError);
       }
     }

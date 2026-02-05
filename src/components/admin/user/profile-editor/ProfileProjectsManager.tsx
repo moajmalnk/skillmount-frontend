@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Edit2, Save, X, AlertTriangle, Upload, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, AlertTriangle, Upload, Image as ImageIcon, Info } from "lucide-react";
 import { StudentProject } from "@/types/user";
 import {
     AlertDialog,
@@ -19,6 +19,27 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { TagInput } from "@/components/ui/tag-input";
+
+// Helper Component for Tooltips
+const LabelTooltip = ({ content }: { content: string }) => (
+    <TooltipProvider delayDuration={300}>
+        <Tooltip>
+            <TooltipTrigger asChild type="button">
+                <Info className="w-3.5 h-3.5 text-muted-foreground/70 hover:text-primary cursor-help ml-1.5 inline-block align-middle mb-0.5 transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[280px]">
+                <p className="font-normal text-xs">{content}</p>
+            </TooltipContent>
+        </Tooltip>
+    </TooltipProvider>
+);
 
 interface ProfileProjectsManagerProps {
     projects: StudentProject[];
@@ -172,12 +193,12 @@ export const ProfileProjectsManager = ({ projects = [], onChange }: ProfileProje
                 </h4>
 
                 <div className="space-y-2">
-                    <Label>Project Title <span className="text-red-500">*</span></Label>
+                    <Label>Project Title <span className="text-red-500">*</span> <LabelTooltip content="Name of your project" /></Label>
                     <Input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} placeholder="e.g. E-Commerce Platform" />
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Description</Label>
+                    <Label>Description <LabelTooltip content="Key features and problem solved" /></Label>
                     <Textarea
                         value={editForm.description}
                         onChange={e => setEditForm({ ...editForm, description: e.target.value })}
@@ -189,7 +210,7 @@ export const ProfileProjectsManager = ({ projects = [], onChange }: ProfileProje
                 {/* --- MULTI-IMAGE UPLOAD SECTION --- */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <Label>Project Gallery <span className="text-red-500">*</span></Label>
+                        <Label>Project Gallery <span className="text-red-500">*</span> <LabelTooltip content="Screenshots or images of your project" /></Label>
                         <span className="text-xs text-muted-foreground">{projectImages.length} images selected</span>
                     </div>
 
@@ -243,21 +264,22 @@ export const ProfileProjectsManager = ({ projects = [], onChange }: ProfileProje
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label>Demo Link</Label>
+                        <Label>Demo Link <LabelTooltip content="Live URL if available" /></Label>
                         <Input value={editForm.demoUrl} onChange={e => setEditForm({ ...editForm, demoUrl: e.target.value })} placeholder="Optional" />
                     </div>
                     <div className="space-y-2">
-                        <Label>GitHub Link</Label>
+                        <Label>GitHub Link <LabelTooltip content="Source code repository link" /></Label>
                         <Input value={editForm.repoUrl} onChange={e => setEditForm({ ...editForm, repoUrl: e.target.value })} placeholder="Optional" />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Technologies (Comma separated)</Label>
-                    <Input
-                        value={editForm.technologies?.join(', ')}
-                        onChange={e => handleTechChange(e.target.value)}
-                        placeholder="React, Tailwind, Node.js"
+                    <Label>Technologies <span className="text-xs text-muted-foreground font-normal">(Press Enter to add)</span> <LabelTooltip content="Tech stack used (e.g., React, Node.js)" /></Label>
+                    <TagInput
+                        value={editForm.technologies || []}
+                        onChange={newTags => setEditForm({ ...editForm, technologies: newTags })}
+                        placeholder="e.g. React, Tailwind"
+                        className="bg-background"
                     />
                 </div>
 

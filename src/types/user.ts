@@ -1,4 +1,4 @@
-export type UserRole = "student" | "tutor" | "affiliate" | "super_admin";
+export type UserRole = "student" | "tutor" | "affiliate" | "super_admin" | "admin";
 export type UserStatus = "Active" | "Inactive" | "Pending" | "Suspended";
 
 export interface BaseUser {

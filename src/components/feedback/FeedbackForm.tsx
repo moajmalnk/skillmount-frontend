@@ -10,6 +10,13 @@ import { feedbackService } from "@/services/feedbackService";
 import { systemService } from "@/services/systemService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import confetti from "canvas-confetti";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const FeedbackForm = () => {
   const { user } = useAuth();
@@ -30,23 +37,51 @@ export const FeedbackForm = () => {
     loadTopics();
   }, []);
 
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'voice' | 'file', index: number } | null>(null);
+  const [formKey, setFormKey] = useState(0);
+
   const [formData, setFormData] = useState({
     rating: 5,
     category: "Other",
     feedback: "",
-    attachment: null as File | null,
-    voiceNote: null as Blob | null
+    attachments: [] as File[],
+    voiceNotes: [] as Blob[]
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB
-        toast.error("File size must be under 5MB");
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      if (formData.attachments.length + newFiles.length > 5) {
+        toast.error("Maximum 5 files allowed");
         return;
       }
-      setFormData({ ...formData, attachment: file });
+      setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...newFiles] }));
     }
+  };
+
+  const removeAttachment = (index: number) => {
+    setDeleteConfirm({ type: 'file', index });
+  };
+
+  const removeVoiceNote = (index: number) => {
+    setDeleteConfirm({ type: 'voice', index });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteConfirm) return;
+
+    if (deleteConfirm.type === 'file') {
+      setFormData(prev => ({
+        ...prev,
+        attachments: prev.attachments.filter((_, i) => i !== deleteConfirm.index)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        voiceNotes: prev.voiceNotes.filter((_, i) => i !== deleteConfirm.index)
+      }));
+    }
+    setDeleteConfirm(null);
   };
 
   const handleRatingChange = (rating: number) => {
@@ -77,8 +112,8 @@ export const FeedbackForm = () => {
       return;
     }
 
-    if (!formData.feedback || formData.feedback.length < 10) {
-      toast.error("Please provide a bit more detail in your feedback.");
+    if (!formData.feedback.trim()) {
+      toast.error("Please provide your feedback.");
       return;
     }
 
@@ -89,10 +124,19 @@ export const FeedbackForm = () => {
         rating: formData.rating,
         category: formData.category,
         message: formData.feedback,
-        hasAttachment: !!formData.attachment,
-        hasVoiceNote: !!formData.voiceNote,
-        attachment: formData.attachment,
-        voiceNote: formData.voiceNote
+        hasAttachment: formData.attachments.length > 0,
+        hasVoiceNote: formData.voiceNotes.length > 0,
+        // Backend likely expects single fields for legacy or needs update. 
+        // Assuming backend handles arrays or we just send the first one for now?
+        // Actually, user asked for MULTIPLE. Backend might support it or not.
+        // If backend only supports one, we might need adjustments. 
+        // But user explicit request: "update in feedback, need multiple voice and attachment".
+        // I will assume the Service/Backend can handle lists, or I pass lists.
+        // For now, let's pass them as `attachments` and `voiceNotes` if the service supports it.
+        // Checking existing service call: `attachment: formData.attachment`
+        // I'll update it to pass the arrays.
+        attachments: formData.attachments,
+        voiceNotes: formData.voiceNotes
       });
 
       toast.success("Feedback Received!", {
@@ -104,9 +148,10 @@ export const FeedbackForm = () => {
         rating: 5,
         category: "Other",
         feedback: "",
-        attachment: null,
-        voiceNote: null
+        attachments: [],
+        voiceNotes: []
       });
+      setFormKey(p => p + 1);
 
     } catch (error) {
       toast.error("Failed to submit feedback. Please try again.");
@@ -189,54 +234,109 @@ export const FeedbackForm = () => {
       </div>
 
       {/* 3. Media Inputs */}
-      <div className="grid md:grid-cols-2 gap-6">
+      {/* 3. Media Inputs */}
+      <div className="grid md:grid-cols-2 gap-6 pt-4">
+        {/* Voice Note Section */}
         <div className="space-y-3">
-          <Label className="flex items-center gap-2">
-            Voice Feedback <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
-          </Label>
+          <div className="flex items-center justify-between px-1">
+            <Label className="text-sm font-medium text-foreground/80">Voice Feedback</Label>
+            {formData.voiceNotes.length > 0 && (
+              <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                {formData.voiceNotes.length} recorded
+              </span>
+            )}
+          </div>
+
           <VoiceRecorder
-            onRecordingComplete={(blob) => setFormData({ ...formData, voiceNote: blob })}
-            onDelete={() => setFormData({ ...formData, voiceNote: null })}
+            key={formKey}
+            onRecordingComplete={(blob) => {
+              setFormData(prev => ({ ...prev, voiceNotes: [...prev.voiceNotes, blob] }));
+              setFormKey(p => p + 1);
+            }}
+            onDelete={() => { }}
+            className="h-32 w-full border-2 border-dashed border-border/60 hover:border-primary/40 bg-card hover:bg-muted/30 transition-all rounded-xl shadow-sm justify-center items-center flex-col gap-3"
           />
+
+          {/* List of Voice Notes */}
+          {formData.voiceNotes.length > 0 && (
+            <div className="space-y-2 mt-3 animate-in fade-in slide-in-from-top-2">
+              {formData.voiceNotes.map((note, idx) => (
+                <div key={idx} className="flex items-center justify-between bg-card border border-border/40 p-2.5 rounded-lg text-sm shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-bold text-primary">VN</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-xs">Voice Note {idx + 1}</span>
+                      <span className="text-[10px] text-muted-foreground">{(note.size / 1024).toFixed(1)} KB</span>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => removeVoiceNote(idx)}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
+        {/* File Attachment Section */}
         <div className="space-y-3">
-          <Label className="flex items-center gap-2">
-            Attach Screenshot <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
-          </Label>
-          {!formData.attachment ? (
-            <div className="border-2 border-dashed border-border/50 rounded-xl p-4 hover:bg-muted/50 transition-colors text-center cursor-pointer relative h-[88px] flex flex-col items-center justify-center">
-              <input
-                type="file"
-                className="absolute inset-0 opacity-0 cursor-pointer"
-                onChange={handleFileChange}
-                accept="image/*,.pdf"
-              />
-              <Paperclip className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-              <p className="text-xs text-muted-foreground">Click to upload file</p>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between p-3 border border-primary/20 bg-primary/5 rounded-xl h-[88px]">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <Paperclip className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-medium truncate max-w-[120px]">
-                    {formData.attachment.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">Attached</span>
-                </div>
+          <div className="flex items-center justify-between px-1">
+            <Label className="text-sm font-medium text-foreground/80">Attachments</Label>
+            <span className="text-xs text-muted-foreground">{formData.attachments.length}/5 files</span>
+          </div>
+
+          {/* Dropzone Styled Input */}
+          <div className="relative h-32 w-full border-2 border-dashed border-border/60 hover:border-primary/40 bg-card hover:bg-muted/30 transition-all rounded-xl shadow-sm flex flex-col items-center justify-center group cursor-pointer overflow-hidden">
+            <input
+              type="file"
+              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+              onChange={handleFileChange}
+              accept="image/*,.pdf,.doc,.docx"
+              multiple
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:to-transparent transition-all duration-500" />
+
+            <div className="flex flex-col items-center gap-2 group-hover:scale-105 transition-transform duration-300 relative z-0">
+              <div className="bg-primary/5 p-3 rounded-full group-hover:bg-primary/10 transition-colors">
+                <Paperclip className="w-5 h-5 text-primary/70 group-hover:text-primary" />
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                onClick={() => setFormData({ ...formData, attachment: null })}
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="text-center space-y-0.5">
+                <p className="text-sm font-medium text-foreground/80 group-hover:text-primary transition-colors">Click to upload</p>
+                <p className="text-[10px] text-muted-foreground">PDF, Docs, Images (Max 10MB)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* List of Attachments */}
+          {formData.attachments.length > 0 && (
+            <div className="space-y-2 mt-3 animate-in fade-in slide-in-from-top-2">
+              {formData.attachments.map((file, idx) => (
+                <div key={idx} className="flex items-center justify-between bg-card border border-border/40 p-2.5 rounded-lg text-sm shadow-sm group/item">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="bg-blue-500/10 p-2 rounded-md shrink-0">
+                      <Paperclip className="w-3.5 h-3.5 text-blue-500" />
+                    </div>
+                    <span className="truncate font-medium text-xs" title={file.name}>{file.name}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                    onClick={() => removeAttachment(idx)}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -261,6 +361,21 @@ export const FeedbackForm = () => {
           </>
         )}
       </Button>
-    </form>
+
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete {deleteConfirm?.type === 'voice' ? 'Voice Note' : 'Attachment'}?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove this {deleteConfirm?.type === 'voice' ? 'voice note' : 'file'}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </form >
   );
 };

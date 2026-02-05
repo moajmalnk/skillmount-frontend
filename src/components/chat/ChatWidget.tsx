@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
-import { MessageSquare, Sparkles, X, Loader2, ArrowUpRight, Copy, Bot, Info, PanelLeft, Plus, Menu, ChevronLeft, History, Youtube, FileText, Globe, BookOpen, Maximize2, Minimize2 } from "lucide-react";
+import { MessageSquare, Sparkles, X, Loader2, ArrowUpRight, Copy, Bot, Info, PanelLeft, Plus, Menu, ChevronLeft, History, Youtube, FileText, Globe, BookOpen, Maximize2, Minimize2, Languages, MoreVertical, Trash2, Share2, Pin, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import { chatService, ChatSource } from "@/services/chatService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Turn {
   id: string;
@@ -17,6 +24,9 @@ interface Turn {
   sources: ChatSource[];
   displayedAnswer: string;
   isTyping?: boolean;
+  translatedAnswer?: string;
+  showTranslated?: boolean;
+  isTranslating?: boolean;
 }
 
 const HelpModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
@@ -27,7 +37,7 @@ const HelpModal = ({ open, onClose }: { open: boolean; onClose: () => void }) =>
       <Card className="w-full max-w-sm shadow-2xl bg-background/90 backdrop-blur-xl border-white/20 relative z-10">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-500" />
+            <img src="https://moajmalnk.in/assets/img/logo/logo-lightaj.png" alt="Hints" className="w-5 h-5 object-contain" />
             Hints & Tips
           </CardTitle>
           <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={onClose}>
@@ -46,8 +56,116 @@ const HelpModal = ({ open, onClose }: { open: boolean; onClose: () => void }) =>
           <div className="bg-indigo-500/5 p-3 rounded-lg border border-indigo-500/10">
             <h4 className="font-semibold text-sm text-indigo-600 mb-1">Pro Tip</h4>
             <p className="text-xs text-muted-foreground">
-              We assume "Material" refers to course videos. Be specific!
             </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const DeleteSessionModal = ({
+  open,
+  onClose,
+  onConfirm,
+  isDeleting,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isDeleting: boolean;
+}) => {
+  if (!open) return null;
+  return (
+    <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="absolute inset-0" onClick={onClose} />
+      <Card className="w-full max-w-sm shadow-2xl bg-white dark:bg-slate-950 border-white/20 relative z-10">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-bold text-red-600 flex items-center gap-2">
+            <Trash2 className="w-5 h-5" />
+            Delete Conversation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Are you sure you want to delete this conversation? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={onClose} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Delete
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const RenameSessionModal = ({
+  open,
+  onClose,
+  onConfirm,
+  currentTitle,
+  isRenaming,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (newTitle: string) => void;
+  currentTitle: string;
+  isRenaming: boolean;
+}) => {
+  const [title, setTitle] = useState(currentTitle);
+
+  useEffect(() => {
+    setTitle(currentTitle);
+  }, [currentTitle, open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="absolute inset-0" onClick={onClose} />
+      <Card className="w-full max-w-sm shadow-2xl bg-white dark:bg-slate-950 border-white/20 relative z-10">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-bold flex items-center gap-2">
+            <Edit2 className="w-5 h-5 text-purple-500" />
+            Rename Conversation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter new title..."
+              className="w-full"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onConfirm(title);
+              }}
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={onClose} disabled={isRenaming}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => onConfirm(title)}
+              disabled={isRenaming || !title.trim()}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {isRenaming ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Save
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -65,6 +183,9 @@ const ChatSidebar = ({
   sessions,
   activeSessionId,
   onSelectSession,
+  onDeleteSession,
+  onRenameSession,
+  onPinSession,
 }: {
   isOpen: boolean; // for mobile overlay
   isMobile: boolean;
@@ -75,6 +196,9 @@ const ChatSidebar = ({
   sessions: any[];
   activeSessionId?: string;
   onSelectSession: (id: string) => void;
+  onDeleteSession: (id: string) => void;
+  onRenameSession: (id: string, newTitle: string) => void;
+  onPinSession: (id: string, isPinned: boolean) => void;
 }) => {
   const sidebarWidth = isCollapsed ? "w-[70px]" : "w-[260px]";
   const commonClasses = `flex flex-col border-r border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-slate-900/50 backdrop-blur-xl transition-all duration-300 ease-in-out h-full overflow-hidden shrink-0 z-20`;
@@ -98,6 +222,9 @@ const ChatSidebar = ({
             activeSessionId={activeSessionId}
             onSelectSession={onSelectSession}
             onCloseMobile={onCloseMobile}
+            onDeleteSession={onDeleteSession}
+            onRenameSession={onRenameSession}
+            onPinSession={onPinSession}
           />
         </div>
       </>
@@ -124,6 +251,9 @@ const ChatSidebar = ({
           sessions={sessions}
           activeSessionId={activeSessionId}
           onSelectSession={onSelectSession}
+          onDeleteSession={onDeleteSession}
+          onRenameSession={onRenameSession}
+          onPinSession={onPinSession}
         />
       </div>
     </div>
@@ -137,6 +267,7 @@ const groupByDate = (sessions: any[]) => {
   yesterday.setDate(yesterday.getDate() - 1);
 
   const groups: Record<string, any[]> = {
+    Pinned: [],
     Today: [],
     Yesterday: [],
     "Previous 7 Days": [],
@@ -144,6 +275,11 @@ const groupByDate = (sessions: any[]) => {
   };
 
   sessions.forEach((session) => {
+    if (session.is_pinned) {
+      groups.Pinned.push(session);
+      return;
+    }
+
     // Assuming session has created_at or date field; fallback to today if missing
     // Need to handle potential string dates or timestamps
     const dateStr = session.created_at || session.date;
@@ -176,6 +312,9 @@ const SidebarContent = ({
   activeSessionId,
   onSelectSession,
   onCloseMobile,
+  onDeleteSession,
+  onRenameSession,
+  onPinSession,
 }: {
   isCollapsed: boolean;
   onNewChat: () => void;
@@ -183,6 +322,9 @@ const SidebarContent = ({
   activeSessionId?: string;
   onSelectSession: (id: string) => void;
   onCloseMobile?: () => void;
+  onDeleteSession: (id: string) => void;
+  onRenameSession: (id: string, newTitle: string) => void;
+  onPinSession: (id: string, isPinned: boolean) => void;
 }) => {
   const groups = groupByDate(sessions);
   const hasHistory = sessions.length > 0;
@@ -236,10 +378,46 @@ const SidebarContent = ({
                   {isCollapsed ? (
                     <MessageSquare className={`w-4 h-4 ${activeSessionId === session.id ? "text-indigo-500 dark:text-indigo-400" : ""}`} />
                   ) : (
-                    <div className="flex flex-col gap-0.5 min-w-0 w-full">
-                      <span className={`text-sm font-medium truncate w-full block ${activeSessionId === session.id ? "text-indigo-600 dark:text-indigo-100" : ""}`}>
-                        {session.title || "New Conversation"}
-                      </span>
+                    <div className="flex items-center justify-between w-full min-w-0 group/item">
+                      <div className="flex flex-col gap-0.5 min-w-0 overflow-hidden pr-6">
+                        <span className={`text-sm font-medium truncate w-full block ${activeSessionId === session.id ? "text-indigo-600 dark:text-indigo-100" : ""}`}>
+                          {session.is_pinned && <Pin className="w-3 h-3 inline mr-1 text-indigo-500 fill-current" />}
+                          {session.title || "New Conversation"}
+                        </span>
+                      </div>
+
+                      {/* 3-Dot Menu */}
+                      <div className="opacity-0 group-hover/item:opacity-100 transition-opacity absolute right-1 top-1/2 -translate-y-1/2" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 bg-transparent">
+                              <MoreVertical className="w-3.5 h-3.5 text-slate-500" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 z-50">
+                            <DropdownMenuItem onClick={() => {
+                              const url = `${window.location.origin}/chat/share/${session.id}`;
+                              navigator.clipboard.writeText(url).then(() => toast.success("Link copied to clipboard"));
+                            }}>
+                              <Share2 className="w-4 h-4 mr-2" /> Share link
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onPinSession(session.id, !session.is_pinned)}>
+                              <Pin className={`w-4 h-4 mr-2 ${session.is_pinned ? "fill-current" : ""}`} />
+                              {session.is_pinned ? "Unpin" : "Pin"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onRenameSession(session.id, session.title)}>
+                              <Edit2 className="w-4 h-4 mr-2" /> Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                            <DropdownMenuItem
+                              className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                              onClick={() => onDeleteSession(session.id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   )}
                 </Button>
@@ -257,6 +435,12 @@ export const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Modal States
+  const [deleteData, setDeleteData] = useState<{ id: string, open: boolean }>({ id: "", open: false });
+  const [renameData, setRenameData] = useState<{ id: string, title: string, open: boolean }>({ id: "", title: "", open: false });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
 
   // Sidebar State
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -292,6 +476,7 @@ export const ChatWidget = () => {
   const fetchHistory = useCallback(async () => {
     try {
       const data = await chatService.history();
+      console.log("Chat History Data:", data);
       setSessions(data || []);
 
       // Auto-restore session if we have a saved ID
@@ -312,14 +497,15 @@ export const ChatWidget = () => {
       }
     } catch (e) {
       console.error("Failed to fetch history", e);
+      toast.error("Could not load chat history");
     }
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchHistory();
-    }
-  }, [isOpen, fetchHistory]);
+    // Only fetch history once when mounted, or when explicitly needed
+    fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSelectSession = (id: string) => {
     setSessionId(id);
@@ -547,6 +733,33 @@ export const ChatWidget = () => {
     }
   };
 
+  const handleTranslate = async (turn: Turn) => {
+    if (turn.showTranslated) {
+      setTurns(prev => prev.map(t => t.id === turn.id ? { ...t, showTranslated: false } : t));
+      return;
+    }
+
+    if (turn.translatedAnswer) {
+      setTurns(prev => prev.map(t => t.id === turn.id ? { ...t, showTranslated: true } : t));
+      return;
+    }
+
+    setTurns(prev => prev.map(t => t.id === turn.id ? { ...t, isTranslating: true } : t));
+
+    try {
+      const translated = await chatService.translate(turn.answer);
+      setTurns(prev => prev.map(t => t.id === turn.id ? {
+        ...t,
+        translatedAnswer: translated,
+        showTranslated: true,
+        isTranslating: false
+      } : t));
+    } catch (e) {
+      toast.error("Translation failed");
+      setTurns(prev => prev.map(t => t.id === turn.id ? { ...t, isTranslating: false } : t));
+    }
+  };
+
   const copyAnswer = (text: string) => {
     navigator.clipboard.writeText(text).then(() => toast.success("Copied"));
   };
@@ -574,6 +787,49 @@ export const ChatWidget = () => {
     []
   );
 
+  const handleDeleteSession = (sessionIdToDelete: string) => {
+    setDeleteData({ id: sessionIdToDelete, open: true });
+  };
+
+  const handleDeleteSessionConfirm = async (sessionIdToDelete: string) => {
+    try {
+      await chatService.deleteSession(sessionIdToDelete);
+      setSessions(prev => prev.filter(s => s.id !== sessionIdToDelete));
+      if (sessionId === sessionIdToDelete) {
+        handleNewChat();
+      }
+      toast.success("Conversation deleted");
+    } catch (e) {
+      toast.error("Failed to delete conversation");
+    }
+  };
+
+  const handleRenameSession = (sessionId: string, currentTitle: string) => {
+    // Find title if not passed or ensure it's correct (though usually passed from UI)
+    const session = sessions.find(s => s.id === sessionId);
+    setRenameData({ id: sessionId, title: session?.title || currentTitle || "", open: true });
+  };
+
+  const handleRenameSessionConfirm = async (sessionId: string, newTitle: string) => {
+    try {
+      const updated = await chatService.renameSession(sessionId, newTitle);
+      setSessions(prev => prev.map(s => s.id === sessionId ? updated : s));
+      toast.success("Renamed successfully");
+    } catch (e) {
+      toast.error("Failed to rename");
+    }
+  };
+
+  const handlePinSession = async (sessionId: string, isPinned: boolean) => {
+    try {
+      const updated = await chatService.pinSession(sessionId, isPinned);
+      setSessions(prev => prev.map(s => s.id === sessionId ? updated : s));
+      toast.success(isPinned ? "Pinned conversation" : "Unpinned conversation");
+    } catch (e) {
+      toast.error("Failed to update pin");
+    }
+  };
+
   // Only show chat for logged-in users
   if (!user) {
     return null;
@@ -581,20 +837,59 @@ export const ChatWidget = () => {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 pointer-events-none">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 pointer-events-none group/chat-trigger">
+        {/* Ambient Glow */}
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full blur opacity-20 group-hover/chat-trigger:opacity-60 transition duration-500 animate-pulse"></div>
         <Button
           onClick={() => setIsOpen(true)}
           size="lg"
-          className="shadow-xl rounded-full gap-2 pointer-events-auto bg-white text-slate-900 hover:bg-slate-100 hover:scale-105 transition-all duration-300"
+          className="relative shadow-2xl rounded-full gap-3 pl-4 pr-6 h-12 sm:h-14 pointer-events-auto bg-background/95 backdrop-blur-xl border border-indigo-500/20 text-foreground hover:bg-background hover:scale-105 hover:shadow-indigo-500/20 transition-all duration-300 cursor-pointer"
         >
-          <img src="https://moajmalnk.in/assets/img/logo/logo-lightaj.png" alt="SkillMount" className="w-6 h-6 object-contain" />
-          Study Assistant
+          <div className="relative">
+            <img src="https://moajmalnk.in/assets/img/logo/logo-lightaj.png" alt="SkillMount" className="w-6 h-6 sm:w-7 sm:h-7 object-contain" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500 border border-background"></span>
+            </span>
+          </div>
+          <div className="flex flex-col items-start text-left">
+            <span className="font-bold text-sm sm:text-base leading-none">MS.Codi</span>
+            <span className="text-[10px] text-muted-foreground font-medium leading-none mt-0.5">Online</span>
+          </div>
         </Button>
       </div>
 
       {isOpen && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm ${isExpanded ? "p-0" : "p-0 sm:px-4 sm:py-6"} animate-in fade-in duration-200`}>
-          <Card className={`w-full flex flex-col overflow-hidden relative border-none sm:shadow-2xl bg-background/95 backdrop-blur-md ${isExpanded ? "h-full max-w-none rounded-none" : "h-[100dvh] sm:h-[85vh] sm:max-w-5xl sm:rounded-2xl"}`}>
+          <Card className={`w-full flex flex-col overflow-hidden relative border-none sm:shadow-2xl bg-background/95 backdrop-blur-md ${isExpanded ? "h-full max-w-none rounded-none" : "h-[100dvh] sm:h-[85vh] sm:max-w-[85vw] sm:rounded-2xl"}`}>
+
+            {/* MODALS */}
+            <DeleteSessionModal
+              open={deleteData.open}
+              onClose={() => setDeleteData({ ...deleteData, open: false })}
+              onConfirm={async () => {
+                if (!deleteData.id) return;
+                setIsDeleting(true);
+                await handleDeleteSessionConfirm(deleteData.id);
+                setIsDeleting(false);
+                setDeleteData({ ...deleteData, open: false });
+              }}
+              isDeleting={isDeleting}
+            />
+
+            <RenameSessionModal
+              open={renameData.open}
+              onClose={() => setRenameData({ ...renameData, open: false })}
+              onConfirm={async (newTitle) => {
+                if (!renameData.id) return;
+                setIsRenaming(true);
+                await handleRenameSessionConfirm(renameData.id, newTitle);
+                setIsRenaming(false);
+                setRenameData({ ...renameData, open: false });
+              }}
+              currentTitle={renameData.title}
+              isRenaming={isRenaming}
+            />
 
             <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
 
@@ -607,8 +902,13 @@ export const ChatWidget = () => {
                 <CardTitle className="flex items-center gap-3">
                   <img src="https://moajmalnk.in/assets/img/logo/logo-lightaj.png" alt="Logo" className="h-10 w-auto object-contain" />
                   <div className="flex flex-col">
-                    <span className="font-bold text-lg tracking-tight">Study Assistant</span>
-                    <span className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">AI Powered</span>
+                    <span className="font-bold text-lg tracking-tight">MS.Codi</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">AI Powered</span>
+                      <Badge variant="outline" className="hidden sm:inline-flex bg-background/50 backdrop-blur-sm text-[10px] font-normal border-indigo-500/20 text-muted-foreground px-2 py-0.5 h-auto">
+                        Materials · Blog · FAQ
+                      </Badge>
+                    </div>
                   </div>
                 </CardTitle>
               </div>
@@ -649,6 +949,9 @@ export const ChatWidget = () => {
                   sessions={sessions}
                   activeSessionId={sessionId}
                   onSelectSession={handleSelectSession}
+                  onDeleteSession={handleDeleteSession}
+                  onRenameSession={handleRenameSession}
+                  onPinSession={handlePinSession}
                 />
               </div>
 
@@ -663,6 +966,9 @@ export const ChatWidget = () => {
                   sessions={sessions}
                   activeSessionId={sessionId}
                   onSelectSession={handleSelectSession}
+                  onDeleteSession={handleDeleteSession}
+                  onRenameSession={handleRenameSession}
+                  onPinSession={handlePinSession}
                 />
               </div>
 
@@ -671,13 +977,9 @@ export const ChatWidget = () => {
                 <div className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-track-transparent scrollbar-thumb-muted-foreground/20">
                   <div
                     ref={scrollRef}
-                    className="flex flex-col gap-4 p-4 pb-28 md:p-6 md:pb-32 w-full max-w-3xl mx-auto min-h-full"
+                    className="flex flex-col gap-4 p-4 md:p-6 w-full min-h-full"
                   >
-                    <div className="flex items-center justify-center py-4">
-                      <Badge variant="outline" className="bg-background/50 backdrop-blur-sm text-xs font-normal border-indigo-500/20 text-muted-foreground px-3 py-1">
-                        Materials · Blog · FAQ
-                      </Badge>
-                    </div>
+
 
                     {/* Suggestions */}
                     {turns.length === 0 && (
@@ -686,8 +988,8 @@ export const ChatWidget = () => {
                           <Button
                             key={s}
                             size="sm"
-                            variant="secondary"
-                            className="rounded-full bg-background/60 hover:bg-indigo-500/10 hover:text-indigo-600 transition-colors border border-transparent hover:border-indigo-500/20 shadow-sm"
+                            variant="outline"
+                            className="rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 hover:scale-105 transition-all duration-300 shadow-sm"
                             onClick={() => send(s)}
                           >
                             {s}
@@ -699,8 +1001,8 @@ export const ChatWidget = () => {
                     {/* Empty State */}
                     {turns.length === 0 && (
                       <div className="flex flex-col items-center justify-center flex-1 text-center space-y-4 opacity-60 mt-4 sm:mt-10">
-                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-2">
-                          <Sparkles className="w-8 h-8 text-muted-foreground" />
+                        <div className="h-20 w-20 rounded-full bg-white/10 dark:bg-white/5 backdrop-blur-md flex items-center justify-center mb-4 shadow-xl border border-white/20 dark:border-white/10">
+                          <img src="https://moajmalnk.in/assets/img/logo/logo-lightaj.png" alt="Logo" className="w-10 h-10 object-contain opacity-80" />
                         </div>
                         <p className="max-w-[250px] sm:max-w-xs text-sm text-muted-foreground">
                           Ask anything about your learning materials. I'm here to help!
@@ -727,9 +1029,25 @@ export const ChatWidget = () => {
                                 <span className="font-semibold text-foreground text-xs uppercase tracking-wide">Assistant</span>
                               </div>
                               {!turn.isTyping && (
-                                <Button size="icon" variant="ghost" className="h-6 w-6 opacity-50 hover:opacity-100" onClick={() => copyAnswer(turn.answer)}>
-                                  <Copy className="w-3 h-3" />
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className={`h-6 w-6 transition-all ${turn.showTranslated ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300" : "opacity-50 hover:opacity-100"}`}
+                                    onClick={() => handleTranslate(turn)}
+                                    title="Translate to Malayalam"
+                                    disabled={turn.isTranslating}
+                                  >
+                                    {turn.isTranslating ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <span className="text-[10px] font-bold leading-none">മ</span>
+                                    )}
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-6 w-6 opacity-50 hover:opacity-100" onClick={() => copyAnswer(turn.answer)}>
+                                    <Copy className="w-3 h-3" />
+                                  </Button>
+                                </div>
                               )}
                             </div>
 
@@ -742,7 +1060,10 @@ export const ChatWidget = () => {
                                 </div>
                               ) : (
                                 <ReactMarkdown>
-                                  {(turn.displayedAnswer || turn.answer) + (turn.isTyping ? " ▋" : "")}
+                                  {turn.showTranslated
+                                    ? (turn.translatedAnswer || "")
+                                    : (turn.displayedAnswer || turn.answer) + (turn.isTyping ? " ▋" : "")
+                                  }
                                 </ReactMarkdown>
                               )}
                             </div>
@@ -780,10 +1101,20 @@ export const ChatWidget = () => {
                                     {uniqueSources.map((s) => {
                                       const isExternal = s.source_type === "External Resource";
                                       const type = (s.source_type || "").toLowerCase();
+                                      const isVideo = type.includes("video") || type.includes("youtube") || (s.url && s.url.includes("youtube.com"));
+
+                                      // Smart Image Extraction
+                                      let imageUrl = null;
+                                      if (isVideo && s.url) {
+                                        const videoIdMatch = s.url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+                                        if (videoIdMatch) {
+                                          imageUrl = `https://img.youtube.com/vi/${videoIdMatch[1]}/mqdefault.jpg`;
+                                        }
+                                      }
 
                                       // Icon Selection
                                       let Icon = Globe;
-                                      if (type.includes("youtube") || type.includes("video")) Icon = Youtube;
+                                      if (isVideo) Icon = Youtube;
                                       else if (type.includes("pdf") || type.includes("material")) Icon = FileText;
                                       else if (type.includes("blog")) Icon = BookOpen;
                                       else if (isExternal) Icon = ArrowUpRight;
@@ -802,29 +1133,45 @@ export const ChatWidget = () => {
 
                                       const linkHref = getSmartLink(s);
 
+                                      // RENDER: Rich Card
                                       return (
                                         <a
                                           key={s.id}
                                           href={linkHref}
-                                          className={`flex items-center justify-between text-xs border rounded-lg px-3 py-2 transition-colors group ${isExternal
-                                            ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
-                                            : "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/50"
-                                            }`}
                                           target="_blank"
                                           rel="noreferrer"
+                                          className="flex gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/50 transition-all duration-300 group overflow-hidden"
                                         >
-                                          <div className="flex items-center truncate flex-1 mr-2 gap-2">
-                                            <div className={`p-1 rounded-md ${isExternal ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600" : "bg-slate-200 dark:bg-slate-700 text-slate-600"}`}>
-                                              <Icon className="w-3.5 h-3.5" />
-                                            </div>
-                                            <div className="flex flex-col truncate">
-                                              <span className={`font-medium truncate group-hover:underline ${isExternal ? "text-indigo-700 dark:text-indigo-300" : "text-indigo-600 dark:text-indigo-400"}`}>
+                                          {/* Thumbnail Section */}
+                                          <div className="shrink-0 relative w-24 h-16 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                                            {imageUrl ? (
+                                              <img src={imageUrl} alt={s.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            ) : (
+                                              <Icon className="w-6 h-6 text-muted-foreground opacity-50" />
+                                            )}
+                                            {isVideo && (
+                                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                                                <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                                                  <div className="w-0 h-0 border-t-[3px] border-t-transparent border-l-[6px] border-l-white border-b-[3px] border-b-transparent ml-0.5"></div>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {/* Text Content */}
+                                          <div className="flex flex-col justify-between flex-1 py-0.5 min-w-0">
+                                            <div>
+                                              <h4 className="text-xs font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                                 {s.title}
-                                              </span>
-                                              <span className="text-[10px] text-muted-foreground uppercase">{s.source_type}</span>
+                                              </h4>
+                                              <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] text-muted-foreground uppercase bg-slate-200/50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                  {!imageUrl && <Icon className="w-2.5 h-2.5" />} {isVideo ? "Youtube" : s.source_type}
+                                                </span>
+                                                {isExternal && <ArrowUpRight className="w-2.5 h-2.5 text-muted-foreground opacity-60" />}
+                                              </div>
                                             </div>
                                           </div>
-                                          {isExternal && <ArrowUpRight className="w-3 h-3 text-indigo-400 opacity-50" />}
                                         </a>
                                       );
                                     })}
@@ -836,13 +1183,13 @@ export const ChatWidget = () => {
                         </div>
                       </div>
                     ))}
-                    <div className="h-4" /> {/* Spacer */}
+                    <div className="h-32 sm:h-40" /> {/* Large Spacer for Floating Input */}
                   </div>
                 </div>
 
                 {/* FLOATING INPUT Area */}
                 <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6 flex justify-center z-30 pointer-events-none bg-gradient-to-t from-background via-background/80 to-transparent">
-                  <div className="w-full max-w-2xl mx-auto pointer-events-auto pb-1 sm:pb-2">
+                  <div className="w-full mx-auto pointer-events-auto pb-1 sm:pb-2">
                     <div className="group relative flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl rounded-full p-1.5 pl-4 sm:p-2 sm:pl-5 transition-all duration-300 focus-within:ring-2 focus-within:ring-white/30 hover:shadow-indigo-500/10 hover:border-white/30">
                       <Input
                         placeholder="Ask..."

@@ -70,7 +70,7 @@ export const HeroSection = ({ isVisible }: HeroSectionProps) => {
                 </Link>
                 <Link to="/students">
                   <Button size="sm" variant="outline" className="rounded-full px-4 sm:px-10 h-10 sm:h-14 text-xs sm:text-base font-semibold border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300 group">
-                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 group-hover:text-primary" /><span className="hidden sm:inline">View Portfolios</span><span className="sm:hidden">View</span>
+                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 group-hover:text-primary" /><span className="hidden sm:inline">View Students</span><span className="sm:hidden">View</span>
                     <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 group-hover:scale-110 group-hover:text-primary transition-transform duration-300" />
                   </Button>
                 </Link>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -9,6 +9,12 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Student } from "@/types/user";
 import { Separator } from "@/components/ui/separator";
+import { TagInput } from "@/components/ui/tag-input";
 
 // Services to fetch dropdown data
 import { systemService } from "@/services/systemService";
@@ -30,6 +37,20 @@ interface ProfileBasicFormProps {
     data: Partial<Student> & { resumeFile?: File };
     onChange: (updates: Partial<Student> & { resumeFile?: File }) => void;
 }
+
+// Helper Component for Tooltips
+const LabelTooltip = ({ content }: { content: string }) => (
+    <TooltipProvider delayDuration={300}>
+        <Tooltip>
+            <TooltipTrigger asChild type="button">
+                <Info className="w-3.5 h-3.5 text-muted-foreground/70 hover:text-primary cursor-help ml-1.5 inline-block align-middle mb-0.5 transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[280px]">
+                <p className="font-normal text-xs">{content}</p>
+            </TooltipContent>
+        </Tooltip>
+    </TooltipProvider>
+);
 
 export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
     const [loadingOptions, setLoadingOptions] = useState(false);
@@ -133,7 +154,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="regId">Register ID / Roll No</Label>
+                        <Label htmlFor="regId">Register ID / Roll No <LabelTooltip content="Your unique registration identifier (e.g., STU-2024-001)" /></Label>
                         <Input
                             id="regId"
                             value={data.regId || ""}
@@ -143,7 +164,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="batch">Batch</Label>
+                        <Label htmlFor="batch">Batch <LabelTooltip content="The academic batch you are enrolled in" /></Label>
                         <Select value={data.batch || ""} onValueChange={(val) => onChange({ batch: val })}>
                             <SelectTrigger className="bg-background">
                                 <SelectValue placeholder={loadingOptions ? "Loading..." : "Select Batch"} />
@@ -156,7 +177,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
                     {/* ENHANCED MENTOR SELECT */}
                     <div className="space-y-2">
-                        <Label htmlFor="mentor">Mentor</Label>
+                        <Label htmlFor="mentor">Mentor <LabelTooltip content="Your assigned academic mentor" /></Label>
                         <Select value={data.mentor || ""} onValueChange={(val) => onChange({ mentor: val })}>
                             <SelectTrigger className="bg-background">
                                 <SelectValue placeholder={loadingOptions ? "Loading..." : "Select Mentor"} />
@@ -175,7 +196,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
                     {/* ENHANCED COORDINATOR SELECT */}
                     <div className="space-y-2">
-                        <Label htmlFor="coordinator">Coordinator</Label>
+                        <Label htmlFor="coordinator">Coordinator <LabelTooltip content="The program coordinator responsible for your batch" /></Label>
                         <Select value={data.coordinator || ""} onValueChange={(val) => onChange({ coordinator: val })}>
                             <SelectTrigger className="bg-background">
                                 <SelectValue placeholder={loadingOptions ? "Loading..." : "Select Coordinator"} />
@@ -203,7 +224,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 {/* Name, Email, Phone & Address */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="name">Full Name <span className="text-red-500">*</span> <LabelTooltip content="Your official full name" /></Label>
                         <Input
                             id="name"
                             value={data.name || ""}
@@ -211,7 +232,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="email">Email Address <span className="text-red-500">*</span> <LabelTooltip content="Your primary email address for communication" /></Label>
                         <Input
                             id="email"
                             type="email"
@@ -223,7 +244,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span> <LabelTooltip content="Your active contact number" /></Label>
                         <Input
                             id="phone"
                             placeholder="+91..."
@@ -232,7 +253,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="address">Address <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="address">Address <span className="text-red-500">*</span> <LabelTooltip content="Your permanent or current residential address" /></Label>
                         <Textarea
                             id="address"
                             placeholder="Full residential address..."
@@ -246,7 +267,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 {/* DOB & Pincode */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2 flex flex-col">
-                        <Label className="mb-2">Date of Birth <span className="text-red-500">*</span></Label>
+                        <Label className="mb-2">Date of Birth <span className="text-red-500">*</span> <LabelTooltip content="Your date of birth as per official records" /></Label>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -281,7 +302,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         </Popover>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="pincode">Pincode <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="pincode">Pincode <span className="text-red-500">*</span> <LabelTooltip content="Postal code of your area" /></Label>
                         <Input
                             id="pincode"
                             placeholder="676505"
@@ -302,7 +323,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="headline">Professional Headline</Label>
+                        <Label htmlFor="headline">Professional Headline <LabelTooltip content="A short, catchy title (e.g., 'Full Stack Developer')" /></Label>
                         <Input
                             id="headline"
                             placeholder="e.g. Frontend Developer | React Enthusiast"
@@ -311,7 +332,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="qualification">Qualification <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="qualification">Qualification <span className="text-red-500">*</span> <LabelTooltip content="Your highest academic qualification" /></Label>
                         <Input
                             id="qualification"
                             placeholder="e.g. BCA, B.Tech"
@@ -322,7 +343,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="aim">Professional Aim / Goal</Label>
+                    <Label htmlFor="aim">Professional Aim / Goal <LabelTooltip content="Your career objective or long-term goal" /></Label>
                     <Input
                         id="aim"
                         placeholder="e.g. To become a Full Stack Developer at a top product company"
@@ -332,7 +353,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="bio">Bio / About Me</Label>
+                    <Label htmlFor="bio">Bio / About Me <LabelTooltip content="A brief summary about your professional self" /></Label>
                     <Textarea
                         id="bio"
                         placeholder="Write a compelling bio about yourself..."
@@ -352,23 +373,22 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 </h4>
 
                 <div className="space-y-2">
-                    <Label htmlFor="skills">Technical Skills <span className="text-xs text-muted-foreground font-normal">(Comma separated)</span></Label>
-                    <Input
-                        id="skills"
-                        placeholder="React, Node.js, Figma, WordPress..."
-                        value={data.skills?.join(", ") || ""}
-                        onChange={(e) => handleSkillsChange(e.target.value)}
+                    <Label htmlFor="skills">Technical Skills <span className="text-xs text-muted-foreground font-normal">(Press Enter to add)</span> <LabelTooltip content="List your technical skills (e.g., React, Python)" /></Label>
+                    <TagInput
+                        placeholder="e.g. React, Node.js"
+                        value={data.skills || []}
+                        onChange={(newTags) => onChange({ skills: newTags })}
+                        className="bg-background min-h-[42px]"
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="achievements">Achievements <span className="text-xs text-muted-foreground font-normal">(One per line)</span></Label>
-                    <Textarea
-                        id="achievements"
-                        placeholder="Best Project Award 2024&#10;Hackathon Winner"
-                        className="min-h-[100px] resize-none"
-                        value={data.achievements?.join("\n") || ""}
-                        onChange={(e) => handleAchievementsChange(e.target.value)}
+                    <Label htmlFor="achievements">Achievements & Awards <span className="text-xs text-muted-foreground font-normal">(Press Enter to add)</span> <LabelTooltip content="Your significant awards and achievements" /></Label>
+                    <TagInput
+                        placeholder="e.g. Hackathon Winner, Best Project"
+                        value={data.achievements || []}
+                        onChange={(newTags) => onChange({ achievements: newTags })}
+                        className="bg-background min-h-[42px]"
                     />
                 </div>
             </div>
@@ -382,7 +402,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 </h4>
 
                 <div className="space-y-2">
-                    <Label htmlFor="experience">Experience Summary</Label>
+                    <Label htmlFor="experience">Experience Summary <LabelTooltip content="Brief summary of your internships or work experience" /></Label>
                     <Textarea
                         id="experience"
                         placeholder="e.g. 2 years experience in React Development at Tech Corp..."
@@ -394,7 +414,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 pt-2">
                     <div className="space-y-2">
-                        <Label htmlFor="resume">Resume / CV</Label>
+                        <Label htmlFor="resume">Resume / CV <LabelTooltip content="Upload your latest Resume (PDF/DOC)" /></Label>
                         <div className="flex items-center gap-3">
                             <Input
                                 id="resume"
@@ -415,7 +435,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Company Name <span className="text-xs text-muted-foreground font-normal">(if placed)</span></Label>
+                        <Label>Company Name <span className="text-xs text-muted-foreground font-normal">(if placed)</span> <LabelTooltip content="Name of the company you are placed in" /></Label>
                         <Input
                             placeholder="e.g. Google"
                             value={data.placement?.company || ""}
@@ -424,7 +444,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Job Role</Label>
+                        <Label>Job Role <LabelTooltip content="Your designation in the company" /></Label>
                         <Input
                             placeholder="e.g. Software Engineer"
                             value={data.placement?.role || ""}
@@ -433,7 +453,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Package (LPA)</Label>
+                        <Label>Package (LPA) <LabelTooltip content="Annual CTC in Lakhs Per Annum" /></Label>
                         <Input
                             placeholder="e.g. 24.5"
                             value={data.placement?.package || ""}
@@ -452,7 +472,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="linkedin" className="text-xs font-medium">LinkedIn URL</Label>
+                        <Label htmlFor="linkedin" className="text-xs font-medium">LinkedIn URL <LabelTooltip content="Link to your LinkedIn Profile" /></Label>
                         <Input
                             id="linkedin"
                             placeholder="https://linkedin.com/in/..."
@@ -461,7 +481,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="github" className="text-xs font-medium">GitHub URL</Label>
+                        <Label htmlFor="github" className="text-xs font-medium">GitHub URL <LabelTooltip content="Link to your GitHub Profile" /></Label>
                         <Input
                             id="github"
                             placeholder="https://github.com/..."
@@ -470,7 +490,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="website" className="text-xs font-medium">Portfolio Website</Label>
+                        <Label htmlFor="website" className="text-xs font-medium">Portfolio Website <LabelTooltip content="Link to your personal website" /></Label>
                         <Input
                             id="website"
                             placeholder="https://myportfolio.com"
@@ -479,7 +499,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="behance" className="text-xs font-medium">Behance URL</Label>
+                        <Label htmlFor="behance" className="text-xs font-medium">Behance URL <LabelTooltip content="Link to your Behance Portfolio" /></Label>
                         <Input
                             id="behance"
                             placeholder="https://behance.net/..."
@@ -488,7 +508,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="instagram" className="text-xs font-medium">Instagram URL</Label>
+                        <Label htmlFor="instagram" className="text-xs font-medium">Instagram URL <LabelTooltip content="Link to your Professional Instagram" /></Label>
                         <Input
                             id="instagram"
                             placeholder="https://instagram.com/..."
@@ -497,7 +517,7 @@ export const ProfileBasicForm = ({ data, onChange }: ProfileBasicFormProps) => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="twitter" className="text-xs font-medium">Twitter / X URL</Label>
+                        <Label htmlFor="twitter" className="text-xs font-medium">Twitter / X URL <LabelTooltip content="Link to your Twitter/X Profile" /></Label>
                         <Input
                             id="twitter"
                             placeholder="https://twitter.com/..."

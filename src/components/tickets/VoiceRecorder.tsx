@@ -15,9 +15,10 @@ interface VoiceRecorderProps {
   onRecordingComplete: (blob: Blob) => void;
   onDelete: () => void;
   variant?: "default" | "compact";
+  className?: string;
 }
 
-export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "default" }: VoiceRecorderProps) => {
+export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "default", className }: VoiceRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -25,6 +26,7 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "defaul
   const [isInitializing, setIsInitializing] = useState(false);
   const [showPermissionHelp, setShowPermissionHelp] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -162,12 +164,17 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "defaul
   };
 
   const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     setRecordingTime(0);
     setIsPlaying(false);
     setProgress(0);
     onDelete();
+    setShowDeleteConfirm(false);
   };
 
   const togglePlayback = () => {
@@ -249,7 +256,7 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "defaul
 
   return (
     <>
-      <div className="flex items-center gap-4 p-4 border border-border/50 rounded-xl bg-card/50 w-full">
+      <div className={cn("flex items-center gap-4 p-4 border border-border/50 rounded-xl bg-card/50 w-full", className)}>
         {!audioUrl ? (
           <>
             <Button
@@ -314,6 +321,21 @@ export const VoiceRecorder = ({ onRecordingComplete, onDelete, variant = "defaul
           </DialogHeader>
           <div className="flex justify-end pt-4">
             <Button onClick={() => window.location.reload()}>Reload Page</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete Recording</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this voice note?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={confirmDelete}>Delete</Button>
           </div>
         </DialogContent>
       </Dialog>

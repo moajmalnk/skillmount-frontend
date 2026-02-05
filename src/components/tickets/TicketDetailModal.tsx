@@ -299,7 +299,8 @@ export const TicketDetailModal = ({
   const DetailsView = () => (
     <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
       {/* Messages Header - Compact - Increased padding to strictly avoid Close button overlap */}
-      <div className="px-4 sm:px-6 pr-16 border-b border-border/40 bg-background/50 backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center shrink-0 h-[60px] sm:h-[72px]">
+      {/* Messages Header - Compact - Increased padding right to accommodate absolute Expand/Close buttons */}
+      <div className="px-4 sm:px-6 pr-24 sm:pr-32 border-b border-border/40 bg-background/50 backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center shrink-0 h-[60px] sm:h-[72px]">
         <div className="overflow-hidden mr-2">
           <h2 className="font-bold text-base sm:text-lg leading-tight truncate" title={ticket.title}>{ticket.title}</h2>
           <div className="flex items-center gap-2 mt-0.5 text-[10px] sm:text-xs text-muted-foreground">
@@ -308,7 +309,7 @@ export const TicketDetailModal = ({
             <span className="truncate">{new Date(ticket.created_at).toLocaleDateString()}</span>
           </div>
         </div>
-        <div className="flex gap-1 sm:gap-2 shrink-0 mr-8 sm:mr-10">
+        <div className="flex gap-1 sm:gap-2 shrink-0">
           <Badge variant={ticket.status === 'Open' ? 'default' : 'secondary'} className="text-[10px] px-1.5">{ticket.status}</Badge>
           <Badge variant="outline" className="text-[10px] px-1.5 hidden xs:inline-flex">{ticket.priority}</Badge>
         </div>
