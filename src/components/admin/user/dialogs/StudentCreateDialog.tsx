@@ -68,9 +68,11 @@ export const StudentCreateDialog = ({ isOpen, onClose, onSuccess }: StudentCreat
             const meta = (response as any).meta || {};
             const notifyStatus = meta.notification_status || {};
 
-            const emailStatus = notifyStatus.email === 'ok';
-            const waStatusRaw = notifyStatus.whatsapp || 'error';
-            const waStatus = waStatusRaw === 'ok';
+            const validStatuses = ['ok', 'success', 'queued'];
+            const emailStatus = validStatuses.includes((notifyStatus.email || '').toLowerCase());
+
+            const waStatusRaw = (notifyStatus.whatsapp || 'error').toLowerCase();
+            const waStatus = validStatuses.includes(waStatusRaw);
             const waSkipped = waStatusRaw.includes('skipped');
 
             toast.success(
