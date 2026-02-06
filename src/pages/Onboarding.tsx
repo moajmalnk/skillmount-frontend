@@ -252,7 +252,7 @@ export default function Onboarding() {
         <p className="text-xs text-muted-foreground">Confirm your contact information.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label>Full Name</Label>
           <Input value={user?.name || ""} disabled className="bg-muted/50" />
@@ -279,7 +279,7 @@ export default function Onboarding() {
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "pl-3 text-left font-normal",
+                      "w-full pl-3 text-left font-normal",
                       !field.value && "text-muted-foreground"
                     )}
                   >
@@ -315,7 +315,7 @@ export default function Onboarding() {
       <FormField control={form.control} name="address" render={({ field }) => (
         <FormItem>
           <FormLabel>Address</FormLabel>
-          <FormControl><Textarea {...field} /></FormControl>
+          <FormControl><Textarea className="min-h-[100px]" {...field} /></FormControl>
           <FormMessage />
         </FormItem>
       )} />
@@ -333,7 +333,7 @@ export default function Onboarding() {
   const renderStep2 = () => (
     <div className="space-y-6 animate-fade-in">
       {/* Common Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FormField control={form.control} name="qualification" render={({ field }) => (
           <FormItem>
             <FormLabel>Qualification <span className="text-red-500">*</span></FormLabel>
@@ -357,7 +357,7 @@ export default function Onboarding() {
       {/* Student Specifics - Using Dynamic Data */}
       {user?.role === 'student' && (
         <>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FormField control={form.control} name="mentor" render={({ field }) => (
               <FormItem>
                 <FormLabel>Mentor</FormLabel>
@@ -388,7 +388,7 @@ export default function Onboarding() {
           <FormField control={form.control} name="aim" render={({ field }) => (
             <FormItem>
               <FormLabel>Professional Aim</FormLabel>
-              <FormControl><Textarea placeholder="What are your career goals?" {...field} /></FormControl>
+              <FormControl><Textarea className="min-h-[100px]" placeholder="What are your career goals?" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />
@@ -445,17 +445,17 @@ export default function Onboarding() {
   );
 
   const renderStep3 = () => (
-    <div className="flex flex-col items-center justify-center py-8 animate-fade-in space-y-6">
+    <div className="flex flex-col items-center justify-center py-6 sm:py-8 animate-fade-in space-y-6">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-4 mb-6">
           <div className={cn(
-            "w-40 h-40 rounded-full border-4 border-dashed border-muted-foreground/20 flex items-center justify-center overflow-hidden transition-all",
+            "w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-dashed border-muted-foreground/20 flex items-center justify-center overflow-hidden transition-all",
             photoPreview ? "border-primary" : "bg-muted/30"
           )}>
             {photoPreview ? (
               <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
             ) : (
-              <Camera className="w-12 h-12 text-muted-foreground/50" />
+              <Camera className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/50" />
             )}
           </div>
           <div className="text-center">
@@ -477,14 +477,14 @@ export default function Onboarding() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-3 sm:p-4">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background"></div>
 
       <div className="w-full max-w-3xl">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8 mt-4 sm:mt-0">
           <Badge variant="secondary" className="px-4 py-1 text-primary mb-4 border-primary/20">One-Time Setup</Badge>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome, {user.name}</h1>
-          <p className="text-muted-foreground mt-2">Complete your profile to access the dashboard.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Welcome, {user.name}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-2 px-4">Complete your profile to access the dashboard.</p>
         </div>
 
         <Card className="border-border shadow-2xl relative overflow-hidden backdrop-blur-sm bg-card/95">
@@ -492,34 +492,34 @@ export default function Onboarding() {
             <div className="h-full bg-primary transition-all duration-500 ease-in-out" style={{ width: `${progress}%` }} />
           </div>
 
-          <CardHeader className="border-b border-border/50 bg-muted/20 pb-6">
-            <div className="flex justify-between items-center">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold bg-primary text-primary-foreground">
+          <CardHeader className="border-b border-border/50 bg-muted/20 pb-4 pt-5 px-4 sm:p-6 sm:pb-2">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold bg-primary text-primary-foreground shrink-0">
                   {step}
                 </span>
                 {step === 1 && "Personal Info"}
                 {step === 2 && "Professional Info"}
                 {step === 3 && "Profile Photo"}
               </CardTitle>
-              <span className="text-sm font-medium text-muted-foreground">Step {step} of 3</span>
+              <span className="text-xs sm:text-sm font-medium text-muted-foreground text-right">Step {step} of 3</span>
             </div>
           </CardHeader>
 
           <Form {...form}>
             <form onSubmit={(e) => e.preventDefault()}>
-              <CardContent className="p-6 md:p-8 min-h-[400px]">
+              <CardContent className="p-4 sm:p-6 md:p-8 min-h-[300px] sm:min-h-[400px]">
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStep2()}
                 {step === 3 && renderStep3()}
               </CardContent>
 
-              <CardFooter className="flex justify-between border-t border-border/50 bg-muted/20 p-6">
-                <Button variant="outline" onClick={handleBack} disabled={step === 1 || isLoading} className="w-32">
+              <CardFooter className="flex justify-between border-t border-border/50 bg-muted/20 p-4 sm:p-6">
+                <Button variant="outline" onClick={handleBack} disabled={step === 1 || isLoading} className="w-28 sm:w-32">
                   <ArrowLeft className="w-4 h-4 mr-2" /> Back
                 </Button>
 
-                <Button onClick={handleNext} disabled={isLoading} className="w-40">
+                <Button onClick={handleNext} disabled={isLoading} className="w-32 sm:w-40">
                   {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> :
                     step === 3 ? <><CheckCircle2 className="w-4 h-4 mr-2" /> Finish</> :
                       <><ArrowRight className="w-4 h-4 mr-2" /> Next</>}

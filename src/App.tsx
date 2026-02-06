@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollProgressBar from "./components/ScrollProgressBar";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { ScrollToTop } from "@/components/ScrollToTop"; // <-- Import the new component
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
@@ -52,6 +53,7 @@ const AppContent = () => {
 
   return (
     <>
+      <InstallPrompt />
       <ScrollToTop /> {/* <-- Activate ScrollToTop here */}
       <ScrollProgressBar />
       <ImpersonationBanner />
