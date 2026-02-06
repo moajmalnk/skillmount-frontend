@@ -10,8 +10,9 @@ export const OnboardingGuard = ({ children }: { children: React.ReactNode }) => 
     useEffect(() => {
         if (isLoading || !isAuthenticated || !user) return;
 
-        // Bypass for Admins (They don't need onboarding)
-        if (user.role === 'super_admin' || user.role === 'admin') return;
+        // Bypass for 'super_admin', 'admin'
+        const immuneRoles = ['super_admin', 'admin'];
+        if (immuneRoles.includes(user.role)) return;
 
         // List of paths that are allowed even if profile is incomplete
         const publicPaths = ['/login', '/onboarding', '/google-callback', '/reset-password', '/contact'];
@@ -29,10 +30,11 @@ export const OnboardingGuard = ({ children }: { children: React.ReactNode }) => 
 
     if (isAuthenticated && user && !user.isProfileComplete && location.pathname !== '/onboarding') {
         // Bypass for Admins
-        if (user.role === 'super_admin' || user.role === 'admin') {
+        const immuneRoles = ['super_admin', 'admin'];
+        if (immuneRoles.includes(user.role)) {
             return <>{children}</>;
         }
-        // Return null or a loader to "block" the view until redirect happens
+        // Return null to block view until redirect happens
         return null;
     }
 
