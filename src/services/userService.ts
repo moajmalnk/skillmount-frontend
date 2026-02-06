@@ -334,5 +334,17 @@ export const userService = {
       console.error("Change password failed", error);
       throw error;
     }
+  },
+
+  // 8. IMPERSONATE USER
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  impersonate: async (id: string): Promise<any> => {
+    try {
+      const response = await api.post('/auth/impersonate/', { user_id: id });
+      return response.data;
+    } catch (error) {
+      console.error("Impersonate failed", error);
+      throw error;
+    }
   }
 };

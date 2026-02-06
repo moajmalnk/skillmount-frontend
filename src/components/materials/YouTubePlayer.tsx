@@ -53,14 +53,80 @@ export function YouTubePlayer({
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
 
-    useEffect(() => {
-        if (!window.YT) {
-            const script = document.createElement("script");
-            script.src = "https://www.youtube.com/iframe_api";
-            script.async = true;
-            document.body.appendChild(script);
-        }
+    // Wake Lock State
+    const wakeLockRef = useRef<any>(null);
 
+    // Request Wake Lock
+    const requestWakeLock = async () => {
+        try {
+            if ('wakeLock' in navigator) {
+                // @ts-ignore
+                wakeLockRef.current = await navigator.wakeLock.request('screen');
+            }
+        } catch (err) {
+            console.debug('Wake Lock request failed:', err);
+        }
+    };
+
+    // Release Wake Lock
+    const releaseWakeLock = async () => {
+        if (wakeLockRef.current) {
+            try {
+                await wakeLockRef.current.release();
+                wakeLockRef.current = null;
+            } catch (err) {
+                console.debug('Wake Lock release failed:', err);
+            }
+        }
+    };
+
+    // Handle Play/Pause
+    const handlePlayPause = () => {
+        if (!playerRef.current) return;
+
+        try {
+            if (isPlaying) {
+                playerRef.current.pauseVideo();
+                setIsPlaying(false);
+                releaseWakeLock(); // Release on pause
+            } else {
+                playerRef.current.playVideo();
+                setIsPlaying(true);
+                requestWakeLock(); // Request on play
+            }
+        } catch (e) {
+            // Fallback logic
+            const playerState = playerRef.current.getPlayerState?.();
+            if (playerState === 1) {
+                playerRef.current.pauseVideo();
+                setIsPlaying(false);
+                releaseWakeLock();
+            } else {
+                playerRef.current.playVideo();
+                setIsPlaying(true);
+                requestWakeLock();
+            }
+        }
+    };
+
+    // Release on unmount or tab visibility change
+    useEffect(() => {
+        const handleVisibilityChange = async () => {
+            if (document.hidden && wakeLockRef.current) {
+                await releaseWakeLock();
+            } else if (!document.hidden && isPlaying) {
+                await requestWakeLock(); // Re-request if coming back to playing video
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            releaseWakeLock(); // Release on unmount
+        };
+    }, [isPlaying]);
+
+    useEffect(() => {
         const checkAPIReady = () => {
             if (window.YT?.Player) {
                 initializePlayer();
@@ -121,31 +187,7 @@ export function YouTubePlayer({
         });
     };
 
-    const handlePlayPause = () => {
-        if (!playerRef.current) return;
 
-        // Prefer local `isPlaying` because YouTube may report transient states
-        // (buffering, cued) which can make getPlayerState unreliable for toggling.
-        try {
-            if (isPlaying) {
-                playerRef.current.pauseVideo();
-                setIsPlaying(false);
-            } else {
-                playerRef.current.playVideo();
-                setIsPlaying(true);
-            }
-        } catch (e) {
-            // Fallback to player state if something goes wrong with local state
-            const playerState = playerRef.current.getPlayerState?.();
-            if (playerState === 1) {
-                playerRef.current.pauseVideo();
-                setIsPlaying(false);
-            } else {
-                playerRef.current.playVideo();
-                setIsPlaying(true);
-            }
-        }
-    };
 
     const handleMute = () => {
         if (!playerRef.current) return;
@@ -158,13 +200,39 @@ export function YouTubePlayer({
         }
     };
 
-    const handleFullscreen = () => {
+    const handleFullscreen = async () => {
         if (!containerRef.current) return;
         if (!isFullscreen) {
-            containerRef.current.requestFullscreen?.();
+            try {
+                if (containerRef.current.requestFullscreen) {
+                    await containerRef.current.requestFullscreen();
+                    // Attempt to lock orientation to landscape (Android/Chrome)
+                    // @ts-ignore - screen.orientation might not be in all TS defs
+                    if (screen.orientation && screen.orientation.lock) {
+                        // @ts-ignore
+                        screen.orientation.lock('landscape').catch((e) => {
+                            // Orientation lock not supported or allowed (e.g. desktop/iOS)
+                            console.log('Orientation lock skipped:', e);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Fullscreen error:", error);
+            }
             setIsFullscreen(true);
         } else {
-            document.exitFullscreen?.();
+            try {
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                    // @ts-ignore
+                    if (screen.orientation && screen.orientation.unlock) {
+                        // @ts-ignore
+                        screen.orientation.unlock();
+                    }
+                }
+            } catch (error) {
+                console.error("Exit fullscreen error:", error);
+            }
             setIsFullscreen(false);
         }
     };
@@ -186,7 +254,15 @@ export function YouTubePlayer({
 
     useEffect(() => {
         const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
+            const isFull = !!document.fullscreenElement;
+            setIsFullscreen(isFull);
+            if (!isFull) {
+                // @ts-ignore
+                if (screen.orientation && screen.orientation.unlock) {
+                    // @ts-ignore
+                    screen.orientation.unlock();
+                }
+            }
         };
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);

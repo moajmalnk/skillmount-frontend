@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react"; // Added Fragment
+import { useState, useEffect, Fragment } from "react"; // Added Fragment
 import {
     Bell, Check, MailOpen, Ticket, Info, CheckCheck, ExternalLink, Loader2, History, ChevronLeft
 } from "lucide-react";
@@ -64,6 +64,69 @@ export const NotificationBell = () => {
     // But since `recentData` is paginated, we rely on what we have.
     // A quick hack: Recent is likely what matters most for the badge.
     const unreadCount = (recentData?.results || []).filter(n => !n.is_read).length;
+
+    // --- PWA Badge & Dynamic Favicon Effect ---
+    useEffect(() => {
+        const updateBadges = async () => {
+            // 1. PWA App Badge (OS Level for Installed App)
+            if ('setAppBadge' in navigator) {
+                try {
+                    if (unreadCount > 0) {
+                        await navigator.setAppBadge(unreadCount);
+                    } else {
+                        await navigator.clearAppBadge();
+                    }
+                } catch (e) {
+                    // Silently fail if permission denied or not supported
+                    console.debug("App badge update failed", e);
+                }
+            }
+
+            // 2. Dynamic Favicon (Browser Tab Level)
+            const favicon = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+            if (favicon) {
+                // Keep original href to revert
+                const originalHref = favicon.dataset.originalHref || favicon.href;
+                if (!favicon.dataset.originalHref) favicon.dataset.originalHref = originalHref;
+
+                if (unreadCount > 0) {
+                    const img = new Image();
+                    img.crossOrigin = "anonymous"; // Handle potential CORS if icon is CDN hosted
+                    img.src = originalHref;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 32;
+                        canvas.height = 32;
+                        const ctx = canvas.getContext('2d');
+                        if (ctx) {
+                            // Draw original icon
+                            ctx.drawImage(img, 0, 0, 32, 32);
+
+                            // Draw Badge Circle
+                            ctx.beginPath();
+                            ctx.arc(22, 10, 8, 0, 2 * Math.PI);
+                            ctx.fillStyle = '#ef4444'; // Red-500
+                            ctx.fill();
+
+                            // Draw Text
+                            ctx.fillStyle = 'white';
+                            ctx.font = 'bold 10px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            const countText = unreadCount > 9 ? '9+' : unreadCount.toString();
+                            ctx.fillText(countText, 22, 10.5);
+
+                            favicon.href = canvas.toDataURL('image/png');
+                        }
+                    };
+                } else {
+                    favicon.href = originalHref;
+                }
+            }
+        };
+
+        updateBadges();
+    }, [unreadCount]);
 
     // 3. Mutations
     const markReadMutation = useMutation({

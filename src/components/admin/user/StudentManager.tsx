@@ -28,7 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   Pencil, Trash2, EyeIcon, Loader2, Search, X,
-  Star, GraduationCap, CheckCircle2, AlertCircle, Plus
+  Star, GraduationCap, CheckCircle2, AlertCircle, Plus, LogIn
 } from "lucide-react";
 import { toast } from "sonner";
 import { UserDetailSheet } from "./UserDetailSheet";
@@ -73,7 +73,7 @@ export const StudentManager = () => {
 
   // Unified Action State
   type PendingAction = {
-    type: 'delete' | 'toggleTop' | 'toggleFeatured';
+    type: 'delete' | 'toggleTop' | 'toggleFeatured' | 'impersonate';
     student: Student;
   } | null;
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
@@ -185,6 +185,11 @@ export const StudentManager = () => {
     setPendingAction({ type: 'delete', student });
   };
 
+  const requestImpersonate = (e: React.MouseEvent, student: Student) => {
+    e.stopPropagation();
+    setPendingAction({ type: 'impersonate', student });
+  };
+
   // 4. Execution Handler
   const executePendingAction = async () => {
     if (!pendingAction) return;
@@ -196,6 +201,21 @@ export const StudentManager = () => {
         toast.success("Student deleted successfully");
         // Refetch to maintain pagination state
         loadData();
+      } else if (type === 'impersonate') {
+        // Impersonate Logic
+        const response = await userService.impersonate(student.id);
+
+        if (response && response.access) {
+          // Use Auth Service to handle secure context switching
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { authService } = await import("@/lib/auth");
+          authService.enterImpersonation(
+            { access: response.access, refresh: response.refresh },
+            response.user
+          );
+
+          toast.success(`Logged in as ${student.name}`);
+        }
       } else {
         // Toggles
         const field = type === 'toggleTop' ? 'isTopPerformer' : 'isFeatured';
@@ -445,6 +465,22 @@ export const StudentManager = () => {
                       {/* 5. Actions */}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                  onClick={(e) => requestImpersonate(e, student)}
+                                >
+                                  <LogIn className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Login as Student</p></TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
                           <Button
                             variant="ghost"
                             size="icon"
@@ -507,22 +543,26 @@ export const StudentManager = () => {
             itemName={pendingAction.student.name}
             title={
               pendingAction.type === 'delete' ? "Delete Student?" :
-                pendingAction.type === 'toggleTop' ? "Update Top Performer Status?" :
-                  "Update Featured Status?"
+                pendingAction.type === 'impersonate' ? "Log in as Student?" :
+                  pendingAction.type === 'toggleTop' ? "Update Top Performer Status?" :
+                    "Update Featured Status?"
             }
             description={
               pendingAction.type === 'delete'
                 ? "This will permanently delete the student and all associated data. This action cannot be undone."
-                : pendingAction.type === 'toggleTop'
-                  ? `Are you sure you want to ${pendingAction.student.isTopPerformer ? 'remove' : 'mark'} this student as a Top Performer?`
-                  : `Are you sure you want to ${pendingAction.student.isFeatured ? 'remove' : 'mark'} this student as a Featured Graduate?`
+                : pendingAction.type === 'impersonate'
+                  ? `You are about to log out of your Admin account and log in as ${pendingAction.student.name}. To return to the Admin panel, you will need to log out and log back in.`
+                  : pendingAction.type === 'toggleTop'
+                    ? `Are you sure you want to ${pendingAction.student.isTopPerformer ? 'remove' : 'mark'} this student as a Top Performer?`
+                    : `Are you sure you want to ${pendingAction.student.isFeatured ? 'remove' : 'mark'} this student as a Featured Graduate?`
             }
             variant={pendingAction.type === 'delete' ? "destructive" : "default"}
             confirmLabel={
               pendingAction.type === 'delete' ? "Delete Permanently" :
-                pendingAction.type === 'toggleTop'
-                  ? (pendingAction.student.isTopPerformer ? "Remove Status" : "Mark as Top Performer")
-                  : (pendingAction.student.isFeatured ? "Remove Status" : "Mark as Graduate")
+                pendingAction.type === 'impersonate' ? "Login as User" :
+                  pendingAction.type === 'toggleTop'
+                    ? (pendingAction.student.isTopPerformer ? "Remove Status" : "Mark as Top Performer")
+                    : (pendingAction.student.isFeatured ? "Remove Status" : "Mark as Graduate")
             }
           />
         )

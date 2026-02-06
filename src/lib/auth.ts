@@ -30,9 +30,16 @@ export const authService = {
   },
 
   logout: () => {
+    // If logging out while impersonating, we should probably just clear everything
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('skillmount_user');
+
+    // Clear Impersonation Backups
+    localStorage.removeItem('admin_access_token');
+    localStorage.removeItem('admin_refresh_token');
+    localStorage.removeItem('admin_user_backup');
+
     window.location.href = '/login';
   },
 
@@ -87,5 +94,64 @@ export const authService = {
     };
     authService.saveSession(user);
     return user;
+  },
+
+  // --- IMPERSONATION Logic ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  enterImpersonation: (studentTokens: { access: string, refresh: string }, studentUser: any) => {
+    // 1. Backup Admin Session
+    const adminAccess = localStorage.getItem('access_token');
+    const adminRefresh = localStorage.getItem('refresh_token');
+    const adminUser = localStorage.getItem('skillmount_user');
+
+    if (adminAccess && adminRefresh && adminUser) {
+      localStorage.setItem('admin_access_token', adminAccess);
+      localStorage.setItem('admin_refresh_token', adminRefresh);
+      localStorage.setItem('admin_user_backup', adminUser);
+    }
+
+    // 2. Set Student Session
+    localStorage.setItem('access_token', studentTokens.access);
+    localStorage.setItem('refresh_token', studentTokens.refresh);
+
+    const user: User = {
+      ...studentUser,
+      isProfileComplete: studentUser.is_profile_complete || studentUser.isProfileComplete || false
+    };
+
+    localStorage.setItem('skillmount_user', JSON.stringify(user));
+
+    // 3. Force Reload to Apply
+    window.location.href = '/';
+  },
+
+  exitImpersonation: () => {
+    // 1. Retrieve Admin Session
+    const adminAccess = localStorage.getItem('admin_access_token');
+    const adminRefresh = localStorage.getItem('admin_refresh_token');
+    const adminUser = localStorage.getItem('admin_user_backup');
+
+    if (!adminAccess || !adminRefresh || !adminUser) {
+      // Fallback if backup missing
+      authService.logout();
+      return;
+    }
+
+    // 2. Restore Admin Session
+    localStorage.setItem('access_token', adminAccess);
+    localStorage.setItem('refresh_token', adminRefresh);
+    localStorage.setItem('skillmount_user', adminUser);
+
+    // 3. Clear Backups
+    localStorage.removeItem('admin_access_token');
+    localStorage.removeItem('admin_refresh_token');
+    localStorage.removeItem('admin_user_backup');
+
+    // 4. Force Reload to Apply
+    window.location.href = '/admin';
+  },
+
+  isImpersonating: (): boolean => {
+    return !!localStorage.getItem('admin_access_token');
   }
 };

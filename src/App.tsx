@@ -15,6 +15,7 @@ import Footer from "./components/Footer";
 import ScrollProgressBar from "./components/ScrollProgressBar";
 import { ScrollToTop } from "@/components/ScrollToTop"; // <-- Import the new component
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 
 // Pages
 import Home from "./pages/Home";
@@ -53,9 +54,10 @@ const AppContent = () => {
     <>
       <ScrollToTop /> {/* <-- Activate ScrollToTop here */}
       <ScrollProgressBar />
+      <ImpersonationBanner />
       <div className="flex flex-col min-h-screen relative">
         <Navbar />
-        <main className="flex-1 relative">
+        <main className="flex-1 relative w-full pb-safe">
           <Routes>
 
             {/* === PUBLIC ROUTES (No Guard) === */}
