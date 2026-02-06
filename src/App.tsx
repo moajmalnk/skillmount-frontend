@@ -8,6 +8,7 @@ import { AuthProvider } from "@/context/AuthContext";
 
 // Route Guards
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
+import { OnboardingGuard } from "@/components/layout/OnboardingGuard";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -60,44 +61,46 @@ const AppContent = () => {
       <div className="flex flex-col min-h-screen relative">
         <Navbar />
         <main className="flex-1 relative w-full pb-safe">
-          <Routes>
+          <OnboardingGuard>
+            <Routes>
 
-            {/* === PUBLIC ROUTES (No Guard) === */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/google-callback" element={<GoogleCallback />} />
-            <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
-            <Route path="/students" element={<Students />} />
-            <Route path="/students/:id" element={<StudentProfile />} />
-            <Route path="/materials" element={<Materials />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/skelui" element={<SkelUI />} />
+              {/* === PUBLIC ROUTES (No Guard) === */}
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/google-callback" element={<GoogleCallback />} />
+              <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
+              <Route path="/students" element={<Students />} />
+              <Route path="/students/:id" element={<StudentProfile />} />
+              <Route path="/materials" element={<Materials />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/skelui" element={<SkelUI />} />
 
-            {/* Blog Routes */}
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
+              {/* Blog Routes */}
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
 
-            {/* === PROTECTED ROUTES === */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/tickets/manage" element={<TicketInbox />} />
-              <Route path="/tickets/manage" element={<TicketInbox />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/affiliate/hub" element={<AffiliateHub />} />
-              <Route path="/student/tickets" element={<StudentTickets />} />
-            </Route>
+              {/* === PROTECTED ROUTES === */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/tickets/manage" element={<TicketInbox />} />
+                <Route path="/tickets/manage" element={<TicketInbox />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/affiliate/hub" element={<AffiliateHub />} />
+                <Route path="/student/tickets" element={<StudentTickets />} />
+              </Route>
 
-            {/* === REDIRECTS === */}
-            <Route path="/student/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/tutor/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/affiliate/dashboard" element={<Navigate to="/" replace />} />
+              {/* === REDIRECTS === */}
+              <Route path="/student/dashboard" element={<Navigate to="/" replace />} />
+              <Route path="/tutor/dashboard" element={<Navigate to="/" replace />} />
+              <Route path="/affiliate/dashboard" element={<Navigate to="/" replace />} />
 
-            {/* === 404 === */}
-            <Route path="*" element={<NotFound />} />
+              {/* === 404 === */}
+              <Route path="*" element={<NotFound />} />
 
-          </Routes>
+            </Routes>
+          </OnboardingGuard>
         </main>
         {!isLoginPage && !isAdminPage && <Footer />}
         {!isLoginPage && <ChatWidget />}
