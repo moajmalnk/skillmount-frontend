@@ -73,8 +73,8 @@ export const InstallPrompt = () => {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleDismiss()}>
-            <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none shadow-2xl">
-                <div className="bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-6 text-white text-center relative overflow-hidden">
+            <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none shadow-2xl bg-zinc-950">
+                <div className="bg-gradient-to-br from-[#7e22ce] to-[#6b21a8] p-6 text-white text-center relative overflow-hidden">
                     {/* Background decorations */}
                     <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-white rounded-full blur-3xl" />
@@ -133,7 +133,7 @@ export const InstallPrompt = () => {
                         <div className="grid gap-3">
                             <Button
                                 onClick={handleInstall}
-                                className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-[1.02]"
+                                className="w-full h-11 text-base font-medium shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 transition-all hover:scale-[1.02] bg-white text-black hover:bg-gray-100"
                             >
                                 <Download className="w-4 h-4 mr-2" />
                                 Install Now
