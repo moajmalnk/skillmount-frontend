@@ -163,7 +163,7 @@ const Admin = () => {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <div className="overflow-x-auto pb-2">
+          <div className="overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
             <TabsList className="inline-flex h-auto w-auto gap-2 bg-transparent p-0 justify-start">
               {tabConfig.map((tab) => (
                 <TabsTrigger
