@@ -595,6 +595,7 @@ export const ChatWidget = () => {
 
   const send = async (overrideQuestion?: string) => {
     const textToSend = overrideQuestion || question;
+    if (isLoading) return;
     if (!textToSend.trim()) return;
     if (!user) {
       toast.error("Please log in to use the assistant.");
@@ -1223,14 +1224,15 @@ export const ChatWidget = () => {
                       {/* Input Field Container */}
                       <div className="flex-1 min-w-0 bg-secondary/40 hover:bg-secondary/60 focus-within:bg-secondary/60 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:focus-within:bg-slate-800 transition-colors rounded-3xl flex items-center px-4 py-1.5 border border-transparent focus-within:border-primary/20 relative overflow-hidden">
                         <Input
-                          placeholder="Type your reply..."
+                          disabled={isLoading}
+                          placeholder={isLoading ? "Generating response..." : "Type your reply..."}
                           value={question}
                           onChange={(e) => setQuestion(e.target.value)}
-                          className="border-none shadow-none outline-none bg-transparent h-auto max-h-[120px] py-1.5 text-sm sm:text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 min-w-0 resize-none"
+                          className="border-none shadow-none outline-none bg-transparent h-auto max-h-[120px] py-1.5 text-sm sm:text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 min-w-0 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                               e.preventDefault();
-                              send();
+                              if (!isLoading) send();
                             }
                           }}
                           autoComplete="off"
