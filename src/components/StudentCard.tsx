@@ -175,13 +175,13 @@ const StudentCard = ({
 
           {/* Skills */}
           <div className="w-full flex flex-wrap gap-1.5 justify-center mb-5 h-[52px] content-start overflow-hidden">
-            {skills.slice(0, 4).map((skill, i) => (
+            {(skills || []).slice(0, 4).map((skill, i) => (
               <Badge key={i} variant="secondary" className="bg-muted/50 hover:bg-primary/10 text-[10px] font-medium px-2 py-0 transition-colors border-transparent hover:border-primary/20">
                 {skill}
               </Badge>
             ))}
-            {skills.length > 4 && (
-              <Badge variant="secondary" className="bg-muted/30 text-[10px] px-1.5 py-0">+{skills.length - 4}</Badge>
+            {(skills || []).length > 4 && (
+              <Badge variant="secondary" className="bg-muted/30 text-[10px] px-1.5 py-0">+{(skills || []).length - 4}</Badge>
             )}
           </div>
 

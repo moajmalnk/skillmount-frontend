@@ -100,6 +100,8 @@ const Students = () => {
 
         const formattedData = rawResults.map((s: Student) => ({
           ...s,
+          // Ensure skills is always an array to prevent UI crashes
+          skills: s.skills || [],
           // batch is already in Student
           // batchId removed as it was for client-side filtering
           domain: s.socials?.website,
