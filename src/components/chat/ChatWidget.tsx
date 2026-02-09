@@ -437,8 +437,9 @@ const SidebarContent = ({
 export const ChatWidget = () => {
   const { user } = useAuth();
 
-  // Deny access if profile is incomplete
-  if (user && !user.isProfileComplete) return null;
+  // Deny access if profile is incomplete (except for admins)
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  if (user && !isAdmin && !user.isProfileComplete) return null;
 
   const [isOpen, setIsOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
