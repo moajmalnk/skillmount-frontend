@@ -16,6 +16,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { PlacementData } from "@/types/user";
 
 interface StudentCardProps {
@@ -194,14 +200,28 @@ const StudentCard = ({
               <>
                 <div className="flex items-center gap-1">
                   {github && (
-                    <a href={github} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()} title="GitHub">
-                      <Github className="w-4 h-4" />
-                    </a>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a href={github} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                            <Github className="w-4 h-4" />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>GitHub Profile</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                   {linkedin && (
-                    <a href={linkedin} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-blue-600 transition-colors" onClick={(e) => e.stopPropagation()} title="LinkedIn">
-                      <Linkedin className="w-4 h-4" />
-                    </a>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a href={linkedin} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-blue-600 transition-colors" onClick={(e) => e.stopPropagation()}>
+                            <Linkedin className="w-4 h-4" />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>LinkedIn Profile</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
 

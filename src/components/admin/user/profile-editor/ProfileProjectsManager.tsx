@@ -164,10 +164,17 @@ export const ProfileProjectsManager = ({ projects = [], onChange }: ProfileProje
         toast.success("Project saved successfully");
     };
 
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
     const deleteProject = (id: string) => {
-        if (confirm("Delete this project?")) {
-            onChange(projects.filter(p => p.id !== id));
+        setDeletingId(id);
+    };
+
+    const confirmDelete = () => {
+        if (deletingId) {
+            onChange(projects.filter(p => p.id !== deletingId));
             toast.success("Project deleted");
+            setDeletingId(null);
         }
     };
 
@@ -245,13 +252,21 @@ export const ProfileProjectsManager = ({ projects = [], onChange }: ProfileProje
 
                                     {/* Overlay Controls */}
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        <button
-                                            onClick={() => removeImage(idx)}
-                                            className="p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
-                                            title="Remove Image"
-                                        >
-                                            <Trash2 className="w-3 h-3" />
-                                        </button>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={() => removeImage(idx)}
+                                                        className="p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="bg-destructive text-destructive-foreground">
+                                                    <p>Remove Image</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                         {editForm.imageUrl === img && (
                                             <span className="absolute bottom-1 left-0 right-0 text-[10px] text-center text-white bg-black/60 py-0.5">Cover</span>
                                         )}
@@ -385,6 +400,21 @@ export const ProfileProjectsManager = ({ projects = [], onChange }: ProfileProje
             <Button variant="outline" className="w-full border-dashed border-primary/20 hover:border-primary/50 hover:bg-primary/5 text-primary" onClick={() => startEdit()}>
                 <Plus className="w-4 h-4 mr-2" /> Add Project
             </Button>
+
+            <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the project from your profile.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

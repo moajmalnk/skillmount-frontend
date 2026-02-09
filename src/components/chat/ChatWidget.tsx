@@ -10,6 +10,12 @@ import { chatService, ChatSource } from "@/services/chatService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -1043,23 +1049,37 @@ export const ChatWidget = () => {
                               </div>
                               {!turn.isTyping && (
                                 <div className="flex items-center gap-1">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className={`h-6 w-6 transition-all ${turn.showTranslated ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300" : "opacity-50 hover:opacity-100"}`}
-                                    onClick={() => handleTranslate(turn)}
-                                    title="Translate to Malayalam"
-                                    disabled={turn.isTranslating}
-                                  >
-                                    {turn.isTranslating ? (
-                                      <Loader2 className="w-3 h-3 animate-spin" />
-                                    ) : (
-                                      <span className="text-[10px] font-bold leading-none">മ</span>
-                                    )}
-                                  </Button>
-                                  <Button size="icon" variant="ghost" className="h-6 w-6 opacity-50 hover:opacity-100" onClick={() => copyAnswer(turn.answer)}>
-                                    <Copy className="w-3 h-3" />
-                                  </Button>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className={`h-6 w-6 transition-all ${turn.showTranslated ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300" : "opacity-50 hover:opacity-100"}`}
+                                          onClick={() => handleTranslate(turn)}
+                                          disabled={turn.isTranslating}
+                                        >
+                                          {turn.isTranslating ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <span className="text-[10px] font-bold leading-none">മ</span>
+                                          )}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Translate to Malayalam</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button size="icon" variant="ghost" className="h-6 w-6 opacity-50 hover:opacity-100" onClick={() => copyAnswer(turn.answer)}>
+                                          <Copy className="w-3 h-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Copy Answer</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </div>
                               )}
                             </div>
