@@ -59,7 +59,7 @@ export default function StudentTickets() {
         <div className="min-h-screen bg-background relative p-6">
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <ProfessionalBackground
-                    src="/tutor-hero.jpg"
+                    src="https://moajmalnk.in/assets/img/hero/moajmalnk.webp"
                     alt="bg"
                     className="w-full h-full opacity-[0.02]"
                     overlay={true}

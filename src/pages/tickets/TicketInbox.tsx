@@ -79,7 +79,7 @@ export default function TicketInbox() {
       {/* Subtle Professional Background */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <ProfessionalBackground
-          src="/tutor-hero.jpg" // Fixed path
+          src="https://moajmalnk.in/assets/img/hero/moajmalnk.webp"
           alt="Background"
           className="w-full h-full opacity-[0.02]"
           overlay={true}
