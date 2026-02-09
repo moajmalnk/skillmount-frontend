@@ -254,7 +254,9 @@ export const userService = {
       if (skills.length > 0) params.append("skills", skills.join(","));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await api.get<any>(`/users/public_directory/?${params.toString()}`);
+      const response = await api.get<any>(`/users/public_directory/?${params.toString()}`, {
+        headers: { 'x-skip-auth': 'true' }
+      });
       return response.data;
     } catch (error) {
       console.error("Failed to fetch public directory", error);

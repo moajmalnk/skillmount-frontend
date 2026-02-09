@@ -15,6 +15,12 @@ const api = axios.create({
 // 2. Request Interceptor: Attaches the Access Token
 api.interceptors.request.use(
   (config) => {
+    // Check for explicit skip auth header
+    if (config.headers['x-skip-auth']) {
+      delete config.headers['x-skip-auth'];
+      return config;
+    }
+
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

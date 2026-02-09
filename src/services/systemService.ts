@@ -38,7 +38,9 @@ export const systemService = {
   // 1. GET SETTINGS
   getSettings: async (): Promise<SystemSettings> => {
     try {
-      const response = await api.get('/admin/settings/');
+      const response = await api.get('/admin/settings/', {
+        headers: { 'x-skip-auth': 'true' }
+      });
 
       // The backend returns snake_case (faq_categories), frontend wants camelCase (faqCategories)
       // We map the response manually to keep types safe

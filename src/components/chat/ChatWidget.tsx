@@ -513,7 +513,9 @@ export const ChatWidget = () => {
 
   useEffect(() => {
     // Only fetch history once when mounted, or when explicitly needed
-    fetchHistory();
+    if (user) {
+      fetchHistory();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
