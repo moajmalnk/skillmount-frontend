@@ -217,7 +217,7 @@ export default function Notifications() {
                                             </p>
 
                                             <div className="flex items-center gap-4 pt-2">
-                                                {notification.link && (
+                                                {notification.link && (notification.notification_type === 'ticket_create' || notification.notification_type === 'ticket_reply') && (
                                                     <span className="text-xs font-medium text-primary flex items-center gap-1 group-hover:underline">
                                                         View Details <ExternalLink className="w-3 h-3" />
                                                     </span>
