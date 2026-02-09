@@ -45,6 +45,7 @@ const Navbar = () => {
 
   const canViewResources = isAuthenticated && (isStudent || isTutor || isAdmin);
   const canManageTickets = isAuthenticated && (isTutor);
+  const canAccessStudentTickets = isAuthenticated && ((isStudent && user?.isProfileComplete) || isAdmin);
 
   const handleLogoutConfirm = () => {
     logout();
@@ -88,6 +89,12 @@ const Navbar = () => {
                     <Button variant={isActive("/materials") ? "secondary" : "ghost"} size="sm">Materials</Button>
                   </Link>
                 </>
+              )}
+
+              {canAccessStudentTickets && (
+                <Link to="/student/tickets">
+                  <Button variant={isActive("/student/tickets") ? "secondary" : "ghost"} size="sm">Tickets</Button>
+                </Link>
               )}
 
               <Link to="/contact">
@@ -146,24 +153,32 @@ const Navbar = () => {
                     )}
                     {isStudent && (
                       <>
-                        <DropdownMenuItem onClick={() => navigate(`/students/${user?.id}`)}>
-                          <UserIcon className="mr-2 h-4 w-4" />
-                          <span>My Profile</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/student/tickets')}>
-                          <Ticket className="mr-2 h-4 w-4" />
-                          <span>My Tickets</span>
+                        {user?.isProfileComplete && (
+                          <DropdownMenuItem onClick={() => navigate(`/students/${user?.id}`)}>
+                            <UserIcon className="mr-2 h-4 w-4" />
+                            <span>My Profile</span>
+                          </DropdownMenuItem>
+                        )}
+                        {user?.isProfileComplete && (
+                          <DropdownMenuItem onClick={() => navigate('/student/tickets')}>
+                            <Ticket className="mr-2 h-4 w-4" />
+                            <span>My Tickets</span>
+                          </DropdownMenuItem>
+                        )}
+                      </>
+                    )}
+                    {(user?.isProfileComplete || user?.role === 'super_admin' || user?.role === 'admin') && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={(e) => { e.preventDefault(); setIsChangePasswordOpen(true); }}
+                          className="cursor-pointer"
+                        >
+                          <KeyRound className="mr-2 h-4 w-4" />
+                          <span>Change Password</span>
                         </DropdownMenuItem>
                       </>
                     )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onSelect={(e) => { e.preventDefault(); setIsChangePasswordOpen(true); }}
-                      className="cursor-pointer"
-                    >
-                      <KeyRound className="mr-2 h-4 w-4" />
-                      <span>Change Password</span>
-                    </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
                     {/* Trigger Logout Dialog */}
@@ -217,6 +232,12 @@ const Navbar = () => {
                     <Button variant={isActive("/materials") ? "secondary" : "ghost"} className="w-full justify-start">Materials</Button>
                   </Link>
                 </>
+              )}
+
+              {canAccessStudentTickets && (
+                <Link to="/student/tickets" onClick={closeMobileMenu} className="block">
+                  <Button variant={isActive("/student/tickets") ? "secondary" : "ghost"} className="w-full justify-start">Tickets</Button>
+                </Link>
               )}
 
               <Link to="/contact" onClick={closeMobileMenu} className="block">

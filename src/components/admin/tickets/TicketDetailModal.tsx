@@ -15,8 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { X, Trash2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, Mic, Loader2, ScrollText, Edit, XCircle, Maximize2, Minimize2 } from "lucide-react";
-import { VoiceRecorder } from "@/components/tickets/VoiceRecorder";
+import { X, Trash2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, Mic, Loader2, ScrollText, Edit, XCircle, Maximize2, Minimize2, Plus, ArrowUpRight } from "lucide-react";
 import { TicketAudioPlayer } from "@/components/tickets/TicketAudioPlayer";
 import { toast } from "sonner";
 import { Ticket } from "@/types/ticket";
@@ -27,6 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 import { MacroItem } from "@/services/systemService";
 import { EditTicketDialog } from "./EditTicketDialog";
 import { TicketLogView } from "./TicketLogView";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 interface TicketDetailModalProps {
   ticket: Ticket | null;
@@ -63,6 +63,20 @@ export const TicketDetailModal = ({
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const {
+    isRecording,
+    recordingTime,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    formatTime
+  } = useVoiceRecorder({
+    onRecordingComplete: (blob) => {
+      setVoiceBlob(blob);
+      // Direct Send
+      handleSendReply(false, blob);
+    }
+  });
   const [attachment, setAttachment] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [macros, setMacros] = useState<MacroItem[]>([]);
@@ -106,12 +120,6 @@ export const TicketDetailModal = ({
   };
   // ...
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setAttachment(e.target.files[0]);
-    }
-  };
-
   const handleAssign = async (userId: number | null) => {
     if (!ticket) return;
     try {
@@ -122,8 +130,14 @@ export const TicketDetailModal = ({
     }
   };
 
-  const handleSendReply = async (closeTicket: boolean = false) => {
-    if (!replyText && !voiceBlob && !attachment) {
+  // Enhanced to support "Direct Sending" (Immediate send on file/voice select)
+  const handleSendReply = async (closeTicket: boolean = false, manualVoiceBlob?: Blob | null, manualAttachment?: File | null) => {
+    // Determine payload source
+    const payloadText = replyText;
+    const payloadVoice = manualVoiceBlob !== undefined ? manualVoiceBlob : voiceBlob;
+    const payloadFile = manualAttachment !== undefined ? manualAttachment : attachment;
+
+    if (!payloadText && !payloadVoice && !payloadFile) {
       toast.error("Please enter a message, record voice, or attach a file.");
       return;
     }
@@ -132,16 +146,16 @@ export const TicketDetailModal = ({
     try {
       const newMessage = await ticketService.reply(
         ticket.id,
-        replyText,
-        voiceBlob || undefined,
-        attachment || undefined
+        payloadText,
+        payloadVoice || undefined,
+        payloadFile || undefined
       );
 
       // Immediately update local state
       if (ticket) {
         setTicket({
           ...ticket,
-          status: isSupportRole ? "In Progress" : "Open", // Optimistic status update
+          status: isSupportRole ? "In Progress" : "Open",
           messages: [...(ticket.messages || []), newMessage]
         });
       }
@@ -150,18 +164,29 @@ export const TicketDetailModal = ({
         await ticketService.updateStatus(ticket.id, "Closed");
         toast.success("Reply sent & Ticket Closed");
       } else {
-        toast.success("Reply sent successfully");
+        toast.success("Sent successfully");
       }
 
+      // Reset all inputs
       setReplyText("");
       setVoiceBlob(null);
       setAttachment(null);
+
       if (onUpdate) onUpdate();
       if (closeTicket) onClose();
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to send reply");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
+      setAttachment(file); // Keep UI in sync just in case
+      // Direct Send
+      handleSendReply(false, undefined, file);
     }
   };
 
@@ -467,83 +492,151 @@ export const TicketDetailModal = ({
         </div>
       </ScrollArea>
 
-      {/* Reply Section - Modernized */}
-      <div className="p-3 sm:p-4 bg-background border-t border-border shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.1)] z-20 shrink-0">
+      {/* Reply Section - WhatsApp Style */}
+      <div className="p-2 sm:p-3 bg-background border-t border-border z-20 shrink-0">
         {canReply ? (
-          <div className="max-w-4xl mx-auto flex flex-col gap-2 sm:gap-3">
-            {/* Toolbar Row */}
-            <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-1">
-              {isSupportRole && macros.length > 0 && (
-                <div className="flex-1 min-w-[160px] max-w-[240px] sm:max-w-[300px]">
-                  <MacroSelector macros={macros} onSelect={handleMacroSelect} />
-                </div>
-              )}
-              <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
-                {/* Compact Voice/File Controls */}
-                <div className="flex items-center border rounded-md p-0.5 sm:p-1 gap-0.5 sm:gap-1">
-                  <VoiceRecorder
-                    onRecordingComplete={setVoiceBlob}
-                    onDelete={() => setVoiceBlob(null)}
-                    variant="compact"
-                  />
-                  <div className={`relative flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-md hover:bg-muted cursor-pointer transition-colors ${attachment ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`} title="Attach File">
-                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
-                    <Paperclip className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    {attachment && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-primary rounded-full" />}
+          <div className="max-w-4xl mx-auto flex items-end gap-2">
+
+            {/* Left Actions: Macros & Attachment */}
+            {!isRecording && (
+              <div className="flex items-center gap-1 pb-1">
+                {/* Macro Selector Integration */}
+                {isSupportRole && macros.length > 0 && (
+                  <div className="shrink-0">
+                    <MacroSelector macros={macros} onSelect={handleMacroSelect} />
                   </div>
+                )}
+
+                {/* Attachment Button */}
+                <div className={`relative flex items-center justify-center h-10 w-10 rounded-full hover:bg-muted cursor-pointer transition-colors ${attachment ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`} title="Attach File">
+                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
+                  <Plus className={`w-6 h-6 transition-transform ${attachment ? 'rotate-45' : ''}`} />
+                  {attachment && <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-primary rounded-full border border-background" />}
                 </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 sm:gap-3 items-end">
-              <Textarea
-                ref={textareaRef}
-                placeholder="Type your reply..."
-                className="min-h-[40px] max-h-[120px] resize-none py-2.5 sm:py-3 text-xs sm:text-sm"
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                rows={1}
-              />
-
-              <Button
-                size="icon"
-                onClick={() => handleSendReply(false)}
-                disabled={isSubmitting}
-                className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 shadow-sm"
-                title="Send Reply"
-              >
-                {isSubmitting ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" /> : <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-              </Button>
-            </div>
-            {/* Attachment Preview Bar */}
-            {(attachment || voiceBlob) && (
-              <div className="flex gap-2 overflow-x-auto py-1 no-scrollbar">
-                {attachment && (
-                  <Badge variant="secondary" className="gap-1.5 py-0.5 pl-2 pr-1 text-[10px]">
-                    <Paperclip className="w-2.5 h-2.5" />
-                    <span className="max-w-[80px] sm:max-w-[120px] truncate">{attachment.name}</span>
-                    <button onClick={() => setAttachment(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
-                  </Badge>
-                )}
-                {voiceBlob && (
-                  <Badge variant="secondary" className="gap-1.5 py-0.5 pl-2 pr-1 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 text-[10px]">
-                    <Mic className="w-2.5 h-2.5" />
-                    <span>Voice Recorded</span>
-                    <button onClick={() => setVoiceBlob(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
-                  </Badge>
-                )}
               </div>
             )}
+
+            {/* Middle: Input or Recording UI */}
+            <div className="flex-1 min-w-0 bg-secondary/40 hover:bg-secondary/60 focus-within:bg-secondary/60 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:focus-within:bg-slate-800 transition-colors rounded-3xl flex items-center px-4 py-2 border border-transparent focus-within:border-primary/20 relative overflow-hidden">
+              {isRecording ? (
+                <div className="flex items-center w-full justify-between animate-in fade-in duration-300 h-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-sm font-medium text-red-500 tabular-nums">{formatTime(recordingTime)}</span>
+                    <div className="flex gap-1 h-4 items-center pl-2">
+                      {[1, 2, 3, 4, 5, 2, 3, 4, 1, 2].map((h, i) => (
+                        <div key={i} className="w-1 bg-red-400/50 rounded-full animate-pulse" style={{ height: `${h * 4}px`, animationDelay: `${i * 100}ms` }} />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground animate-pulse pr-2">Recording...</span>
+                </div>
+              ) : (
+                <Textarea
+                  ref={textareaRef}
+                  placeholder="Type a message..."
+                  className="min-h-[24px] max-h-[120px] bg-transparent border-none shadow-none resize-none p-0 text-sm sm:text-base focus-visible:ring-0 placeholder:text-muted-foreground/60 leading-relaxed w-full"
+                  value={replyText}
+                  onChange={(e) => {
+                    setReplyText(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  rows={1}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendReply(false);
+                    }
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Right Actions: Mic or Send/Cancel */}
+            <div className="shrink-0 flex items-center gap-1 pb-1">
+              {isRecording ? (
+                <>
+                  <Button
+                    onClick={cancelRecording}
+                    size="icon"
+                    variant="ghost"
+                    className="rounded-full h-10 w-10 text-red-500 hover:bg-red-500/10 transition-colors"
+                    title="Cancel Recording"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    onClick={() => stopRecording()}
+                    size="icon"
+                    className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-200"
+                    title="Send Voice Note"
+                  >
+                    <ArrowUpRight className="w-5 h-5 ml-0.5" />
+                  </Button>
+                </>
+              ) : (
+                (replyText.trim() || attachment || voiceBlob) ? (
+                  <Button
+                    size="icon"
+                    onClick={() => handleSendReply(false)}
+                    disabled={isSubmitting}
+                    className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-200"
+                    title="Send Reply"
+                  >
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUpRight className="w-5 h-5 ml-0.5" />}
+                  </Button>
+                ) : (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => startRecording()}
+                    className="rounded-full h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    title="Record Voice Note"
+                  >
+                    <Mic className="w-5 h-5" />
+                  </Button>
+                )
+              )}
+            </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-3 py-1">
-            <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full text-[10px] sm:text-xs">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              This ticket is closed.
+          <div className="flex items-center justify-center gap-3 py-2 text-muted-foreground">
+            <div className="flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-full text-sm">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>This ticket is closed.</span>
             </div>
-            <Button variant="outline" size="sm" className="h-8 text-[10px] sm:text-xs" onClick={() => handleStatusChange("Reopened")}>
+            <Button variant="outline" size="sm" onClick={() => handleStatusChange("Reopened")}>
               Reopen
             </Button>
+          </div>
+        )}
+
+        {/* Preview Bar for existing attachments/voice notes BEFORE sending (if recorded but not sent yet?) */}
+        {/* Actually in WhatsApp, you usually send immediately or attach. 
+            If we have a 'voiceBlob' from previous recording that wasn't sent (auto-sent logic in hook usage might conflict with general send button). 
+            
+            Strategy: 
+            - If text is typed -> Send button.
+            - If voice is recorded -> Stop recording calls 'onRecordingComplete' -> sets 'voiceBlob'.
+              After setting voiceBlob, we show it as an attachment pill above the input, and the Send button is active.
+        */}
+        {(attachment || voiceBlob) && !isRecording && (
+          <div className="max-w-4xl mx-auto flex gap-2 overflow-x-auto py-2 px-1 no-scrollbar animate-in slide-in-from-bottom-2">
+            {attachment && (
+              <Badge variant="secondary" className="gap-2 py-1 pl-3 pr-2 h-8">
+                <Paperclip className="w-3.5 h-3.5" />
+                <span className="max-w-[140px] truncate">{attachment.name}</span>
+                <button onClick={() => setAttachment(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5 transition-colors"><X className="w-3 h-3" /></button>
+              </Badge>
+            )}
+            {voiceBlob && (
+              <Badge variant="secondary" className="gap-2 py-1 pl-3 pr-2 h-8 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                <Mic className="w-3.5 h-3.5" />
+                <span>Voice Note Recorded</span>
+                <button onClick={() => setVoiceBlob(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5 transition-colors"><X className="w-3 h-3" /></button>
+              </Badge>
+            )}
           </div>
         )}
       </div>

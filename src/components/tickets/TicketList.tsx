@@ -9,9 +9,10 @@ interface TicketListProps {
   tickets: Ticket[];
   onSelectTicket: (ticket: Ticket) => void;
   showStudentInfo?: boolean;
+  showAssignee?: boolean;
 }
 
-export const TicketList = ({ tickets, onSelectTicket, showStudentInfo = true }: TicketListProps) => {
+export const TicketList = ({ tickets, onSelectTicket, showStudentInfo = true, showAssignee = false }: TicketListProps) => {
   if (tickets.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground bg-muted/5 rounded-xl border border-dashed border-border">
@@ -21,18 +22,22 @@ export const TicketList = ({ tickets, onSelectTicket, showStudentInfo = true }: 
   }
 
   // Dynamic grid template columns to ensure full width usage
+  // Dynamic grid template columns to ensure full width usage
   const gridClass = showStudentInfo
-    ? "md:grid-cols-[1.5fr_3fr_2fr_3fr_1.5fr_1fr]" // Admin/Tutor View
-    : "md:grid-cols-[1.5fr_4fr_3fr_2fr_1.5fr]";    // Student View
+    ? showAssignee
+      ? "md:grid-cols-[0.8fr_2.5fr_1.5fr_2fr_2fr_1fr_0.8fr]" // Admin View (With Assignee)
+      : "md:grid-cols-[1fr_3fr_2fr_3fr_1.5fr_1fr]"      // Tutor View (No Assignee col needed if strictly personal)
+    : "md:grid-cols-[1.5fr_4fr_3fr_2fr_1.5fr]";          // Student View
 
   return (
     <div className="space-y-3">
       {/* Header Row - Hidden on mobile */}
       <div className={cn("hidden md:grid gap-4 px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider", gridClass)}>
-        <div>Ticket ID</div>
+        <div className="hidden md:block">ID</div>
         <div>Title & Date</div>
-        <div>Category</div>
-        {showStudentInfo && <div>Ticketed By</div>}
+        <div className="hidden lg:block">Category</div>
+        {showStudentInfo && <div>Student</div>}
+        {showAssignee && <div>Assigned To</div>}
         <div>Priority</div>
         <div className="text-right">Action</div>
       </div>
@@ -93,6 +98,29 @@ export const TicketList = ({ tickets, onSelectTicket, showStudentInfo = true }: 
                   {ticket.student.id}
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Assignee Info (Admin View) */}
+          {showAssignee && (
+            <div className="flex items-center gap-2 md:block">
+              <span className="md:hidden text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Assigned:</span>
+              {ticket.assigned_to_details ? (
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6 border border-border">
+                    <AvatarFallback className="text-[9px] bg-secondary text-secondary-foreground">
+                      {ticket.assigned_to_details.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs truncate max-w-[100px]" title={ticket.assigned_to_details.name}>
+                    {ticket.assigned_to_details.name}
+                  </span>
+                </div>
+              ) : (
+                <Badge variant="outline" className="text-[10px] bg-yellow-500/10 text-yellow-600 border-yellow-200 border-dashed">
+                  Unassigned
+                </Badge>
+              )}
             </div>
           )}
 

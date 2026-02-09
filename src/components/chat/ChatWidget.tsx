@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
-import { MessageSquare, Sparkles, X, Loader2, ArrowUpRight, Copy, Bot, Info, PanelLeft, Plus, Menu, ChevronLeft, History, Youtube, FileText, Globe, BookOpen, Maximize2, Minimize2, Languages, MoreVertical, Trash2, Share2, Pin, Edit2 } from "lucide-react";
+import { MessageSquare, Sparkles, X, Loader2, ArrowUpRight, Copy, Bot, Info, PanelLeft, Plus, Menu, ChevronLeft, History, Youtube, FileText, Globe, BookOpen, Maximize2, Minimize2, Languages, MoreVertical, Trash2, Share2, Pin, Edit2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 
 interface Turn {
@@ -432,11 +436,16 @@ const SidebarContent = ({
 
 export const ChatWidget = () => {
   const { user } = useAuth();
+
+  // Deny access if profile is incomplete
+  if (user && !user.isProfileComplete) return null;
+
   const [isOpen, setIsOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Modal States
+  const [isRecording, setIsRecording] = useState(false);
   const [deleteData, setDeleteData] = useState<{ id: string, open: boolean }>({ id: "", open: false });
   const [renameData, setRenameData] = useState<{ id: string, title: string, open: boolean }>({ id: "", title: "", open: false });
   const [isDeleting, setIsDeleting] = useState(false);
@@ -853,7 +862,7 @@ export const ChatWidget = () => {
             </span>
           </div>
           <div className="flex flex-col items-start text-left">
-            <span className="font-bold text-sm sm:text-base leading-none">Codi</span>
+            <span className="font-bold text-sm sm:text-base leading-none">Ajmal NK</span>
             <span className="text-[10px] text-muted-foreground font-medium leading-none mt-0.5">Online</span>
           </div>
         </Button>
@@ -1121,7 +1130,16 @@ export const ChatWidget = () => {
 
                                       const getSmartLink = (source: ChatSource) => {
                                         if (source.url && source.url.startsWith("http")) return source.url;
-                                        if (type === "video" || type === "material" || type === "plugin" || type === "theme") return "/materials";
+                                        if (type === "video" || type === "material" || type === "plugin" || type === "theme") {
+                                          let tab = "template-kits";
+                                          if (type === "theme") tab = "themes";
+                                          if (type === "plugin") tab = "plugins";
+                                          if (type === "video") tab = "videos";
+                                          if (type.includes("doc")) tab = "docs";
+                                          if (type.includes("snippet")) tab = "snippets";
+
+                                          return `/materials?id=${s.id}&tab=${tab}`;
+                                        }
                                         if (type === "faq") return "/faq";
                                         if (type === "blog") {
                                           if (source.url && source.url.includes("/blog/")) return source.url;
@@ -1187,31 +1205,49 @@ export const ChatWidget = () => {
                   </div>
                 </div>
 
-                {/* FLOATING INPUT Area */}
-                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6 flex justify-center z-30 pointer-events-none bg-gradient-to-t from-background via-background/80 to-transparent">
-                  <div className="w-full mx-auto pointer-events-auto pb-1 sm:pb-2">
-                    <div className="group relative flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl rounded-full p-1.5 pl-4 sm:p-2 sm:pl-5 transition-all duration-300 focus-within:ring-2 focus-within:ring-white/30 hover:shadow-indigo-500/10 hover:border-white/30">
-                      <Input
-                        placeholder="Ask..."
-                        value={question}
-                        onChange={(e) => setQuestion(e.target.value)}
-                        className="border-none border-0 shadow-none outline-none bg-transparent h-10 text-sm sm:text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 min-w-0"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            send();
-                          }
-                        }}
-                      />
-                      <Button
-                        onClick={() => send()}
-                        disabled={isLoading || !question.trim()}
-                        size="icon"
-                        className={`rounded-full h-9 w-9 sm:h-10 sm:w-10 shrink-0 transition-all duration-300 ${question.trim() ? "bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-lg scale-100" : "bg-muted text-muted-foreground scale-95"}`}
-                      >
-                        {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />}
-                      </Button>
+                {/* WHATSAPP STYLE INPUT AREA */}
+                <div className="absolute bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-md border-t border-border/50">
+                  <div className="w-full max-w-4xl mx-auto flex flex-col gap-2 p-2 sm:p-3">
+
+                    {/* Quick Response / Macros Macro Bar */}
+
+
+                    {/* Main Input Bar */}
+                    <div className="flex items-end gap-2 bg-transparent">
+
+
+
+                      {/* Input Field Container */}
+                      <div className="flex-1 min-w-0 bg-secondary/40 hover:bg-secondary/60 focus-within:bg-secondary/60 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:focus-within:bg-slate-800 transition-colors rounded-3xl flex items-center px-4 py-1.5 border border-transparent focus-within:border-primary/20 relative overflow-hidden">
+                        <Input
+                          placeholder="Type your reply..."
+                          value={question}
+                          onChange={(e) => setQuestion(e.target.value)}
+                          className="border-none shadow-none outline-none bg-transparent h-auto max-h-[120px] py-1.5 text-sm sm:text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 min-w-0 resize-none"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              send();
+                            }
+                          }}
+                          autoComplete="off"
+                        />
+                      </div>
+
+                      {/* Right Actions: Send Button Only */}
+                      <div className="shrink-0 flex items-center gap-1">
+                        <Button
+                          onClick={() => send()}
+                          disabled={isLoading || !question.trim()}
+                          size="icon"
+                          className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUpRight className="w-5 h-5 ml-0.5" />}
+                        </Button>
+                      </div>
+
                     </div>
+                    <div className="h-1"></div> {/* Bottom Spacer */}
                   </div>
                 </div>
               </div>

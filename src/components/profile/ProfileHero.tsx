@@ -204,21 +204,21 @@ export const ProfileHero = ({ student }: ProfileHeroProps) => {
                 overlay={true}
                 parallax={false}
                 responsive={true}
-              >
-                <div className="absolute -bottom-4 sm:-bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-xl border border-white/30 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-6 sm:py-4 shadow-2xl hover:shadow-3xl transition-all duration-500">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center">
-                      <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                    </div>
-                    <div className="text-left">
-                      <div className="text-xs sm:text-sm font-bold text-gray-800">{student.name}</div>
-                      <div className="text-xs text-gray-600">
-                        {student.location || (student.address ? student.address.split(',').pop()?.trim() : "Available for Hire")}
-                      </div>
+              />
+
+              <div className="absolute -bottom-4 sm:-bottom-6 left-1/2 -translate-x-1/2 z-20 bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-6 sm:py-4 shadow-2xl hover:shadow-3xl transition-all duration-500 w-max max-w-[90%]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+                    <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                  </div>
+                  <div className="text-left overflow-hidden">
+                    <div className="text-xs sm:text-sm font-bold text-foreground truncate max-w-[150px] sm:max-w-xs">{student.name}</div>
+                    <div className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-xs">
+                      {student.location || (student.address ? student.address.split(',').pop()?.trim() : "Available for Hire")}
                     </div>
                   </div>
                 </div>
-              </ProfessionalBackground>
+              </div>
             </div>
           </div>
         </div>

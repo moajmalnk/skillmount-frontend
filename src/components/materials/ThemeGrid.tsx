@@ -11,8 +11,14 @@ export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
     <div className="container mx-auto px-6 max-w-7xl">
       <div className="grid md:grid-cols-2 gap-8">
         {themes.map((theme, index) => (
-          <div key={theme.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'both' }}>
-            <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full">
+          <div id={`material-${theme.id}`} key={theme.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'both' }}>
+            <WobbleCard
+              className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full cursor-pointer"
+              onClick={() => {
+                const targetUrl = theme.previewUrl || theme.url;
+                if (targetUrl) window.open(targetUrl, '_blank');
+              }}
+            >
               <CardHeader className="p-8">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex gap-2">
@@ -38,7 +44,13 @@ export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
                     <span className="text-sm text-muted-foreground">Size: {theme.size}</span>
                     <div className="flex gap-2">
                       {(theme.previewUrl) ? (
-                        <Button size="sm" variant="outline" asChild className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          asChild
+                          className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <a href={theme.previewUrl} target="_blank" rel="noopener noreferrer">
                             <Eye className="w-4 h-4 mr-2" /> Preview
                           </a>
@@ -49,7 +61,12 @@ export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
                         </Button>
                       )}
 
-                      <Button size="sm" asChild className="rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105">
+                      <Button
+                        size="sm"
+                        asChild
+                        className="rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <a href={theme.url} target="_blank" rel="noopener noreferrer">
                           <Download className="w-4 h-4 mr-2" /> Download
                         </a>

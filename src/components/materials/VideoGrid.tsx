@@ -58,11 +58,16 @@ export const VideoGrid = ({ videos }: VideoGridProps) => {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {videos.map((video, index) => (
           <div
+            id={`material-${video.id}`}
             key={video.id}
             className="animate-elegant-entrance h-full"
             style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}
           >
-            <WobbleCard containerClassName="h-full" className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full flex flex-col justify-between">
+            <WobbleCard
+              containerClassName="h-full"
+              className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full flex flex-col justify-between cursor-pointer"
+              onClick={() => setSelectedVideo(video)}
+            >
 
               <CardHeader className="p-8 pb-4">
                 <div className="flex items-start justify-between mb-4">
@@ -73,7 +78,8 @@ export const VideoGrid = ({ videos }: VideoGridProps) => {
                   {/* Play Trigger Icon */}
                   {(video.embedUrl || video.url) ? (
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setSelectedVideo(video);
                       }}
                       className="focus:outline-none transition-transform hover:scale-110 active:scale-95"
@@ -147,6 +153,7 @@ export const VideoGrid = ({ videos }: VideoGridProps) => {
                         variant="outline"
                         asChild
                         className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary text-xs px-4"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <a href={video.url} target="_blank" rel="noreferrer">
                           <ExternalLink className="w-3 h-3 mr-1.5" /> Open

@@ -11,8 +11,14 @@ export const PluginGrid = ({ plugins }: { plugins: Material[] }) => {
     <div className="container mx-auto px-6 max-w-7xl">
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {plugins.map((plugin, index) => (
-          <div key={plugin.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}>
-            <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full">
+          <div id={`material-${plugin.id}`} key={plugin.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}>
+            <WobbleCard
+              className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full cursor-pointer"
+              onClick={() => {
+                const targetUrl = plugin.previewUrl || plugin.url;
+                if (targetUrl) window.open(targetUrl, '_blank');
+              }}
+            >
               <CardHeader className="p-8">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex flex-col gap-2">
@@ -36,14 +42,25 @@ export const PluginGrid = ({ plugins }: { plugins: Material[] }) => {
 
                   <div className="grid gap-2">
                     {plugin.previewUrl && (
-                      <Button variant="outline" size="sm" className="w-full rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary text-muted-foreground transition-all duration-300" asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary text-muted-foreground transition-all duration-300"
+                        asChild
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <a href={plugin.previewUrl} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="w-4 h-4 mr-2" /> Live Demo / Details
                         </a>
                       </Button>
                     )}
 
-                    <Button size="sm" className="w-full rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105" asChild>
+                    <Button
+                      size="sm"
+                      className="w-full rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105"
+                      asChild
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <a href={plugin.url} download target="_blank" rel="noopener noreferrer">
                         <Download className="w-4 h-4 mr-2" /> Download Plugin
                       </a>

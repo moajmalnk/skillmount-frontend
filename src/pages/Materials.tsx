@@ -42,6 +42,63 @@ const Materials = () => {
     setIsVisible(true);
   }, []);
 
+  // Handle Deep Linking & Highlighting
+  // Handle Deep Linking & Highlighting
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    const tab = params.get('tab');
+
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+
+    if (id) {
+      setHighlightId(id);
+    }
+  }, []);
+
+  // Effect to scroll once data is loaded and tab is active
+  useEffect(() => {
+    if (isLoading || allMaterials.length === 0 || !highlightId) return;
+
+    // We need to wait for the tab content to mount
+    const findAndScroll = () => {
+      const element = document.getElementById(`material-${highlightId}`);
+      if (element) {
+        // Found it! Scroll and highlight
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Apply stronger highlight
+          element.classList.add('ring-4', 'ring-indigo-500', 'ring-offset-4', 'ring-offset-background', 'rounded-3xl', 'animate-pulse', 'z-10', 'relative');
+
+          setTimeout(() => {
+            element.classList.remove('ring-4', 'ring-indigo-500', 'ring-offset-4', 'ring-offset-background', 'rounded-3xl', 'animate-pulse', 'z-10', 'relative');
+            setHighlightId(null); // Clear it so we don't re-scroll needlessly
+          }, 4000);
+        }, 300); // Small delay to ensuring rendering stability
+        return true;
+      }
+      return false;
+    };
+
+    // Attempt immediately
+    if (findAndScroll()) return;
+
+    // Retry loop for when tab content is mounting
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (findAndScroll() || attempts > 20) { // 2 seconds max
+        clearInterval(interval);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isLoading, allMaterials, highlightId, activeTab]);
+
   // Filter Data
   const materials = Array.isArray(allMaterials) ? allMaterials : [];
 

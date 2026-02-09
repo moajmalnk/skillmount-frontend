@@ -16,8 +16,11 @@ export const SnippetGrid = ({ snippets }: { snippets: Material[] }) => {
     <div className="container mx-auto px-6 max-w-7xl">
       <div className="grid gap-8">
         {snippets.map((snippet, index) => (
-          <div key={snippet.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'both' }}>
-            <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden">
+          <div id={`material-${snippet.id}`} key={snippet.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'both' }}>
+            <WobbleCard
+              className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden cursor-pointer"
+              onClick={() => snippet.url && window.open(snippet.url, '_blank')}
+            >
               <CardHeader className="p-8">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -42,13 +45,22 @@ export const SnippetGrid = ({ snippets }: { snippets: Material[] }) => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard(snippet.code || "")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyToClipboard(snippet.code || "");
+                      }}
                       className="flex-1 rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300"
                     >
                       <Copy className="w-4 h-4 mr-2" /> Copy Code
                     </Button>
                     {snippet.url && (
-                      <Button size="sm" variant="outline" className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300" asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full border-border/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-300"
+                        asChild
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <a href={snippet.url} download>
                           <Download className="w-4 h-4 mr-2" /> Download File
                         </a>

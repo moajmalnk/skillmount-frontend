@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,8 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { X, Trash2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, Mic, Loader2, Maximize2, Minimize2 } from "lucide-react";
-import { VoiceRecorder } from "@/components/tickets/VoiceRecorder";
+import { X, Trash2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, Mic, Loader2, Maximize2, Minimize2, Plus, ArrowUpRight } from "lucide-react";
+import { TicketAudioPlayer } from "@/components/tickets/TicketAudioPlayer";
 import { toast } from "sonner";
 import { Ticket } from "@/types/ticket";
 import { ticketService } from "@/services/ticketService";
@@ -24,7 +25,7 @@ import { systemService } from "@/services/systemService";
 import { MacroSelector } from "@/components/tickets/MacroSelector";
 import { useAuth } from "@/context/AuthContext";
 import { MacroItem } from "@/services/systemService";
-import { TicketAudioPlayer } from "@/components/tickets/TicketAudioPlayer";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 interface TicketDetailModalProps {
   ticket: Ticket | null;
@@ -56,6 +57,18 @@ export const TicketDetailModal = ({
   const [activeView, setActiveView] = useState<"details" | "summary">("details");
   const [replyText, setReplyText] = useState("");
   const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const {
+    isRecording,
+    recordingTime,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    formatTime
+  } = useVoiceRecorder({
+    onRecordingComplete: (blob) => {
+      setVoiceBlob(blob);
+    }
+  });
   const [attachment, setAttachment] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [macros, setMacros] = useState<MacroItem[]>([]);
@@ -92,6 +105,70 @@ export const TicketDetailModal = ({
     loadMacros();
   }, [isOpen, isSupportRole]);
 
+  // --- WEBSOCKET CONNECTION ---
+  useEffect(() => {
+    if (!ticket?.id || !isOpen) return;
+
+    // Determine WS URL
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Use the same host as the API (assuming API is on same domain or we know the port)
+    // Based on api.ts: localhost:8000 or skillapi.moajmalnk.in
+    const wsHost = isLocal ? 'localhost:8000' : 'skillapi.moajmalnk.in';
+    const token = localStorage.getItem('access_token');
+
+    // Construct URL with auth token
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/tickets/${ticket.id}/?token=${token}`;
+
+    console.log("Connecting to Ticket WS...");
+    let ws: WebSocket | null = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log("WS Connected");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'new_message') {
+          const newMessage = data.message;
+          setTicket((prev) => {
+            if (!prev) return null;
+
+            // Prevent duplicates (if we sent it, we already added it)
+            const exists = prev.messages?.some(m => String(m.id) === String(newMessage.id));
+            if (exists) return prev;
+
+            return {
+              ...prev,
+              messages: [...(prev.messages || []), newMessage]
+            };
+          });
+
+          // Scroll to bottom when new message arrives
+          setTimeout(scrollToBottom, 100);
+        }
+      } catch (err) {
+        console.error("WS Message Parse Error", err);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WS Error", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WS Disconnected");
+    };
+
+    return () => {
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+    };
+  }, [ticket?.id, isOpen]);
+
   if (!ticket) return null;
 
   const handleMacroSelect = (description: string) => {
@@ -99,12 +176,6 @@ export const TicketDetailModal = ({
     setTimeout(() => textareaRef.current?.focus(), 50);
   };
   // ...
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setAttachment(e.target.files[0]);
-    }
-  };
 
   const handleAssign = async (userId: number | null) => {
     if (!ticket) return;
@@ -116,8 +187,14 @@ export const TicketDetailModal = ({
     }
   };
 
-  const handleSendReply = async (closeTicket: boolean = false) => {
-    if (!replyText && !voiceBlob && !attachment) {
+  // Enhanced to support "Direct Sending" (Immediate send on file/voice select)
+  const handleSendReply = async (closeTicket: boolean = false, manualVoiceBlob?: Blob | null, manualAttachment?: File | null) => {
+    // Determine payload source
+    const payloadText = replyText;
+    const payloadVoice = manualVoiceBlob !== undefined ? manualVoiceBlob : voiceBlob;
+    const payloadFile = manualAttachment !== undefined ? manualAttachment : attachment;
+
+    if (!payloadText && !payloadVoice && !payloadFile) {
       toast.error("Please enter a message, record voice, or attach a file.");
       return;
     }
@@ -126,16 +203,16 @@ export const TicketDetailModal = ({
     try {
       const newMessage = await ticketService.reply(
         ticket.id,
-        replyText,
-        voiceBlob || undefined,
-        attachment || undefined
+        payloadText,
+        payloadVoice || undefined,
+        payloadFile || undefined
       );
 
       // Immediately update local state
       if (ticket) {
         setTicket({
           ...ticket,
-          status: isSupportRole ? "In Progress" : "Open", // Optimistic status update
+          status: isSupportRole ? "In Progress" : "Open",
           messages: [...(ticket.messages || []), newMessage]
         });
       }
@@ -144,18 +221,27 @@ export const TicketDetailModal = ({
         await ticketService.updateStatus(ticket.id, "Closed");
         toast.success("Reply sent & Ticket Closed");
       } else {
-        toast.success("Reply sent successfully");
+        toast.success("Sent successfully");
       }
 
+      // Reset all inputs
       setReplyText("");
       setVoiceBlob(null);
       setAttachment(null);
+
       if (onUpdate) onUpdate();
       if (closeTicket) onClose();
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to send reply");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
+      setAttachment(file);
     }
   };
 
@@ -459,83 +545,177 @@ export const TicketDetailModal = ({
         </div>
       </ScrollArea>
 
-      {/* Reply Section - Modernized */}
-      <div className="p-3 sm:p-4 bg-background border-t border-border shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.1)] z-20 shrink-0">
+      {/* Reply Section - WhatsApp Style */}
+      <div className="p-2 sm:p-3 bg-background border-t border-border z-20 shrink-0">
         {canReply ? (
-          <div className="max-w-4xl mx-auto flex flex-col gap-2 sm:gap-3">
-            {/* Toolbar Row */}
-            <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-1">
-              {isSupportRole && macros.length > 0 && (
-                <div className="flex-1 min-w-[160px] max-w-[240px] sm:max-w-[300px]">
-                  <MacroSelector macros={macros} onSelect={handleMacroSelect} />
-                </div>
-              )}
-              <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
-                {/* Compact Voice/File Controls */}
-                <div className="flex items-center border rounded-md p-0.5 sm:p-1 gap-0.5 sm:gap-1">
-                  <VoiceRecorder
-                    onRecordingComplete={setVoiceBlob}
-                    onDelete={() => setVoiceBlob(null)}
-                    variant="compact"
-                  />
-                  <div className={`relative flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-md hover:bg-muted cursor-pointer transition-colors ${attachment ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`} title="Attach File">
-                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
-                    <Paperclip className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    {attachment && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-primary rounded-full" />}
+          <div className="max-w-4xl mx-auto flex items-end gap-2">
+
+            {/* Left Actions: Macros & Attachment */}
+            {!isRecording && (
+              <div className="flex items-center gap-1 pb-1">
+                {/* Macro Selector Integration */}
+                {isSupportRole && macros.length > 0 && (
+                  <div className="shrink-0">
+                    <MacroSelector macros={macros} onSelect={handleMacroSelect} />
                   </div>
+                )}
+
+                {/* Attachment Button */}
+                <div className={`relative flex items-center justify-center h-10 w-10 rounded-full hover:bg-muted cursor-pointer transition-colors ${attachment ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`} title="Attach File">
+                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
+                  <Plus className={`w-6 h-6 transition-transform ${attachment ? 'rotate-45' : ''}`} />
+                  {attachment && <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-primary rounded-full border border-background" />}
                 </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 sm:gap-3 items-end">
-              <Textarea
-                ref={textareaRef}
-                placeholder="Type your reply..."
-                className="min-h-[40px] max-h-[120px] resize-none py-2.5 sm:py-3 text-xs sm:text-sm"
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                rows={1}
-              />
-
-              <Button
-                size="icon"
-                onClick={() => handleSendReply(false)}
-                disabled={isSubmitting}
-                className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 shadow-sm"
-                title="Send Reply"
-              >
-                {isSubmitting ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" /> : <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-              </Button>
-            </div>
-            {/* Attachment Preview Bar */}
-            {(attachment || voiceBlob) && (
-              <div className="flex gap-2 overflow-x-auto py-1 no-scrollbar">
-                {attachment && (
-                  <Badge variant="secondary" className="gap-1.5 py-0.5 pl-2 pr-1 text-[10px]">
-                    <Paperclip className="w-2.5 h-2.5" />
-                    <span className="max-w-[80px] sm:max-w-[120px] truncate">{attachment.name}</span>
-                    <button onClick={() => setAttachment(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
-                  </Badge>
-                )}
-                {voiceBlob && (
-                  <Badge variant="secondary" className="gap-1.5 py-0.5 pl-2 pr-1 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 text-[10px]">
-                    <Mic className="w-2.5 h-2.5" />
-                    <span>Voice Recorded</span>
-                    <button onClick={() => setVoiceBlob(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>
-                  </Badge>
-                )}
               </div>
             )}
+
+            {/* Middle: Input or Recording UI */}
+            <div className="flex-1 min-w-0 bg-secondary/40 hover:bg-secondary/60 focus-within:bg-secondary/60 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:focus-within:bg-slate-800 transition-colors rounded-2xl flex flex-col justify-center px-4 py-2 border border-transparent focus-within:border-primary/20 relative overflow-hidden">
+              {isRecording ? (
+                <div className="flex items-center w-full justify-between animate-in fade-in duration-300 h-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-sm font-medium text-red-500 tabular-nums">{formatTime(recordingTime)}</span>
+                    <div className="flex gap-1 h-4 items-center pl-2">
+                      {[1, 2, 3, 4, 5, 2, 3, 4, 1, 2].map((h, i) => (
+                        <div key={i} className="w-1 bg-red-400/50 rounded-full animate-pulse" style={{ height: `${h * 4}px`, animationDelay: `${i * 100}ms` }} />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground animate-pulse pr-2">Recording...</span>
+                </div>
+              ) : (
+                <>
+                  {/* Pending Attachments Preview */}
+                  {(attachment || voiceBlob) && (
+                    <div className="flex flex-wrap gap-2 mb-2 pb-2 border-b border-border/30 animate-in slide-in-from-bottom-1 duration-200">
+                      {attachment && (
+                        <div className="flex items-center gap-2 bg-primary/10 text-primary px-2 py-1 rounded-lg text-[11px] font-medium border border-primary/20 group">
+                          <FileText className="w-3.5 h-3.5" />
+                          <span className="max-w-[120px] truncate">{attachment.name}</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setAttachment(null); }}
+                            className="text-muted-foreground hover:text-destructive transition-colors ml-1"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                      {voiceBlob && (
+                        <div className="flex items-center gap-2 bg-red-500/10 text-red-500 px-2 py-1 rounded-lg text-[11px] font-medium border border-red-500/20 group">
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Voice Recording</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setVoiceBlob(null); }}
+                            className="text-muted-foreground hover:text-destructive transition-colors ml-1"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex items-center w-full">
+                    <Textarea
+                      ref={textareaRef}
+                      placeholder="Type a message..."
+                      className="min-h-[24px] max-h-[120px] bg-transparent border-none shadow-none resize-none p-0 text-sm sm:text-base focus-visible:ring-0 placeholder:text-muted-foreground/60 leading-relaxed w-full"
+                      value={replyText}
+                      onChange={(e) => {
+                        setReplyText(e.target.value);
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
+                      rows={1}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendReply(false);
+                        }
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Right Actions: Mic or Send/Cancel */}
+            <div className="shrink-0 flex items-center gap-1 pb-1">
+              {isRecording ? (
+                <>
+                  <Button
+                    onClick={cancelRecording}
+                    size="icon"
+                    variant="ghost"
+                    className="rounded-full h-10 w-10 text-red-500 hover:bg-red-500/10 transition-colors"
+                    title="Cancel Recording"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    onClick={() => stopRecording()}
+                    size="icon"
+                    className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-200"
+                    title="Finish Recording"
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                  </Button>
+                </>
+              ) : (
+                (replyText.trim() || attachment || voiceBlob) ? (
+                  <Button
+                    size="icon"
+                    onClick={() => handleSendReply(false)}
+                    disabled={isSubmitting}
+                    className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-200"
+                    title="Send Reply"
+                  >
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUpRight className="w-5 h-5 ml-0.5" />}
+                  </Button>
+                ) : (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => startRecording()}
+                    className="rounded-full h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    title="Record Voice Note"
+                  >
+                    <Mic className="w-5 h-5" />
+                  </Button>
+                )
+              )}
+            </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-3 py-1">
-            <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full text-[10px] sm:text-xs">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              This ticket is closed.
+          <div className="flex items-center justify-center gap-3 py-2 text-muted-foreground">
+            <div className="flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-full text-sm">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>This ticket is closed.</span>
             </div>
-            <Button variant="outline" size="sm" className="h-8 text-[10px] sm:text-xs" onClick={() => handleStatusChange("Reopened")}>
+            {/* If student, they might not be able to reopen, but logic handles permission. Usually students can reopen. */}
+            <Button variant="outline" size="sm" onClick={() => handleStatusChange("Reopened")}>
               Reopen
             </Button>
+          </div>
+        )}
+
+        {/* Preview Bar for existing attachments/voice notes */}
+        {(attachment || voiceBlob) && !isRecording && (
+          <div className="max-w-4xl mx-auto flex gap-2 overflow-x-auto py-2 px-1 no-scrollbar animate-in slide-in-from-bottom-2">
+            {attachment && (
+              <Badge variant="secondary" className="gap-2 py-1 pl-3 pr-2 h-8">
+                <Paperclip className="w-3.5 h-3.5" />
+                <span className="max-w-[140px] truncate">{attachment.name}</span>
+                <button onClick={() => setAttachment(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5 transition-colors"><X className="w-3 h-3" /></button>
+              </Badge>
+            )}
+            {voiceBlob && (
+              <Badge variant="secondary" className="gap-2 py-1 pl-3 pr-2 h-8 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                <Mic className="w-3.5 h-3.5" />
+                <span>Voice Note Recorded</span>
+                <button onClick={() => setVoiceBlob(null)} className="ml-1 hover:bg-background/50 rounded-full p-0.5 transition-colors"><X className="w-3 h-3" /></button>
+              </Badge>
+            )}
           </div>
         )}
       </div>
@@ -548,11 +728,18 @@ export const TicketDetailModal = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
-          className={`p-0 overflow-hidden flex flex-col sm:flex-row gap-0 outline-none border-none shadow-2xl bg-background transition-all duration-300 ${isExpanded
-            ? "w-screen h-screen max-w-none max-h-none rounded-none"
-            : "max-w-4xl w-[95vw] sm:w-[90vw] md:w-full h-[90vh] sm:h-[85vh] max-h-[850px] rounded-2xl"
-            }`}
+          className={cn(
+            "p-0 overflow-hidden flex flex-col sm:flex-row gap-0 outline-none border-none shadow-2xl bg-background transition-all duration-300",
+            isExpanded ? "w-screen h-screen max-w-none max-h-none rounded-none" : "max-w-4xl w-[95vw] sm:w-[90vw] md:w-full h-[90vh] sm:h-[85vh] max-h-[850px] rounded-2xl"
+          )}
         >
+          {/* Accessibility Title & Description */}
+          <DialogHeader className="sr-only">
+            <DialogTitle>Ticket Details: {ticket?.title || "Loading..."}</DialogTitle>
+            <DialogDescription>
+              Viewing conversation history and metadata for ticket {ticket?.id || "N/A"}
+            </DialogDescription>
+          </DialogHeader>
           {/* LEFT SIDEBAR - Adaptive for Mobile */}
           <div className="w-full sm:w-64 bg-muted/20 border-b sm:border-r border-border flex flex-row sm:flex-col justify-between p-2 sm:p-4 shrink-0 overflow-hidden">
             <div className="flex flex-row sm:flex-col gap-2 sm:gap-6 flex-1 items-center sm:items-stretch overflow-x-auto no-scrollbar">

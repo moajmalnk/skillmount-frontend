@@ -45,34 +45,35 @@ const ProfessionalBackground = ({
     const preloadImage = () => {
       const img = new Image();
       let timeoutId: NodeJS.Timeout;
-      
+
       const cleanup = () => {
         if (timeoutId) clearTimeout(timeoutId);
       };
-      
+
       img.onload = () => {
         cleanup();
         setIsLoaded(true);
       };
-      
+
       img.onerror = () => {
         cleanup();
         console.warn('Failed to load background image:', src);
         setIsLoaded(true); // Set loaded to true to prevent infinite loading
       };
-      
+
       // Set a timeout to prevent infinite loading (5 seconds)
       timeoutId = setTimeout(() => {
         console.warn('Image loading timeout for:', src);
         setIsLoaded(true);
       }, 5000);
-      
+
       img.src = src;
-      
+
       return cleanup;
     };
 
     if (src) {
+      setIsLoaded(false); // Reset loading state when src changes
       return preloadImage();
     }
   }, [src]);
@@ -87,22 +88,22 @@ const ProfessionalBackground = ({
   }, [parallax]);
 
   const parallaxTransform = parallax ? `translateY(${scrollY * 0.5}px)` : '';
-  
+
   // Get responsive configuration
   const config = preset ? getProfessionalPreset(preset) : getResponsiveImageConfig();
   const currentConfig = config[deviceType];
-  
+
   // Position classes
-  const positionClass = position === 'center' ? 'bg-position-center' : 
-                       position === 'top' ? 'bg-position-top' :
-                       position === 'bottom' ? 'bg-position-bottom' :
-                       position === 'left' ? 'bg-position-left' :
-                       position === 'right' ? 'bg-position-right' : 'bg-position-center';
+  const positionClass = position === 'center' ? 'bg-position-center' :
+    position === 'top' ? 'bg-position-top' :
+      position === 'bottom' ? 'bg-position-bottom' :
+        position === 'left' ? 'bg-position-left' :
+          position === 'right' ? 'bg-position-right' : 'bg-position-center';
 
   return (
     <div className={cn('relative overflow-hidden', className)}>
       {/* Professional Background Image */}
-      <div 
+      <div
         className={cn(
           'absolute inset-0 bg-no-repeat transition-all duration-1000',
           positionClass,
@@ -126,7 +127,7 @@ const ProfessionalBackground = ({
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/10"></div>
           </>
         )}
-        
+
         {/* Professional Texture Overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
@@ -180,11 +181,11 @@ export const useResponsiveBackground = () => {
 };
 
 // Professional Image Positioner Component
-export const ProfessionalImagePositioner = ({ 
-  children, 
+export const ProfessionalImagePositioner = ({
+  children,
   position = 'center',
-  className 
-}: { 
+  className
+}: {
   children: React.ReactNode;
   position?: 'top' | 'center' | 'bottom' | 'left' | 'right';
   className?: string;

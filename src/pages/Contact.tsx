@@ -20,14 +20,19 @@ import { TicketForm } from "@/components/tickets/TicketForm";
 import { FeedbackForm } from "@/components/feedback/FeedbackForm";
 import { inquiryService } from "@/services/inquiryService";
 
+import { useNavigate } from "react-router-dom";
+
 const Contact = () => {
   const { toast } = useToast();
   const [isVisible, setIsVisible] = useState(false);
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+
 
   const [contactForm, setContactForm] = useState({
     name: user?.name || "",
@@ -143,7 +148,7 @@ const Contact = () => {
   };
 
   const isStudent = user?.role === 'student';
-  const canRaiseTicket = isAuthenticated && (isStudent || user?.role === 'super_admin');
+  const canRaiseTicket = isAuthenticated && (isStudent || user?.role === 'super_admin') && user?.isProfileComplete;
 
   return (
     <FollowingPointer>

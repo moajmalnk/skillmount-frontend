@@ -12,6 +12,8 @@ import { TicketDetailModal } from "@/components/tickets/TicketDetailModal";
 // Import Service & Type
 import { ticketService } from "@/services/ticketService";
 import { Ticket } from "@/types/ticket";
+import { useAuth } from "@/context/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 export default function TicketInbox() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -49,15 +51,35 @@ export default function TicketInbox() {
   };
 
   // Active tickets are those still open (tutors/admins give a final reply which closes the ticket).
-  const openTickets = tickets.filter(t => t.status === "Open");
-  const closedTickets = tickets.filter(t => t.status === "Closed");
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'super_admin';
+
+  // --- FILTER LOGIC ---
+
+  // 1. Unassigned (Admin Triage Queue)
+  // Only valid if user is Admin, as Tutors don't receive these data from backend anymore
+  const unassignedTickets = tickets.filter(t => !t.assigned_to && t.status !== 'Closed');
+
+  // 2. My Active Tasks (Assigned to Me & Open)
+  const myActiveTickets = tickets.filter(t =>
+    String(t.assigned_to) === String(user?.id) &&
+    t.status !== 'Closed'
+  );
+
+  // 3. All Active (Admin Oversight)
+  const allActiveTickets = tickets.filter(t => t.status !== 'Closed');
+
+  // 4. History (Closed)
+  // For Tutors: Only shows their closed tickets (filtered by backend)
+  // For Admins: Shows ALL closed tickets
+  const closedTickets = tickets.filter(t => t.status === 'Closed');
 
   return (
     <div className="min-h-screen bg-background relative">
       {/* Subtle Professional Background */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <ProfessionalBackground
-          src="/assets/img/hero/tutor-bg.webp" // Ensure path exists
+          src="/tutor-hero.jpg" // Fixed path
           alt="Background"
           className="w-full h-full opacity-[0.02]"
           overlay={true}
@@ -68,56 +90,138 @@ export default function TicketInbox() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Tutor Inbox</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {isAdmin ? "Support Dashboard" : "My Task Inbox"}
+            </h1>
             <p className="text-muted-foreground">
-              Review student tickets and send a clear, final reply for each one.
+              {isAdmin
+                ? "Triage incoming tickets and oversee tutor performance."
+                : "Work through your assigned student tickets and provide quality support."}
             </p>
           </div>
         </div>
 
         {/* Tabs for Organization */}
-        <Tabs defaultValue="open" className="w-full">
-          <div className="flex items-center justify-between mb-4">
-            <TabsList className="bg-muted/50 p-1 rounded-lg">
-              <TabsTrigger value="open" className="px-6">
-                Active Tickets ({openTickets.length})
+        <Tabs defaultValue={isAdmin ? "unassigned" : "my_active"} className="w-full">
+          <div className="flex items-center justify-between mb-4 overflow-x-auto no-scrollbar">
+            <TabsList className="bg-muted/50 p-1 rounded-lg flex-nowrap w-full sm:w-auto justify-start">
+
+              {/* ADMIN: Unassigned (Priority) */}
+              {isAdmin && (
+                <TabsTrigger value="unassigned" className="px-4 sm:px-6 gap-2">
+                  Unassigned
+                  {unassignedTickets.length > 0 && (
+                    <Badge variant="destructive" className="h-5 px-1.5 text-[10px] min-w-[20px] justify-center ml-1">
+                      {unassignedTickets.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              )}
+
+              {/* BOTH: My Active Tickets */}
+              <TabsTrigger value="my_active" className="px-4 sm:px-6 gap-2">
+                {isAdmin ? "My Assigned" : "My Inbox"}
+                {myActiveTickets.length > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] min-w-[20px] justify-center ml-1 bg-primary/10 text-primary">
+                    {myActiveTickets.length}
+                  </Badge>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="closed" className="px-6">
-                Resolved History ({closedTickets.length})
+
+              {/* ADMIN: All Active Overview */}
+              {isAdmin && (
+                <TabsTrigger value="all_active" className="px-4 sm:px-6">
+                  All Active ({allActiveTickets.length})
+                </TabsTrigger>
+              )}
+
+              {/* BOTH: History */}
+              <TabsTrigger value="closed" className="px-4 sm:px-6">
+                Resolved ({closedTickets.length})
               </TabsTrigger>
             </TabsList>
           </div>
 
-          {/* OPEN / PENDING TICKETS TAB */}
-          <TabsContent value="open">
+          {/* 1. UNASSIGNED LIST */}
+          {isAdmin && (
+            <TabsContent value="unassigned">
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm">
+                <CardContent className="p-0">
+                  {isLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : unassignedTickets.length > 0 ? (
+                    <TicketList
+                      tickets={unassignedTickets}
+                      onSelectTicket={handleOpenTicket}
+                      showAssignee={true}
+                    />
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <p>Great! No unassigned tickets.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* 2. MY ACTIVE LIST */}
+          <TabsContent value="my_active">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm">
               <CardContent className="p-0">
                 {isLoading ? (
                   <div className="flex justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
-                ) : (
-                  <TicketList 
-                    tickets={openTickets} 
-                    onSelectTicket={handleOpenTicket} 
+                ) : myActiveTickets.length > 0 ? (
+                  <TicketList
+                    tickets={myActiveTickets}
+                    onSelectTicket={handleOpenTicket}
                   />
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p>You have no active tickets assigned.</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-          
-          {/* CLOSED TICKETS TAB */}
+
+          {/* 3. ALL ACTIVE LIST (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="all_active">
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm">
+                <CardContent className="p-0">
+                  {isLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <TicketList
+                      tickets={allActiveTickets}
+                      onSelectTicket={handleOpenTicket}
+                      showAssignee={true}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* 4. CLOSED LIST */}
           <TabsContent value="closed">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm">
               <CardContent className="p-0">
                 {isLoading ? (
-                   <div className="flex justify-center py-12">
-                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                   </div>
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
                 ) : closedTickets.length > 0 ? (
-                  <TicketList 
-                    tickets={closedTickets} 
-                    onSelectTicket={handleOpenTicket} 
+                  <TicketList
+                    tickets={closedTickets}
+                    onSelectTicket={handleOpenTicket}
                   />
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
@@ -129,12 +233,13 @@ export default function TicketInbox() {
           </TabsContent>
         </Tabs>
 
-        {/* Ticket Detail Modal */}
-        <TicketDetailModal 
-          ticket={selectedTicket} 
-          isOpen={isModalOpen} 
+        <TicketDetailModal
+          ticket={selectedTicket}
+          isOpen={isModalOpen}
           onClose={handleCloseModal}
-          role="tutor" 
+          onUpdate={loadTickets}
+          role={user?.role as "admin" | "tutor"}
+          currentUserId={user?.id}
         />
       </div>
     </div>

@@ -11,8 +11,11 @@ export const AssetGrid = ({ assets }: { assets: Material[] }) => {
     <div className="container mx-auto px-6 max-w-7xl">
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {assets.map((asset, index) => (
-          <div key={asset.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 120}ms`, animationFillMode: 'both' }}>
-            <WobbleCard className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full">
+          <div id={`material-${asset.id}`} key={asset.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 120}ms`, animationFillMode: 'both' }}>
+            <WobbleCard
+              className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full cursor-pointer"
+              onClick={() => asset.url && window.open(asset.url, '_blank')}
+            >
               <CardHeader className="p-8">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex flex-col gap-2">
@@ -42,7 +45,12 @@ export const AssetGrid = ({ assets }: { assets: Material[] }) => {
                     {asset.size && <span>{asset.size}</span>}
                   </div>
                   <Separator className="bg-border/30" />
-                  <Button size="sm" className="w-full rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105" asChild>
+                  <Button
+                    size="sm"
+                    className="w-full rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 group-hover:scale-105"
+                    asChild
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <a href={asset.url} target="_blank" rel="noopener noreferrer">
                       {asset.type === 'Docs' ? (
                         <>

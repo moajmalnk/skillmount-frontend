@@ -13,7 +13,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowRight, ArrowLeft, Upload, Loader2, CheckCircle2, Camera, Link as LinkIcon, CalendarIcon
+  ArrowRight, ArrowLeft, Upload, Loader2, CheckCircle2, Camera, Link as LinkIcon, CalendarIcon, X
 } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,6 +27,9 @@ import { cn } from "@/lib/utils";
 import { userService } from "@/services/userService";
 import { systemService } from "@/services/systemService";
 import { Label } from "@/components/ui/label";
+import Cropper from "react-easy-crop";
+import { Slider } from "@/components/ui/slider";
+import getCroppedImg from "@/lib/imageUtils";
 
 // --- ZOD SCHEMA (Kept mostly same, adjusted optionality) ---
 const onboardingSchema = z.object({
@@ -54,6 +57,168 @@ const onboardingSchema = z.object({
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
+interface DatePickerProps {
+  value?: string;
+  onChange: (date: string) => void;
+}
+
+function CustomDatePicker({ value, onChange }: DatePickerProps) {
+  // Initialize with value or default to 2000-01-01
+  const [date, setDate] = useState<Date>(value ? new Date(value) : new Date("2000-01-01"));
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (value) setDate(new Date(value));
+  }, [value]);
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1960 + 1 }, (_, i) => 1960 + i).reverse();
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const handleYearChange = (year: string) => {
+    const newDate = new Date(date);
+    newDate.setFullYear(parseInt(year));
+    setDate(newDate);
+  };
+
+  const handleMonthChange = (month: string) => {
+    const newDate = new Date(date);
+    newDate.setMonth(months.indexOf(month));
+    setDate(newDate);
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <FormControl>
+          <Button
+            variant={"outline"}
+            className={cn(
+              "w-full px-3 text-left font-normal text-base md:text-sm",
+              !value && "text-muted-foreground"
+            )}
+          >
+            {value ? (
+              format(new Date(value), "PPP")
+            ) : (
+              <span>Pick a date</span>
+            )}
+            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+          </Button>
+        </FormControl>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <div className="flex items-center gap-2 p-3 border-b border-border/50">
+          <Select value={date.getFullYear().toString()} onValueChange={handleYearChange}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent position="popper" className="max-h-[300px]">
+              {years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={months[date.getMonth()]} onValueChange={handleMonthChange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Month" />
+            </SelectTrigger>
+            <SelectContent position="popper" className="max-h-[300px]">
+              {months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <Calendar
+          mode="single"
+          month={date}
+          onMonthChange={setDate}
+          selected={value ? new Date(value) : undefined}
+          onSelect={(d) => {
+            if (d) {
+              onChange(format(d, "yyyy-MM-dd"));
+              setIsOpen(false);
+            }
+          }}
+          disabled={(date) =>
+            date > new Date() || date < new Date("1900-01-01")
+          }
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function SkillsInput({ value, onChange }: { value?: string, onChange: (val: string) => void }) {
+  const [inputValue, setInputValue] = useState("");
+  // Don't modify the source value directly, just parse it for display
+  const tags = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const newTag = inputValue.trim();
+      if (newTag && !tags.includes(newTag)) {
+        // Enforce unique tags
+        onChange([...tags, newTag].join(", "));
+        setInputValue("");
+      }
+    } else if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
+      e.preventDefault();
+      const newTags = [...tags];
+      newTags.pop();
+      onChange(newTags.join(", "));
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    onChange(tags.filter(t => t !== tagToRemove).join(", "));
+  };
+
+  return (
+    <div className="space-y-3">
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 p-3 bg-secondary/20 rounded-md border border-border/50 min-h-[40px]">
+          {tags.map((tag, i) => (
+            <Badge key={i} variant="secondary" className="pl-2.5 pr-1 py-1 text-sm bg-background border-border/50 shadow-sm flex items-center gap-1 hover:bg-background">
+              {tag}
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="ml-1 hover:bg-destructive/10 hover:text-destructive rounded-full p-0.5 transition-colors focus:outline-none"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+      <FormControl>
+        <Input
+          placeholder={tags.length === 0 ? "Type skills (e.g. React, Java) and press Enter..." : "Add another skill..."}
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="bg-background"
+          onBlur={() => {
+            if (inputValue.trim()) {
+              if (!tags.includes(inputValue.trim())) {
+                onChange([...tags, inputValue.trim()].join(", "));
+              }
+              setInputValue("");
+            }
+          }}
+        />
+      </FormControl>
+      <p className="text-[0.8rem] text-muted-foreground">
+        Press <strong>Enter</strong> or <strong>Comma</strong> to add a tag.
+      </p>
+    </div>
+  );
+}
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const { user, login } = useAuth();
@@ -63,6 +228,14 @@ export default function Onboarding() {
   // File State
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null); // To send to backend
+
+  // Cropper State
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [isCropping, setIsCropping] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -158,11 +331,48 @@ export default function Onboarding() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setPhotoFile(file); // Save file for upload
       const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result as string);
+      reader.onloadend = () => {
+        setTempImageSrc(reader.result as string);
+        setIsCropping(true);
+        setZoom(1);
+        setRotation(0);
+        setCrop({ x: 0, y: 0 });
+      };
       reader.readAsDataURL(file);
     }
+    // Clear input value to allow re-selecting same file
+    e.target.value = '';
+  };
+
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const showCroppedImage = async () => {
+    try {
+      if (!tempImageSrc || !croppedAreaPixels) return;
+      const croppedImage = await getCroppedImg(
+        tempImageSrc,
+        croppedAreaPixels,
+        rotation
+      );
+
+      if (croppedImage) {
+        setPhotoFile(croppedImage);
+        setPhotoPreview(URL.createObjectURL(croppedImage));
+        setIsCropping(false);
+        setTempImageSrc(null);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to crop image");
+    }
+  };
+
+  const cancelCrop = () => {
+    setIsCropping(false);
+    setTempImageSrc(null);
   };
 
   const onSubmit = async (data: OnboardingFormValues) => {
@@ -271,42 +481,12 @@ export default function Onboarding() {
         )} />
 
         <FormField control={form.control} name="dob" render={({ field }) => (
-          <FormItem className="flex flex-col">
+          <FormItem>
             <FormLabel>Date of Birth <span className="text-red-500">*</span></FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
-                    )}
-                  >
-                    {field.value ? (
-                      format(new Date(field.value), "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={field.value ? new Date(field.value) : undefined}
-                  onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
-                  disabled={(date) =>
-                    date > new Date() || date < new Date("1900-01-01")
-                  }
-                  initialFocus
-                  captionLayout="dropdown-buttons"
-                  fromYear={1960}
-                  toYear={new Date().getFullYear()}
-                />
-              </PopoverContent>
-            </Popover>
+            <CustomDatePicker
+              value={field.value}
+              onChange={(date) => field.onChange(date)}
+            />
             <FormMessage />
           </FormItem>
         )} />
@@ -395,8 +575,8 @@ export default function Onboarding() {
 
           <FormField control={form.control} name="skills" render={({ field }) => (
             <FormItem>
-              <FormLabel>Skills (Comma separated)</FormLabel>
-              <FormControl><Input placeholder="Java, React, Design..." {...field} /></FormControl>
+              <FormLabel>Skills</FormLabel>
+              <SkillsInput value={field.value} onChange={field.onChange} />
             </FormItem>
           )} />
 
@@ -445,32 +625,89 @@ export default function Onboarding() {
   );
 
   const renderStep3 = () => (
-    <div className="flex flex-col items-center justify-center py-6 sm:py-8 animate-fade-in space-y-6">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center gap-4 mb-6">
-          <div className={cn(
-            "w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-dashed border-muted-foreground/20 flex items-center justify-center overflow-hidden transition-all",
-            photoPreview ? "border-primary" : "bg-muted/30"
-          )}>
-            {photoPreview ? (
-              <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-            ) : (
-              <Camera className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/50" />
-            )}
+    <div className="flex flex-col items-center justify-center py-6 sm:py-8 animate-fade-in space-y-6 w-full">
+
+      {isCropping && tempImageSrc ? (
+        <div className="w-full h-full flex flex-col items-center space-y-4">
+          <div className="relative w-full h-[300px] sm:h-[400px] bg-black/5 rounded-lg overflow-hidden border border-border">
+            <Cropper
+              image={tempImageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              onCropChange={setCrop}
+              onCropComplete={onCropComplete}
+              onZoomChange={setZoom}
+              cropShape="round"
+              showGrid={false}
+            />
           </div>
-          <div className="text-center">
-            <h3 className="font-semibold text-lg">Profile Photo</h3>
-            <p className="text-xs text-muted-foreground">This will be used for your ID card.</p>
+
+          <div className="w-full max-w-xs space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Zoom</span>
+              <span>{(zoom * 100).toFixed(0)}%</span>
+            </div>
+            <Slider
+              value={[zoom]}
+              min={1}
+              max={3}
+              step={0.1}
+              onValueChange={(val) => setZoom(val[0])}
+            />
+          </div>
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" onClick={cancelCrop}>Cancel</Button>
+            <Button onClick={showCroppedImage}>Save Photo</Button>
           </div>
         </div>
+      ) : (
+        <div className="w-full max-w-sm">
+          <div className="flex flex-col items-center gap-6 mb-6">
+            <div className={cn(
+              "w-40 h-40 sm:w-48 sm:h-48 rounded-full border-[6px] border-background shadow-xl flex items-center justify-center overflow-hidden transition-all relative group",
+              photoPreview ? "ring-4 ring-primary/20" : "bg-muted"
+            )}>
+              {photoPreview ? (
+                <>
+                  <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <p className="text-white text-xs font-medium">Change Photo</p>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center text-muted-foreground/50">
+                  <Camera className="w-12 h-12 mb-2" />
+                </div>
+              )}
+            </div>
 
-        <FileInput
-          id="photo-upload"
-          accept="image/*"
-          onChange={handlePhotoChange}
-          className="w-full"
-        />
-      </div>
+            <div className="text-center space-y-1">
+              <h3 className="font-semibold text-lg">Profile Photo</h3>
+              <p className="text-sm text-muted-foreground">Upload a professional photo for your ID card.</p>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <input
+              type="file"
+              id="photo-upload-hidden"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+            <Button
+              variant={photoPreview ? "outline" : "default"}
+              onClick={() => document.getElementById('photo-upload-hidden')?.click()}
+              className="w-full sm:w-auto min-w-[200px]"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {photoPreview ? "Change Photo" : "Upload Photo"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 

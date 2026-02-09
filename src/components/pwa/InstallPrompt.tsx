@@ -73,7 +73,7 @@ export const InstallPrompt = () => {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleDismiss()}>
-            <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none shadow-2xl bg-zinc-950">
+            <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none shadow-2xl bg-zinc-950 [&>button]:hidden">
                 <div className="bg-gradient-to-br from-[#7e22ce] to-[#6b21a8] p-6 text-white text-center relative overflow-hidden">
                     {/* Background decorations */}
                     <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
@@ -100,7 +100,7 @@ export const InstallPrompt = () => {
 
                     <button
                         onClick={handleDismiss}
-                        className="absolute top-3 right-3 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                        className="absolute top-3 right-3 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
                     >
                         <X className="w-4 h-4 text-white" />
                     </button>

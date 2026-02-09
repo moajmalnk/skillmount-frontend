@@ -65,9 +65,7 @@ export const ticketService = {
         formData.append('voice_note', data.voiceNote, `ticket_voice.${ext}`);
       }
 
-      const response = await api.post('/tickets/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await api.post('/tickets/', formData);
 
       return (response.data as any)?.id ?? null;
     } catch (error) {
@@ -100,9 +98,7 @@ export const ticketService = {
         formData.append('attachment', attachment);
       }
 
-      const response = await api.post(`/tickets/${ticketId}/reply/`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await api.post(`/tickets/${ticketId}/reply/`, formData);
       return response.data;
     } catch (error) {
       console.error("Reply failed", error);

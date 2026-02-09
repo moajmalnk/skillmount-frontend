@@ -38,6 +38,7 @@ import AffiliateHub from "./pages/affiliate/AffiliateHub";
 import StudentTickets from "./pages/tickets/StudentTickets";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import Notifications from "./pages/Notifications";
 
 // Hooks
 import { useReferral } from "@/hooks/useReferral";
@@ -88,7 +89,9 @@ const AppContent = () => {
                 <Route path="/tickets/manage" element={<TicketInbox />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/affiliate/hub" element={<AffiliateHub />} />
+                <Route path="/affiliate/hub" element={<AffiliateHub />} />
                 <Route path="/student/tickets" element={<StudentTickets />} />
+                <Route path="/notifications" element={<Notifications />} />
               </Route>
 
               {/* === REDIRECTS === */}
