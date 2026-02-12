@@ -16,7 +16,7 @@ export const AssetGrid = ({ assets }: { assets: Material[] }) => {
               className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full cursor-pointer"
               onClick={() => asset.url && window.open(asset.url, '_blank')}
             >
-              <CardHeader className="p-8">
+              <CardHeader className="p-5 sm:p-8">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex flex-col gap-2">
                     <Badge className="rounded-full px-3 py-1 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border-0">
@@ -33,7 +33,7 @@ export const AssetGrid = ({ assets }: { assets: Material[] }) => {
                 <CardTitle className="text-lg leading-tight mb-3 group-hover:text-primary transition-colors duration-300">{asset.title}</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground leading-relaxed">{asset.description}</CardDescription>
               </CardHeader>
-              <CardContent className="p-8 pt-0">
+              <CardContent className="p-5 sm:p-8 pt-0">
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-2">
                     {asset.formats?.map((format, i) => (

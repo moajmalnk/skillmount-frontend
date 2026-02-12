@@ -65,7 +65,11 @@ export const ticketService = {
         formData.append('voice_note', data.voiceNote, `ticket_voice.${ext}`);
       }
 
-      const response = await api.post('/tickets/', formData);
+      const response = await api.post('/tickets/', formData, {
+        headers: {
+          'Content-Type': undefined,
+        },
+      });
 
       return (response.data as any)?.id ?? null;
     } catch (error) {
@@ -98,7 +102,11 @@ export const ticketService = {
         formData.append('attachment', attachment);
       }
 
-      const response = await api.post(`/tickets/${ticketId}/reply/`, formData);
+      const response = await api.post(`/tickets/${ticketId}/reply/`, formData, {
+        headers: {
+          'Content-Type': undefined,
+        },
+      });
       return response.data;
     } catch (error) {
       console.error("Reply failed", error);

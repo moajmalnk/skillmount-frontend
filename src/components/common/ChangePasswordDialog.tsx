@@ -57,18 +57,31 @@ export function ChangePasswordDialog({ open: controlledOpen, onOpenChange: setCo
             return;
         }
 
+        // Prevent using the same password
+        if (oldPassword === newPassword) {
+            toast.error("New password must be different from current password");
+            return;
+        }
+
         setLoading(true);
         try {
+            console.log("[Password Change] Attempting password change...");
             await userService.changePassword(oldPassword, newPassword);
+            console.log("[Password Change] Success!");
+
             toast.success("Password updated successfully");
             setOpen(false);
+
             // Reset form
             setOldPassword("");
             setNewPassword("");
             setConfirmPassword("");
         } catch (error: any) {
+            console.error("[Password Change] Error details:", error);
+            console.error("[Password Change] Response data:", error?.response?.data);
+
             // Error is handled by service or toast, mostly we want to catch specific messages here if API returns them
-            const msg = error?.response?.data?.detail || "Failed to update password";
+            const msg = error?.response?.data?.detail || error?.message || "Failed to update password";
             toast.error(msg);
         } finally {
             setLoading(false);

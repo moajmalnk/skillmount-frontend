@@ -16,12 +16,12 @@ export const SnippetGrid = ({ snippets }: { snippets: Material[] }) => {
     <div className="container mx-auto px-6 max-w-7xl">
       <div className="grid gap-8">
         {snippets.map((snippet, index) => (
-          <div id={`material-${snippet.id}`} key={snippet.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'both' }}>
+          <div id={`material-${snippet.id}`} key={snippet.id} className="animate-elegant-entrance min-w-0" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'both' }}>
             <WobbleCard
               className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden cursor-pointer"
               onClick={() => snippet.url && window.open(snippet.url, '_blank')}
             >
-              <CardHeader className="p-8">
+              <CardHeader className="p-5 sm:p-8">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-4">
@@ -34,9 +34,9 @@ export const SnippetGrid = ({ snippets }: { snippets: Material[] }) => {
                   <Code className="w-6 h-6 text-primary flex-shrink-0 ml-4 group-hover:scale-110 transition-transform duration-300" />
                 </div>
               </CardHeader>
-              <CardContent className="p-8 pt-0">
+              <CardContent className="p-5 sm:p-8 pt-0">
                 <div className="space-y-6">
-                  <div className="bg-muted/50 backdrop-blur-sm rounded-2xl p-6 overflow-x-auto border border-border/30">
+                  <div className="bg-muted/50 backdrop-blur-sm rounded-2xl p-4 sm:p-6 overflow-x-auto border border-border/30 w-full max-w-full">
                     <pre className="text-sm font-mono text-foreground">
                       <code>{snippet.code}</code>
                     </pre>

@@ -19,7 +19,7 @@ export const PluginGrid = ({ plugins }: { plugins: Material[] }) => {
                 if (targetUrl) window.open(targetUrl, '_blank');
               }}
             >
-              <CardHeader className="p-8">
+              <CardHeader className="p-5 sm:p-8">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex flex-col gap-2">
                     <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-medium">{plugin.category}</Badge>
@@ -31,7 +31,7 @@ export const PluginGrid = ({ plugins }: { plugins: Material[] }) => {
                   {plugin.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-8 pt-0">
+              <CardContent className="p-5 sm:p-8 pt-0">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">v{plugin.version || '1.0'}</span>

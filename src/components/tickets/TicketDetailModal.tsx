@@ -418,7 +418,7 @@ export const TicketDetailModal = ({
                   <span className="text-xs font-semibold text-amber-800 dark:text-amber-500">Original Request</span>
                   <span className="text-[10px] text-muted-foreground ml-auto">{new Date(ticket.created_at).toLocaleString()}</span>
                 </div>
-                <p className="whitespace-pre-wrap leading-relaxed text-foreground/90 pl-8">
+                <p className="whitespace-pre-wrap leading-relaxed text-foreground/90 pl-8 break-words break-all">
                   {ticket.description}
                 </p>
               </div>
@@ -471,7 +471,7 @@ export const TicketDetailModal = ({
                   {/* Bubble */}
                   <div
                     className={`
-                      relative shadow-sm text-sm break-words flex flex-col transition-all
+                      relative shadow-sm text-sm flex flex-col transition-all overflow-hidden
                       ${isMe
                         ? "bg-primary text-primary-foreground rounded-xl rounded-tr-none"
                         : "bg-muted/40 border border-border/50 rounded-xl rounded-tl-none text-foreground"
@@ -493,7 +493,7 @@ export const TicketDetailModal = ({
 
                     {/* Text */}
                     {showText && (
-                      <p className="whitespace-pre-wrap leading-relaxed mb-0 min-w-[60px] pr-12 pb-1 relative">
+                      <p className="whitespace-pre-wrap leading-relaxed mb-0 min-w-[60px] pr-8 pb-1 relative break-words break-all">
                         {msg.message}
                         <span className={`text-[9px] font-medium leading-none ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'} absolute bottom-0 right-0 select-none`}>
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -553,12 +553,7 @@ export const TicketDetailModal = ({
             {/* Left Actions: Macros & Attachment */}
             {!isRecording && (
               <div className="flex items-center gap-1 pb-1">
-                {/* Macro Selector Integration */}
-                {isSupportRole && macros.length > 0 && (
-                  <div className="shrink-0">
-                    <MacroSelector macros={macros} onSelect={handleMacroSelect} />
-                  </div>
-                )}
+
 
                 {/* Attachment Button */}
                 <div className={`relative flex items-center justify-center h-10 w-10 rounded-full hover:bg-muted cursor-pointer transition-colors ${attachment ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`} title="Attach File">
@@ -619,7 +614,9 @@ export const TicketDetailModal = ({
                     <Textarea
                       ref={textareaRef}
                       placeholder="Type a message..."
-                      className="min-h-[24px] max-h-[120px] bg-transparent border-none shadow-none resize-none p-0 text-sm sm:text-base focus-visible:ring-0 placeholder:text-muted-foreground/60 leading-relaxed w-full"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      className="min-h-[24px] max-h-[120px] bg-transparent border-none shadow-none resize-none p-0 text-sm sm:text-base focus-visible:ring-0 focus-visible:ring-offset-0 outline-none placeholder:text-muted-foreground/60 leading-relaxed w-full [&::-webkit-scrollbar]:hidden"
                       value={replyText}
                       onChange={(e) => {
                         setReplyText(e.target.value);
@@ -741,7 +738,7 @@ export const TicketDetailModal = ({
             </DialogDescription>
           </DialogHeader>
           {/* LEFT SIDEBAR - Adaptive for Mobile */}
-          <div className="w-full sm:w-64 bg-muted/20 border-b sm:border-r border-border flex flex-row sm:flex-col justify-between p-2 sm:p-4 shrink-0 overflow-hidden">
+          <div className="w-full sm:w-64 bg-muted/20 border-b sm:border-r border-border flex flex-row sm:flex-col justify-between p-2 pr-28 sm:p-4 shrink-0 overflow-hidden">
             <div className="flex flex-row sm:flex-col gap-2 sm:gap-6 flex-1 items-center sm:items-stretch overflow-x-auto no-scrollbar">
               <div className="flex flex-row sm:flex-col gap-1 w-full shrink-0 sm:shrink">
                 <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-3 hidden sm:block">Menu</h3>
@@ -754,7 +751,8 @@ export const TicketDetailModal = ({
                     <div className={`sm:mr-3 p-1 rounded-md ${activeView === 'details' ? 'bg-primary/10 text-primary' : ''}`}>
                       <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
-                    <span>Conversation</span>
+                    <span className="hidden sm:inline">Conversation</span>
+                    <span className="sm:hidden">Chat</span>
                   </Button>
                   <Button
                     variant={activeView === "summary" ? "secondary" : "ghost"}
@@ -764,7 +762,8 @@ export const TicketDetailModal = ({
                     <div className={`sm:mr-3 p-1 rounded-md ${activeView === 'summary' ? 'bg-primary/10 text-primary' : ''}`}>
                       <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
-                    <span>Info & Metadata</span>
+                    <span className="hidden sm:inline">Info & Metadata</span>
+                    <span className="sm:hidden">Info</span>
                   </Button>
                 </div>
               </div>

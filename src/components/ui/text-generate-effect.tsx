@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -13,60 +13,57 @@ export const TextGenerateEffect: React.FC<TextGenerateEffectProps> = ({
   className,
   duration = 0.5,
 }) => {
-  const [displayedText, setDisplayedText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // Split into words to manage layout safely (prevents breaking inside words)
+  const wordsArray = words.split(" ");
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (currentIndex < words.length) {
-        setDisplayedText(prev => prev + words[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
-      }
-    }, duration * 1000 / words.length);
+  // Calculate delay per character to match total duration
+  const totalChars = words.length;
+  const delayPerChar = duration / (totalChars || 1);
 
-    return () => clearTimeout(timer);
-  }, [currentIndex, words, duration]);
+  // Helper to get global character index for delay calculation
+  let charCounter = 0;
 
   return (
-    <motion.div
+    <div
       className={cn(
-        "text-center font-bold tracking-tight text-neutral-900 dark:text-neutral-100",
+        "font-bold tracking-tight text-neutral-900 dark:text-neutral-100",
         className
       )}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 1 }}
     >
-      <span className="text-4xl md:text-6xl lg:text-7xl">
-        {displayedText.split("").map((char, index) => (
-          <motion.span
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className={cn(
-              char === " " ? "inline-block w-4" : "inline-block",
-              // Apply purple to the last word (after the last space)
-              index > displayedText.lastIndexOf(" ") && displayedText.lastIndexOf(" ") !== -1 && "text-violet-500",
-              // Apply black to everything before the last word
-              index <= displayedText.lastIndexOf(" ") && displayedText.lastIndexOf(" ") !== -1 && "text-black dark:text-white",
-              // If no spaces, apply purple to last few characters
-              displayedText.lastIndexOf(" ") === -1 && index >= Math.max(0, displayedText.length - 10) && "text-violet-500",
-              // If no spaces, apply black to everything else
-              displayedText.lastIndexOf(" ") === -1 && index < Math.max(0, displayedText.length - 10) && "text-black dark:text-white"
-            )}
-          >
-            {char}
-          </motion.span>
-        ))}
-        {currentIndex < words.length && (
-          <motion.span
-            className="inline-block w-1 h-8 md:h-12 lg:h-16 bg-violet-500 ml-1"
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 1, repeat: Infinity }}
-          />
-        )}
-      </span>
-    </motion.div>
+      <div className="inline-flex flex-wrap justify-center gap-x-[0.3em] gap-y-1">
+        {wordsArray.map((word, wordIndex) => {
+          const isLastWord = wordIndex === wordsArray.length - 1;
+          const wordChars = word.split("");
+
+          return (
+            <span key={wordIndex} className="inline-block whitespace-nowrap">
+              {wordChars.map((char, charIndex) => {
+                const currentDelay = charCounter * delayPerChar;
+                charCounter++;
+
+                return (
+                  <motion.span
+                    key={charIndex}
+                    initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{
+                      duration: 0.3,
+                      delay: currentDelay,
+                      ease: "easeOut"
+                    }}
+                    className={cn(
+                      "inline-block",
+                      isLastWord ? "text-violet-500" : "text-black dark:text-white"
+                    )}
+                  >
+                    {char}
+                  </motion.span>
+                );
+              })}
+            </span>
+          );
+        })}
+      </div>
+    </div>
   );
 };

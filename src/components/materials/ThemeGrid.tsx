@@ -19,7 +19,7 @@ export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
                 if (targetUrl) window.open(targetUrl, '_blank');
               }}
             >
-              <CardHeader className="p-8">
+              <CardHeader className="p-5 sm:p-8">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex gap-2">
                     <Badge className="rounded-full px-3 py-1 text-xs font-medium">Theme</Badge>
@@ -28,9 +28,9 @@ export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
                   <Palette className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <CardTitle className="text-xl mb-3 group-hover:text-primary transition-colors duration-300">{theme.title}</CardTitle>
-                <CardDescription className="text-muted-foreground leading-relaxed">{theme.description}</CardDescription>
+                <CardDescription className="text-muted-foreground leading-relaxed line-clamp-2">{theme.description}</CardDescription>
               </CardHeader>
-              <CardContent className="p-8 pt-0">
+              <CardContent className="p-5 sm:p-8 pt-0">
                 <div className="space-y-6">
                   <div className="flex flex-wrap gap-2">
                     {theme.features?.map((feature, i) => (

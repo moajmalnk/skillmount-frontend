@@ -107,8 +107,10 @@ export const TicketForm = () => {
       });
       setFormKey(prev => prev + 1); // Reset Voice Recorder UI
 
-    } catch (error) {
-      toast.error("Failed to submit ticket.");
+    } catch (error: any) {
+      console.error("Ticket submission error:", error);
+      const msg = error?.response?.data?.detail || "Failed to submit ticket.";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -186,10 +188,10 @@ export const TicketForm = () => {
       </div>
 
       {/* 3. Media Inputs (Voice & File) */}
-      <div className="grid md:grid-cols-2 gap-6 pt-4">
+      <div className="grid md:grid-cols-2 gap-6 pt-4 w-full">
 
         {/* Voice Note Section */}
-        <div className="space-y-3">
+        <div className="space-y-3 min-w-0">
           <div className="flex items-center justify-between px-1">
             <Label className="text-sm font-medium text-foreground/80">Voice Notes</Label>
             {formData.voiceNotes.length > 0 && (
@@ -215,12 +217,12 @@ export const TicketForm = () => {
             <div className="space-y-2 mt-3 animate-in fade-in slide-in-from-top-2">
               {formData.voiceNotes.map((note, idx) => (
                 <div key={idx} className="flex items-center justify-between bg-card border border-border/40 p-2.5 rounded-lg text-sm shadow-sm">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 overflow-hidden min-w-0 flex-1">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-[10px] font-bold text-primary">VN</span>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-xs">Voice Note {idx + 1}</span>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="font-medium text-xs truncate">Voice Note {idx + 1}</span>
                       <span className="text-[10px] text-muted-foreground">{(note.size / 1024).toFixed(1)} KB</span>
                     </div>
                   </div>
@@ -228,7 +230,7 @@ export const TicketForm = () => {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
                     onClick={() => removeVoiceNote(idx)}
                   >
                     <X className="w-3.5 h-3.5" />
@@ -240,7 +242,7 @@ export const TicketForm = () => {
         </div>
 
         {/* File Attachment Section */}
-        <div className="space-y-3">
+        <div className="space-y-3 min-w-0">
           <div className="flex items-center justify-between px-1">
             <Label className="text-sm font-medium text-foreground/80">Attachments</Label>
             <span className="text-xs text-muted-foreground">{formData.attachments.length}/5 files</span>
@@ -273,7 +275,7 @@ export const TicketForm = () => {
             <div className="space-y-2 mt-3 animate-in fade-in slide-in-from-top-2">
               {formData.attachments.map((file, idx) => (
                 <div key={idx} className="flex items-center justify-between bg-card border border-border/40 p-2.5 rounded-lg text-sm shadow-sm group/item">
-                  <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="flex items-center gap-3 overflow-hidden min-w-0 flex-1">
                     <div className="bg-blue-500/10 p-2 rounded-md shrink-0">
                       <Paperclip className="w-3.5 h-3.5 text-blue-500" />
                     </div>
@@ -283,7 +285,7 @@ export const TicketForm = () => {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-100 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity shrink-0 ml-2"
                     onClick={() => removeAttachment(idx)}
                   >
                     <X className="w-3.5 h-3.5" />

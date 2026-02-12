@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ContainerScrollAnimationProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export const ContainerScrollAnimation: React.FC<ContainerScrollAnimationProps> =
   speed = "normal",
   distance = 60,
 }) => {
+  const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -32,7 +34,7 @@ export const ContainerScrollAnimation: React.FC<ContainerScrollAnimationProps> =
   const y = useTransform(
     scrollYProgress,
     [0, 1],
-    direction === "up" 
+    direction === "up"
       ? [distance * speedMap[speed], -distance * speedMap[speed]]
       : [-distance * speedMap[speed], distance * speedMap[speed]]
   );
@@ -41,6 +43,10 @@ export const ContainerScrollAnimation: React.FC<ContainerScrollAnimationProps> =
   const scale = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.8, 1, 1, 0.8]);
 
   const springY = useSpring(y, { stiffness: 100, damping: 30 });
+
+  if (isMobile) {
+    return <div className={cn(className)}>{children}</div>;
+  }
 
   return (
     <div ref={containerRef} className={cn("relative overflow-hidden", className)}>
