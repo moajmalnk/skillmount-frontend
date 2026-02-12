@@ -56,13 +56,6 @@ export const BlogCard = ({ post }: BlogCardProps) => {
               </Avatar>
               <div className="flex flex-col">
                 <span className="text-xs font-medium text-foreground">{post.author.name}</span>
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                  <span>{post.publishedDate}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> {post.readTime}
-                  </span>
-                </div>
               </div>
             </div>
 

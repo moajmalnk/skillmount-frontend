@@ -41,14 +41,19 @@ import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Import Service & Types
+import { systemService } from "@/services/systemService";
 import { materialService } from "@/services/materialService";
 import { Material, MaterialType } from "@/types/material";
+import { TagInput } from "@/components/ui/tag-input";
 
 const MATERIAL_TYPES: MaterialType[] = ["Template Kit", "Themes", "Plugins", "Docs", "Snippet", "Videos"];
 
 export const MaterialsManager = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Dynamic Categories from System Settings
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
 
   // --- FILTER STATE ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,7 +77,8 @@ export const MaterialsManager = () => {
     size: "",
     previewUrl: "",
     duration: "",
-    topics: [] as string[]
+    topics: [] as string[],
+    tags: [] as string[]
   });
 
   // File Upload State
@@ -89,24 +95,35 @@ export const MaterialsManager = () => {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
 
   // 1. Load Data
-  const loadMaterials = async () => {
+  const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = await materialService.getAll();
-      setMaterials(data);
+      // Parallel fetch: Materials + System Settings (for categories)
+      const [materialsData, settingsData] = await Promise.all([
+        materialService.getAll(),
+        systemService.getSettings()
+      ]);
+
+      setMaterials(materialsData);
+      setCategoryOptions(settingsData.materialCategories || []);
+
     } catch (error) {
-      toast.error("Failed to load materials");
+      toast.error("Failed to load data");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadMaterials();
+    loadData();
   }, []);
 
-  // 2. Computed Data (Categories)
-  const availableCategories = ["all", ...new Set((Array.isArray(materials) ? materials : []).map(m => m.category))];
+  // 2. Computed Data (Categories for Filter - merge existing + configured)
+  // We want to filter by WHAT EXISTS, not just what is configured, in case old data has other categories
+  const filterOptions = ["all", ...new Set([
+    ...(Array.isArray(materials) ? materials : []).map(m => m.category),
+    ...categoryOptions
+  ])].sort();
 
   // 3. Filter Logic
   const filteredMaterials = (Array.isArray(materials) ? materials : []).filter((item) => {
@@ -158,30 +175,41 @@ export const MaterialsManager = () => {
     return `https://${link}`;
   };
 
-  const handleEmbedUrlBlur = () => {
+  const handleUrlBlur = () => {
     setFormData(prev => {
-      const url = prev.embedUrl || "";
+      let url = prev.url || ""; // Use the generic 'url' field
       let newUrl = url;
 
-      // Ensure we use the standard watch URL for ReactPlayer compatibility
-      if (url.includes("youtu.be/")) {
-        try {
-          const vId = url.split("youtu.be/")[1].split("?")[0];
-          newUrl = `https://www.youtube.com/watch?v=${vId}`;
-        } catch (e) {
-          // Keep original if parse fails
-        }
-      } else if (url.includes("youtube.com/embed/")) {
-        try {
-          const vId = url.split("embed/")[1].split("?")[0];
-          newUrl = `https://www.youtube.com/watch?v=${vId}`;
-        } catch (e) {
-          // Keep original
+      // 1. Google Drive Transformation
+      // Converts /view links to direct download links
+      const driveRegex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)\/view/;
+      const driveMatch = url.match(driveRegex);
+      if (driveMatch && driveMatch[1]) {
+        newUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+        toast.info("Converted Google Drive link to direct download link");
+      }
+
+      // 2. YouTube Transformation (only if Video type)
+      if (prev.type === 'Videos') {
+        if (url.includes("youtu.be/")) {
+          try {
+            const vId = url.split("youtu.be/")[1].split("?")[0];
+            newUrl = `https://www.youtube.com/watch?v=${vId}`;
+          } catch (e) {
+            // Keep original if parse fails
+          }
+        } else if (url.includes("youtube.com/embed/")) {
+          try {
+            const vId = url.split("embed/")[1].split("?")[0];
+            newUrl = `https://www.youtube.com/watch?v=${vId}`;
+          } catch (e) {
+            // Keep original
+          }
         }
       }
 
       if (newUrl !== url) {
-        return { ...prev, embedUrl: newUrl };
+        return { ...prev, url: newUrl };
       }
       return prev;
     });
@@ -191,7 +219,7 @@ export const MaterialsManager = () => {
     setFormData({
       title: "", type: "Videos", category: "", url: "", description: "",
       embedUrl: "", code: "", language: "PHP", version: "", size: "", previewUrl: "",
-      duration: "", topics: []
+      duration: "", topics: [], tags: []
     });
     setSelectedFile(null);
     setEditingId(null);
@@ -222,7 +250,8 @@ export const MaterialsManager = () => {
       version: material.version || "",
       size: material.size || "",
       duration: material.duration || "",
-      topics: Array.isArray(material.topics) ? material.topics : []
+      topics: Array.isArray(material.topics) ? material.topics : [],
+      tags: Array.isArray(material.tags) ? material.tags : []
     });
 
     setIsCreateOpen(true);
@@ -265,6 +294,7 @@ export const MaterialsManager = () => {
         category: formData.category || "General",
         externalUrl: ensureProtocol(formData.url) || "",
         description: formData.description,
+        tags: formData.tags || [],
       };
 
       // Conditional Fields
@@ -299,7 +329,7 @@ export const MaterialsManager = () => {
       }
 
       resetForm();
-      loadMaterials();
+      loadData();
 
     } catch (error: any) {
       console.error(error);
@@ -327,7 +357,7 @@ export const MaterialsManager = () => {
     try {
       await materialService.delete(deleteId);
       toast.success("Material deleted successfully");
-      loadMaterials();
+      loadData();
     } catch (error) {
       toast.error("Failed to delete material");
     } finally {
@@ -379,7 +409,7 @@ export const MaterialsManager = () => {
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableCategories.map(c => (
+                  {filterOptions.map(c => (
                     <SelectItem key={c} value={c} className="capitalize">
                       {c === 'all' ? 'All Categories' : c}
                     </SelectItem>
@@ -520,8 +550,29 @@ export const MaterialsManager = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Category</Label>
-                  <Input placeholder="e.g. WordPress, React" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} />
+                  <Select
+                    value={formData.category}
+                    onValueChange={(val) => setFormData({ ...formData, category: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoryOptions.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Search Tags</Label>
+                <TagInput
+                  tags={formData.tags || []}
+                  setTags={(newTags) => setFormData({ ...formData, tags: newTags })}
+                  placeholder="Add tags (e.g. 'react', 'beginners')..."
+                />
               </div>
 
               <div className="space-y-2">
@@ -543,6 +594,7 @@ export const MaterialsManager = () => {
                   placeholder={formData.type === 'Videos' ? "https://www.youtube.com/watch?v=..." : "https://example.com/..."}
                   value={formData.url}
                   onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  onBlur={handleUrlBlur}
                 />
               </div>
 

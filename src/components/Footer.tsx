@@ -1,92 +1,50 @@
-import { Mail, Phone, MapPin, Linkedin, Twitter, Github, ArrowUpRight, Instagram, Youtube, MessageCircle, Palette, Bookmark, X, Check } from "lucide-react";
+import { Mail, Phone, MapPin, Linkedin, Twitter, Github, Instagram, Youtube, MessageCircle, Palette, Bookmark, Check, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import emailjs from '@emailjs/browser';
+import api from "@/lib/api";
+import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setError("Please enter your email address");
-      return;
-    }
+    if (!email) return;
 
-    setIsSubmitting(true);
-    setError("");
-
+    setIsLoading(true);
     try {
-      // Initialize EmailJS with your public key
-      emailjs.init("XnkADMxHCOVMe5hAR");
-
-      // Template parameters for EmailJS
-      const currentDate = new Date();
-      const templateParams = {
-        to_email: "moajmalnk@gmail.com",
-        from_email: email,
-        reply_to: email,
-        subject: "🎉 New Newsletter Subscription - moajmalnk.in",
-        current_date: currentDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        timestamp: currentDate.toLocaleString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZoneName: 'short'
-        }),
-        website_url: "https://moajmalnk.in",
-        source_location: "Footer Newsletter Subscription"
-      };
-
-      // Send email using EmailJS
-      const response = await emailjs.send(
-        'service_p8dpik5',
-        'template_fmcrx97',
-        templateParams
-      );
-
-      if (response.status === 200) {
-        setIsSuccess(true);
-        setIsSubmitting(false);
-        setTimeout(() => {
-          setIsModalOpen(false);
-          setIsSuccess(false);
-          setEmail("");
-        }, 3000);
+      const response = await api.post('/newsletter/subscribe/', { email });
+      if (response.data.message && response.data.message.toLowerCase().includes("already")) {
+        toast.info(response.data.message);
       } else {
-        throw new Error('Failed to send email');
+        setIsSubmitted(true);
+        toast.success("Successfully subscribed!");
+        setEmail("");
+
+        // Celebration!
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+
+        setTimeout(() => setIsSubmitted(false), 5000);
       }
-
-    } catch (err) {
-      console.error('EmailJS Error:', err);
-      setError("Failed to send subscription request. Please try again or contact us directly at moajmalnk@gmail.com");
-      setIsSubmitting(false);
+    } catch (error: any) {
+      console.error(error);
+      const msg = error.response?.data?.message || error.response?.data?.error || "Failed to subscribe.";
+      if (msg.toLowerCase().includes("already subscribed")) {
+        toast.info(msg);
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const openModal = () => {
-    setIsModalOpen(true);
-    setError("");
-    setIsSuccess(false);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEmail("");
-    setError("");
-    setIsSuccess(false);
   };
 
   const navigation = {
@@ -301,30 +259,60 @@ const Footer = () => {
                 </ul>
               </div>
 
-              {/* Newsletter Card - Responsive columns */}
-              <div className="col-span-2 lg:col-span-6 space-y-4">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-                  Newsletter
-                </h3>
-                <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/10">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-                    <div className="flex-1">
-                      <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                        Stay Updated
-                      </h4>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        Get the latest updates on new courses and features.
-                      </p>
+              {/* Community Card - Responsive columns */}
+              <div className="col-span-2 lg:col-span-6 p-1 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-lg relative overflow-hidden group/newsletter">
+                <div className="absolute inset-0 bg-white dark:bg-gray-900 m-[1px] rounded-[11px] z-0" />
+                <div className="relative z-10 p-5 sm:p-6 flex flex-col h-full bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-xl">
+                  <div className="flex-1 mb-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 text-primary">
+                      <Mail className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Stay ahead of the curve
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                      Join our newsletter for exclusive coding tips, new course announcements, and tech insights delivered to your inbox.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSubscribe} className="space-y-3">
+                    <div className="relative">
+                      <input
+                        type="email"
+                        placeholder="name@example.com"
+                        className="w-full pl-4 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950/80 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-sm transition-all"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={isLoading || isSubmitted}
+                      />
                     </div>
                     <button
-                      onClick={openModal}
-                      className="group inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 text-xs sm:text-sm font-medium flex-shrink-0"
-                      aria-label="Subscribe to newsletter"
+                      type="submit"
+                      disabled={isLoading || isSubmitted}
+                      className={`w-full py-3 rounded-lg font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 ${isSubmitted
+                        ? "bg-green-600 hover:bg-green-700 text-white"
+                        : "bg-gradient-to-r from-primary to-purple-600 hover:shadow-lg hover:shadow-primary/25 text-white dark:from-white dark:to-gray-100 dark:text-gray-900 dark:hover:to-gray-200"
+                        } disabled:opacity-70 disabled:cursor-not-allowed`}
                     >
-                      <span>Subscribe</span>
-                      <ArrowUpRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      {isLoading ? (
+                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : isSubmitted ? (
+                        <>
+                          <span>Subscribed</span>
+                          <Check className="w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          <span>Subscribe Now</span>
+                          <ArrowRight className="w-4 h-4 group-hover/newsletter:translate-x-1 transition-transform" />
+                        </>
+                      )}
                     </button>
-                  </div>
+                  </form>
+                  <p className="text-[10px] text-gray-500 mt-3 text-center">
+                    No spam, unsubscribe anytime.
+                  </p>
                 </div>
               </div>
             </div>
@@ -369,108 +357,7 @@ const Footer = () => {
 
       {/* Subtle Gradient Overlay */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-
-      {/* Newsletter Subscription Modal */}
-      {
-        isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                    Subscribe to Newsletter
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Get updates on new courses and features
-                  </p>
-                </div>
-                <button
-                  onClick={closeModal}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                  aria-label="Close modal"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6">
-                {isSuccess ? (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
-                    </div>
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                      Successfully Subscribed!
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Your subscription request has been sent to moajmalnk@gmail.com. You'll be added to our newsletter list soon!
-                    </p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubscribe} className="space-y-4">
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email address"
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-gray-100 transition-colors"
-                        required
-                      />
-                    </div>
-
-                    {error && (
-                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                      </div>
-                    )}
-
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={closeModal}
-                        className="flex-1 px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors font-medium"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="flex-1 px-4 py-3 bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Subscribing...
-                          </>
-                        ) : (
-                          <>
-                            <Mail className="w-4 h-4" />
-                            Subscribe
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                      Your email will be sent to{" "}
-                      <span className="font-medium text-primary">moajmalnk@gmail.com</span>{" "}
-                      for subscription processing.
-                    </p>
-                  </form>
-                )}
-              </div>
-            </div>
-          </div>
-        )
-      }
-    </footer >
+    </footer>
   );
 };
 

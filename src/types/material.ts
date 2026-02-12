@@ -15,6 +15,7 @@ export interface Material {
   embedUrl?: string;
   duration?: string;
   topics?: string[];
+  tags?: string[];
 
   // Snippet specific
   code?: string;

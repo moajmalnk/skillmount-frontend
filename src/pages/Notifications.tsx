@@ -103,15 +103,38 @@ export default function Notifications() {
     };
 
     const fixLink = (notification: Notification) => {
-        const link = notification.link;
+        let link = notification.link || "";
+
+        // Attempt to extract path from full URL to handle cross-environment links (e.g. prod link on localhost)
+        try {
+            if (link.startsWith("http")) {
+                const url = new URL(link);
+                link = url.pathname + url.search + url.hash;
+            }
+        } catch (e) {
+            // If invalid URL, proceed with original string
+        }
+
         const title = (notification.title || "").toLowerCase();
-        if (title.includes("inquiry") || (link && (link.includes("/admin/support") || link.includes("inquiry")))) {
+        const linkLower = link.toLowerCase();
+
+        // Inquiries
+        if (title.includes("inquiry") || linkLower.includes("inquiry") || linkLower.includes("tab=inquiries")) {
             return "/admin?tab=inquiries";
         }
-        if (link && link.includes("/admin/tickets")) {
+
+        // Tickets
+        // Detect either standard admin route or query param style
+        if (linkLower.includes("/admin/tickets") || linkLower.includes("tab=tickets") || title.includes("ticket")) {
+            // Extract ID if present
+            const idMatch = link.match(/[?&]id=([^&]+)/);
+            if (idMatch) {
+                return `/admin?tab=tickets&id=${idMatch[1]}`;
+            }
             return "/admin?tab=tickets";
         }
-        return link || "";
+
+        return link;
     };
 
     const handleItemClick = (notification: Notification) => {
@@ -119,7 +142,14 @@ export default function Notifications() {
             markReadMutation.mutate(notification.id);
         }
         const targetPath = fixLink(notification);
-        if (targetPath) navigate(targetPath);
+
+        if (targetPath) {
+            if (targetPath.startsWith("http")) {
+                window.location.href = targetPath;
+            } else {
+                navigate(targetPath);
+            }
+        }
     };
 
     const getTypeStyles = (type: Notification['notification_type']) => {

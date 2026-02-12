@@ -165,6 +165,12 @@ export const FAQManager = () => {
   // Helper to get item name for dialog
   const faqToDelete = faqs.find(f => f.id === deleteId);
 
+  // Computed Filter Options (Configured + Existing)
+  const filterOptions = ["all", ...new Set([
+    ...categories,
+    ...(Array.isArray(faqs) ? faqs : []).map(f => f.category)
+  ])].sort();
+
   return (
     <div className="space-y-4">
       {/* 1. Filter Card */}
@@ -189,9 +195,8 @@ export const FAQManager = () => {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  {filterOptions.map((cat) => (
+                    <SelectItem key={cat} value={cat} className="capitalize">{cat === 'all' ? 'All Categories' : cat}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

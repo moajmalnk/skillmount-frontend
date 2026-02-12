@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, X, Settings, Database, Users, BookOpen,
-  Share2, Save, CheckCircle2, HelpCircle, Pencil, AlertTriangle, MessageSquare, MessageCircle
+  Share2, Save, CheckCircle2, HelpCircle, Pencil, AlertTriangle, MessageSquare, MessageCircle, FolderOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -405,6 +405,14 @@ export const SettingsManager = () => {
             items={settings.blogCategories || []}
             {...createHandlers('blogCategories')}
             placeholder="e.g. Tech, News"
+          />
+          <SettingCard
+            title="Material Categories"
+            description="Categories for Learning Materials."
+            icon={FolderOpen}
+            items={settings.materialCategories || []}
+            {...createHandlers('materialCategories')}
+            placeholder="e.g. WordPress, React"
           />
           <SettingCard
             title="Feedback Categories"

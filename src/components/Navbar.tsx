@@ -45,7 +45,7 @@ const Navbar = () => {
 
   const canViewResources = isAuthenticated && (isStudent || isTutor || isAdmin);
   const canManageTickets = isAuthenticated && (isTutor);
-  const canAccessStudentTickets = isAuthenticated && ((isStudent && user?.isProfileComplete) || isAdmin);
+  const canAccessStudentTickets = isAuthenticated && (isStudent && user?.isProfileComplete);
 
   const handleLogoutConfirm = () => {
     logout();

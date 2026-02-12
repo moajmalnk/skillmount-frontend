@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { X, Trash2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, Mic, Loader2, Maximize2, Minimize2, Plus, ArrowUpRight } from "lucide-react";
+import { X, Trash2, Send, Paperclip, MessageSquare, FileText, CheckCircle2, Mic, Loader2, Maximize2, Minimize2, Plus, ArrowUpRight, Pause } from "lucide-react";
 import { TicketAudioPlayer } from "@/components/tickets/TicketAudioPlayer";
 import { toast } from "sonner";
 import { Ticket } from "@/types/ticket";
@@ -59,9 +59,12 @@ export const TicketDetailModal = ({
   const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
   const {
     isRecording,
+    isPaused,
     recordingTime,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
     cancelRecording,
     formatTime
   } = useVoiceRecorder({
@@ -553,7 +556,12 @@ export const TicketDetailModal = ({
             {/* Left Actions: Macros & Attachment */}
             {!isRecording && (
               <div className="flex items-center gap-1 pb-1">
-
+                {/* Macro Selector Integration */}
+                {isSupportRole && macros.length > 0 && (
+                  <div className="shrink-0">
+                    <MacroSelector macros={macros} onSelect={handleMacroSelect} />
+                  </div>
+                )}
 
                 {/* Attachment Button */}
                 <div className={`relative flex items-center justify-center h-10 w-10 rounded-full hover:bg-muted cursor-pointer transition-colors ${attachment ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`} title="Attach File">
@@ -565,99 +573,87 @@ export const TicketDetailModal = ({
             )}
 
             {/* Middle: Input or Recording UI */}
-            <div className="flex-1 min-w-0 bg-secondary/40 hover:bg-secondary/60 focus-within:bg-secondary/60 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:focus-within:bg-slate-800 transition-colors rounded-2xl flex flex-col justify-center px-4 py-2 border border-transparent focus-within:border-primary/20 relative overflow-hidden">
+            <div className={`flex-1 min-w-0 transition-colors rounded-3xl flex items-center border border-transparent relative overflow-hidden ${isRecording
+              ? "bg-transparent px-0"
+              : "bg-secondary/40 hover:bg-secondary/60 focus-within:bg-secondary/60 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:focus-within:bg-slate-800 px-4 py-2 focus-within:border-primary/20"
+              }`}>
               {isRecording ? (
-                <div className="flex items-center w-full justify-between animate-in fade-in duration-300 h-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-sm font-medium text-red-500 tabular-nums">{formatTime(recordingTime)}</span>
-                    <div className="flex gap-1 h-4 items-center pl-2">
-                      {[1, 2, 3, 4, 5, 2, 3, 4, 1, 2].map((h, i) => (
-                        <div key={i} className="w-1 bg-red-400/50 rounded-full animate-pulse" style={{ height: `${h * 4}px`, animationDelay: `${i * 100}ms` }} />
-                      ))}
-                    </div>
+                <div className="flex items-center w-full justify-between animate-in fade-in duration-300 h-10 px-2 gap-2">
+                  {/* Delete/Cancel Button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={cancelRecording}
+                    className="h-10 w-10 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition-colors"
+                    title="Delete Recording"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+
+                  {/* Timer & Status */}
+                  <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-red-50 dark:bg-red-950/10 border border-red-100 dark:border-red-900/20">
+                    <div className={`w-2 h-2 rounded-full ${isPaused ? "bg-amber-500" : "bg-red-500 animate-pulse"}`} />
+                    <span className="text-sm font-mono font-medium text-foreground tabular-nums min-w-[44px]">
+                      {formatTime(recordingTime)}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground animate-pulse pr-2">Recording...</span>
+
+                  {/* Pause/Resume Functionality ("Restart" as user called it) */}
+                  {isPaused ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={resumeRecording}
+                      className="h-10 w-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full"
+                      title="Resume Recording"
+                    >
+                      <Mic className="w-5 h-5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={pauseRecording}
+                      className="h-10 w-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full"
+                      title="Pause Recording"
+                    >
+                      <Pause className="w-5 h-5" />
+                    </Button>
+                  )}
                 </div>
               ) : (
-                <>
-                  {/* Pending Attachments Preview */}
-                  {(attachment || voiceBlob) && (
-                    <div className="flex flex-wrap gap-2 mb-2 pb-2 border-b border-border/30 animate-in slide-in-from-bottom-1 duration-200">
-                      {attachment && (
-                        <div className="flex items-center gap-2 bg-primary/10 text-primary px-2 py-1 rounded-lg text-[11px] font-medium border border-primary/20 group">
-                          <FileText className="w-3.5 h-3.5" />
-                          <span className="max-w-[120px] truncate">{attachment.name}</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setAttachment(null); }}
-                            className="text-muted-foreground hover:text-destructive transition-colors ml-1"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-                      {voiceBlob && (
-                        <div className="flex items-center gap-2 bg-red-500/10 text-red-500 px-2 py-1 rounded-lg text-[11px] font-medium border border-red-500/20 group">
-                          <Mic className="w-3.5 h-3.5" />
-                          <span>Voice Recording</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setVoiceBlob(null); }}
-                            className="text-muted-foreground hover:text-destructive transition-colors ml-1"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex items-center w-full">
-                    <Textarea
-                      ref={textareaRef}
-                      placeholder="Type a message..."
-                      autoComplete="off"
-                      autoCorrect="off"
-                      className="min-h-[24px] max-h-[120px] bg-transparent border-none shadow-none resize-none p-0 text-sm sm:text-base focus-visible:ring-0 focus-visible:ring-offset-0 outline-none placeholder:text-muted-foreground/60 leading-relaxed w-full [&::-webkit-scrollbar]:hidden"
-                      value={replyText}
-                      onChange={(e) => {
-                        setReplyText(e.target.value);
-                        e.target.style.height = 'auto';
-                        e.target.style.height = `${e.target.scrollHeight}px`;
-                      }}
-                      rows={1}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendReply(false);
-                        }
-                      }}
-                    />
-                  </div>
-                </>
+                <Textarea
+                  ref={textareaRef}
+                  placeholder="Type a message..."
+                  className="min-h-[24px] max-h-[120px] bg-transparent border-none shadow-none resize-none p-0 text-sm sm:text-base focus-visible:ring-0 placeholder:text-muted-foreground/60 leading-relaxed w-full"
+                  value={replyText}
+                  onChange={(e) => {
+                    setReplyText(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  rows={1}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendReply(false);
+                    }
+                  }}
+                />
               )}
             </div>
 
             {/* Right Actions: Mic or Send/Cancel */}
             <div className="shrink-0 flex items-center gap-1 pb-1">
               {isRecording ? (
-                <>
-                  <Button
-                    onClick={cancelRecording}
-                    size="icon"
-                    variant="ghost"
-                    className="rounded-full h-10 w-10 text-red-500 hover:bg-red-500/10 transition-colors"
-                    title="Cancel Recording"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    onClick={() => stopRecording()}
-                    size="icon"
-                    className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-200"
-                    title="Finish Recording"
-                  >
-                    <CheckCircle2 className="w-5 h-5" />
-                  </Button>
-                </>
+                <Button
+                  onClick={() => stopRecording()}
+                  size="icon"
+                  className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-200"
+                  title="Send Voice Note"
+                >
+                  <Send className="w-5 h-5 ml-0.5" />
+                </Button>
               ) : (
                 (replyText.trim() || attachment || voiceBlob) ? (
                   <Button
@@ -667,7 +663,7 @@ export const TicketDetailModal = ({
                     className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-200"
                     title="Send Reply"
                   >
-                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUpRight className="w-5 h-5 ml-0.5" />}
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-0.5" />}
                   </Button>
                 ) : (
                   <Button
@@ -677,7 +673,7 @@ export const TicketDetailModal = ({
                     className="rounded-full h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                     title="Record Voice Note"
                   >
-                    <Mic className="w-5 h-5" />
+                    <Mic className="w-6 h-6" />
                   </Button>
                 )
               )}

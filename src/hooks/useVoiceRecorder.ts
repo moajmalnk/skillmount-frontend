@@ -7,6 +7,7 @@ export interface UseVoiceRecorderProps {
 
 export const useVoiceRecorder = ({ onRecordingComplete }: UseVoiceRecorderProps = {}) => {
     const [isRecording, setIsRecording] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -48,6 +49,19 @@ export const useVoiceRecorder = ({ onRecordingComplete }: UseVoiceRecorderProps 
             if (MediaRecorder.isTypeSupported(type)) return type;
         }
         return "";
+    };
+
+    const startTimer = () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setRecordingTime(prev => {
+                if (prev >= 60) {
+                    stopRecording();
+                    return 60;
+                }
+                return prev + 1;
+            });
+        }, 1000);
     };
 
     const startRecording = async () => {
@@ -92,17 +106,9 @@ export const useVoiceRecorder = ({ onRecordingComplete }: UseVoiceRecorderProps 
 
             mediaRecorder.start(1000);
             setIsRecording(true);
+            setIsPaused(false);
             setRecordingTime(0);
-
-            timerRef.current = setInterval(() => {
-                setRecordingTime(prev => {
-                    if (prev >= 60) {
-                        stopRecording();
-                        return 60;
-                    }
-                    return prev + 1;
-                });
-            }, 1000);
+            startTimer();
 
         } catch (error: any) {
             console.error("Recording error:", error);
@@ -117,29 +123,60 @@ export const useVoiceRecorder = ({ onRecordingComplete }: UseVoiceRecorderProps 
         }
     };
 
+    const pauseRecording = useCallback(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.pause();
+            setIsPaused(true);
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+        }
+    }, []);
+
+    const resumeRecording = useCallback(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+            mediaRecorderRef.current.resume();
+            setIsPaused(false);
+            startTimer();
+        }
+    }, []);
+
     const stopRecording = useCallback(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        if (mediaRecorderRef.current && (mediaRecorderRef.current.state === 'recording' || mediaRecorderRef.current.state === 'paused')) {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
+            setIsPaused(false);
         }
     }, []);
 
     const cancelRecording = useCallback(() => {
-        stopRecording();
+        // Stop but don't save
+        if (mediaRecorderRef.current) {
+            // Remove onstop handler to prevent saving
+            mediaRecorderRef.current.onstop = null;
+            mediaRecorderRef.current.stop();
+        }
+        stopCleanup();
         setAudioUrl(null);
         setAudioBlob(null);
         setRecordingTime(0);
-    }, [stopRecording]);
+        setIsRecording(false);
+        setIsPaused(false);
+    }, []);
 
     const resetRecording = useCallback(() => {
         if (audioUrl) URL.revokeObjectURL(audioUrl);
         setAudioUrl(null);
         setAudioBlob(null);
         setRecordingTime(0);
+        setIsRecording(false);
+        setIsPaused(false);
     }, [audioUrl]);
 
     return {
         isRecording,
+        isPaused,
         recordingTime,
         audioUrl,
         audioBlob,
@@ -147,8 +184,10 @@ export const useVoiceRecorder = ({ onRecordingComplete }: UseVoiceRecorderProps 
         permissionError,
         startRecording,
         stopRecording,
-        cancelRecording, // Stops and clears
-        resetRecording,  // Clears existing recording
+        pauseRecording,
+        resumeRecording,
+        cancelRecording,
+        resetRecording,
         formatTime: (seconds: number) => {
             const mins = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);

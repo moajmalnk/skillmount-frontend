@@ -17,6 +17,7 @@ export interface SystemSettings {
   faqCategories: string[];
   ticketCategories: string[];
   blogCategories: string[];
+  materialCategories: string[];
   feedbackCategories: string[];
 }
 
@@ -31,6 +32,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   faqCategories: ["General", "Technical"],
   ticketCategories: ["General", "Technical", "Billing"],
   blogCategories: ["Tech", "News", "Tutorials"],
+  materialCategories: ["Themes", "Plugins", "Snippets"],
   feedbackCategories: ["General", "Bug Report", "Feature Request", "Content Issue", "Other"]
 };
 
@@ -56,6 +58,7 @@ export const systemService = {
         faqCategories: data.faq_categories || [],
         ticketCategories: data.ticket_categories || [],
         blogCategories: data.blog_categories || [],
+        materialCategories: data.material_categories || [],
         feedbackCategories: data.feedback_categories || []
       };
     } catch (error) {
@@ -74,6 +77,7 @@ export const systemService = {
         faq_categories: newSettings.faqCategories,
         ticket_categories: newSettings.ticketCategories,
         blog_categories: newSettings.blogCategories,
+        material_categories: newSettings.materialCategories,
         feedback_categories: newSettings.feedbackCategories
       };
 
