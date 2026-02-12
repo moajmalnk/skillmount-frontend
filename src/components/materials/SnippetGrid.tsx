@@ -29,7 +29,7 @@ export const SnippetGrid = ({ snippets }: { snippets: Material[] }) => {
                       <Badge variant="outline" className="rounded-full border-border/40 text-xs">{snippet.language}</Badge>
                     </div>
                     <CardTitle className="text-xl mb-3 group-hover:text-primary transition-colors duration-300">{snippet.title}</CardTitle>
-                    <CardDescription className="text-muted-foreground leading-relaxed">{snippet.description}</CardDescription>
+                    <CardDescription className="text-muted-foreground leading-relaxed line-clamp-2 h-[3.25rem] overflow-hidden">{snippet.description}</CardDescription>
                   </div>
                   <Code className="w-6 h-6 text-primary flex-shrink-0 ml-4 group-hover:scale-110 transition-transform duration-300" />
                 </div>

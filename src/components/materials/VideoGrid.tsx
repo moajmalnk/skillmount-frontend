@@ -97,7 +97,7 @@ export const VideoGrid = ({ videos }: VideoGridProps) => {
                 <CardTitle className="text-xl font-bold leading-tight mb-3 group-hover:text-primary transition-colors duration-300">
                   {video.title}
                 </CardTitle>
-                <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-3 h-[3.25rem] overflow-hidden">
                   {video.description}
                 </CardDescription>
               </CardHeader>

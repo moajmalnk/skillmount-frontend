@@ -31,7 +31,7 @@ export const AssetGrid = ({ assets }: { assets: Material[] }) => {
                   )}
                 </div>
                 <CardTitle className="text-lg leading-tight mb-3 group-hover:text-primary transition-colors duration-300">{asset.title}</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground leading-relaxed">{asset.description}</CardDescription>
+                <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-2 h-[3.25rem] overflow-hidden">{asset.description}</CardDescription>
               </CardHeader>
               <CardContent className="p-5 sm:p-8 pt-0">
                 <div className="space-y-4">

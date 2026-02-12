@@ -23,12 +23,14 @@ export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex gap-2">
                     <Badge className="rounded-full px-3 py-1 text-xs font-medium">Theme</Badge>
-                    <Badge variant="outline" className="rounded-full px-3 py-1 text-xs border-border/40">v{theme.version}</Badge>
+                    {theme.version && (
+                      <Badge variant="outline" className="rounded-full px-3 py-1 text-xs border-border/40">v{theme.version}</Badge>
+                    )}
                   </div>
                   <Palette className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <CardTitle className="text-xl mb-3 group-hover:text-primary transition-colors duration-300">{theme.title}</CardTitle>
-                <CardDescription className="text-muted-foreground leading-relaxed line-clamp-2">{theme.description}</CardDescription>
+                <CardDescription className="text-muted-foreground leading-relaxed line-clamp-2 h-[3.25rem] overflow-hidden">{theme.description}</CardDescription>
               </CardHeader>
               <CardContent className="p-5 sm:p-8 pt-0">
                 <div className="space-y-6">
@@ -41,7 +43,7 @@ export const ThemeGrid = ({ themes }: { themes: Material[] }) => {
                   </div>
                   <Separator className="bg-border/30" />
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Size: {theme.size}</span>
+                    {theme.size && <span className="text-sm text-muted-foreground">Size: {theme.size}</span>}
                     <div className="flex gap-2">
                       {(theme.previewUrl) ? (
                         <Button

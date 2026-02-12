@@ -921,7 +921,7 @@ export const ChatWidget = () => {
                 <CardTitle className="flex items-center gap-3">
                   <img src="https://moajmalnk.in/assets/img/logo/logo-lightaj.png" alt="Logo" className="h-10 w-auto object-contain" />
                   <div className="flex flex-col">
-                    <span className="font-bold text-lg tracking-tight">Codi</span>
+                    <span className="font-bold text-lg tracking-tight">Ajmal NK</span>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] uppercase font-medium text-muted-foreground tracking-wider">AI Powered</span>
                       <Badge variant="outline" className="hidden sm:inline-flex bg-background/50 backdrop-blur-sm text-[10px] font-normal border-indigo-500/20 text-muted-foreground px-2 py-0.5 h-auto">

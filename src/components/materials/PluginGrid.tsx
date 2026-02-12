@@ -27,15 +27,15 @@ export const PluginGrid = ({ plugins }: { plugins: Material[] }) => {
                   <Package className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <CardTitle className="text-lg leading-tight mb-3 group-hover:text-primary transition-colors duration-300">{plugin.title}</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-2" title={plugin.description}>
+                <CardDescription className="text-sm text-muted-foreground leading-relaxed line-clamp-2 h-[3.25rem] overflow-hidden" title={plugin.description}>
                   {plugin.description}
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-5 sm:p-8 pt-0">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">v{plugin.version || '1.0'}</span>
-                    <span>{plugin.size}</span>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground h-6">
+                    {plugin.version ? <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">v{plugin.version}</span> : <span />}
+                    {plugin.size && <span>{plugin.size}</span>}
                   </div>
 
                   <Separator className="bg-border/30" />

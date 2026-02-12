@@ -27,7 +27,7 @@ export const MaterialsSearchBar = ({ value, onChange, placeholder = "Search for 
     }, []);
 
     return (
-        <div className="w-full max-w-2xl mx-auto mb-12 relative z-20 px-6 group">
+        <div className="w-full max-w-2xl mx-auto mb-2 relative z-20 px-6 group">
             <div className="absolute inset-0 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-all duration-500 opacity-0 group-hover:opacity-100" />
             <div className="relative">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/70 group-hover:text-primary transition-colors" />

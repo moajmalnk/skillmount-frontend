@@ -176,7 +176,7 @@ const Materials = () => {
             <ContainerScrollAnimation direction="up" speed="normal">
 
               <TabsContent value="template-kits" className="space-y-6">
-                <div className="text-center mb-12 px-6">
+                <div className="text-center mb-4 px-6">
                   <div className="inline-flex items-center gap-2.5 bg-primary/[0.03] border border-primary/10 rounded-full px-5 py-2 mb-8">
                     <FolderOpen className="w-3.5 h-3.5 text-primary" />
                     <span className="text-xs font-medium text-foreground tracking-wide">Template Kits</span>

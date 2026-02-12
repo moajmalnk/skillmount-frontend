@@ -2,6 +2,16 @@ import { Tutor } from "@/types/user";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface ProfileTutorFormProps {
     data: Partial<Tutor>;
@@ -62,15 +72,43 @@ export const ProfileTutorForm = ({ data, onChange }: ProfileTutorFormProps) => {
                             onChange={(e) => onChange({ qualification: e.target.value })}
                         />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="dob">Date of Birth</Label>
-                        <Input
-                            id="dob"
-                            type="date"
-                            value={data.dob || ""}
-                            onChange={(e) => onChange({ dob: e.target.value })}
-                        />
+
+                    <div className="space-y-2 flex flex-col">
+                        <Label>Date of Birth</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !data.dob && "text-muted-foreground"
+                                    )}
+                                >
+                                    {data.dob ? (
+                                        format(new Date(data.dob), "PPP")
+                                    ) : (
+                                        <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={data.dob ? new Date(data.dob) : undefined}
+                                    onSelect={(date) => date && onChange({ dob: format(date, "yyyy-MM-dd") })}
+                                    disabled={(date) =>
+                                        date > new Date() || date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                    captionLayout="dropdown-buttons"
+                                    fromYear={1900}
+                                    toYear={new Date().getFullYear()}
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
+
                     <div className="space-y-2">
                         <Label htmlFor="address">Address</Label>
                         <Input
