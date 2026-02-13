@@ -6,7 +6,13 @@ import { WobbleCard } from "@/components/ui/wobble-card";
 import { FolderOpen, Download, BookOpen, ExternalLink, Layout } from "lucide-react";
 import { Material } from "@/types/material";
 
-export const AssetGrid = ({ assets }: { assets: Material[] }) => {
+export const AssetGrid = ({
+  assets,
+  onMaterialClick
+}: {
+  assets: Material[],
+  onMaterialClick?: (material: Material) => void
+}) => {
   return (
     <div className="container mx-auto px-6 max-w-7xl">
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -14,7 +20,7 @@ export const AssetGrid = ({ assets }: { assets: Material[] }) => {
           <div id={`material-${asset.id}`} key={asset.id} className="animate-elegant-entrance" style={{ animationDelay: `${index * 120}ms`, animationFillMode: 'both' }}>
             <WobbleCard
               className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full cursor-pointer"
-              onClick={() => asset.url && window.open(asset.url, '_blank')}
+              onClick={() => onMaterialClick ? onMaterialClick(asset) : asset.url && window.open(asset.url, '_blank')}
             >
               <CardHeader className="p-5 sm:p-8">
                 <div className="flex items-start justify-between mb-4">

@@ -10,9 +10,10 @@ import { YouTubePlayer } from "./YouTubePlayer";
 
 interface VideoGridProps {
   videos: Material[];
+  onMaterialClick?: (material: Material) => void;
 }
 
-export const VideoGrid = ({ videos }: VideoGridProps) => {
+export const VideoGrid = ({ videos, onMaterialClick }: VideoGridProps) => {
   const [selectedVideo, setSelectedVideo] = useState<Material | null>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
 
@@ -66,7 +67,7 @@ export const VideoGrid = ({ videos }: VideoGridProps) => {
             <WobbleCard
               containerClassName="h-full"
               className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden h-full flex flex-col justify-between cursor-pointer"
-              onClick={() => setSelectedVideo(video)}
+              onClick={() => onMaterialClick ? onMaterialClick(video) : setSelectedVideo(video)}
             >
 
               <CardHeader className="p-8 pb-4">

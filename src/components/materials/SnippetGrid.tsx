@@ -6,7 +6,13 @@ import { Code, Download, Copy } from "lucide-react";
 import { Material } from "@/types/material";
 import { toast } from "sonner";
 
-export const SnippetGrid = ({ snippets }: { snippets: Material[] }) => {
+export const SnippetGrid = ({
+  snippets,
+  onMaterialClick
+}: {
+  snippets: Material[],
+  onMaterialClick?: (material: Material) => void
+}) => {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Code copied to clipboard!");
@@ -19,7 +25,7 @@ export const SnippetGrid = ({ snippets }: { snippets: Material[] }) => {
           <div id={`material-${snippet.id}`} key={snippet.id} className="animate-elegant-entrance min-w-0" style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'both' }}>
             <WobbleCard
               className="border border-border/30 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group hover:-translate-y-2 bg-card/30 backdrop-blur-sm overflow-hidden cursor-pointer"
-              onClick={() => snippet.url && window.open(snippet.url, '_blank')}
+              onClick={() => onMaterialClick ? onMaterialClick(snippet) : snippet.url && window.open(snippet.url, '_blank')}
             >
               <CardHeader className="p-5 sm:p-8">
                 <div className="flex items-start justify-between">

@@ -19,12 +19,22 @@ import { PluginGrid } from "@/components/materials/PluginGrid";
 import { AssetGrid } from "@/components/materials/AssetGrid";
 import { SnippetGrid } from "@/components/materials/SnippetGrid";
 
+import { MaterialDetailDialog } from "@/components/materials/MaterialDetailDialog";
+import { toast } from "sonner";
+
 const Materials = () => {
   const [activeTab, setActiveTab] = useState("template-kits");
   const [isVisible, setIsVisible] = useState(false);
   const [allMaterials, setAllMaterials] = useState<Material[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleMaterialClick = (material: Material) => {
+    setSelectedMaterial(material);
+    setIsModalOpen(true);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -183,7 +193,7 @@ const Materials = () => {
                   </div>
                   <TextGenerateEffect words="Start with Complete Kits" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
-                <AssetGrid assets={templateKits} />
+                <AssetGrid assets={templateKits} onMaterialClick={handleMaterialClick} />
               </TabsContent>
 
               <TabsContent value="themes" className="space-y-6">
@@ -194,7 +204,7 @@ const Materials = () => {
                   </div>
                   <TextGenerateEffect words="Professional Themes" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
-                <ThemeGrid themes={themes} />
+                <ThemeGrid themes={themes} onMaterialClick={handleMaterialClick} />
               </TabsContent>
 
               <TabsContent value="plugins" className="space-y-6">
@@ -205,7 +215,7 @@ const Materials = () => {
                   </div>
                   <TextGenerateEffect words="Extend Functionality" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
-                <PluginGrid plugins={plugins} />
+                <PluginGrid plugins={plugins} onMaterialClick={handleMaterialClick} />
               </TabsContent>
 
               <TabsContent value="docs" className="space-y-6">
@@ -216,7 +226,7 @@ const Materials = () => {
                   </div>
                   <TextGenerateEffect words="Guides & Docs" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
-                <AssetGrid assets={docs} />
+                <AssetGrid assets={docs} onMaterialClick={handleMaterialClick} />
               </TabsContent>
 
               <TabsContent value="snippets" className="space-y-6">
@@ -227,7 +237,7 @@ const Materials = () => {
                   </div>
                   <TextGenerateEffect words="Ready-to-Use Code" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
-                <SnippetGrid snippets={snippets} />
+                <SnippetGrid snippets={snippets} onMaterialClick={handleMaterialClick} />
               </TabsContent>
 
               <TabsContent value="videos" className="space-y-6">
@@ -238,12 +248,17 @@ const Materials = () => {
                   </div>
                   <TextGenerateEffect words="Master with Video Learning" className="text-3xl md:text-5xl font-bold text-foreground mb-8 tracking-tight leading-[0.95]" duration={1.5} />
                 </div>
-                <VideoGrid videos={videos} />
+                <VideoGrid videos={videos} onMaterialClick={handleMaterialClick} />
               </TabsContent>
 
             </ContainerScrollAnimation>
           </Tabs>
         )}
+        <MaterialDetailDialog
+          material={selectedMaterial}
+          isOpen={isModalOpen}
+          onOpenChange={setIsModalOpen}
+        />
       </div>
     </FollowingPointer>
   );
