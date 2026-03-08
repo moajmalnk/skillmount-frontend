@@ -75,17 +75,25 @@ export const AdminDetailSheet = ({ isOpen, onClose, admin, onUpdate }: AdminDeta
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            // Only send editable fields to avoid 400 from read-only fields
-            const updatePayload: Record<string, string | undefined> = {
+            // Direct PATCH with only editable fields — bypass buildUserJsonPayload
+            const { default: api } = await import("@/lib/api");
+            await api.patch(`/users/${admin.id}/`, {
                 name: userData.name,
                 email: userData.email,
                 phone: userData.phone,
-            };
-            await userService.update(admin.id, updatePayload);
+            });
             toast.success("Admin Profile Updated Successfully");
             if (onUpdate) onUpdate();
-        } catch (error) {
-            toast.error("Failed to save changes");
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: Record<string, string[]> } };
+            const detail = err?.response?.data;
+            if (detail) {
+                // Show the actual backend error for debugging
+                const messages = Object.entries(detail).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('\n');
+                toast.error("Validation Error", { description: messages });
+            } else {
+                toast.error("Failed to save changes");
+            }
         } finally {
             setIsSaving(false);
         }
