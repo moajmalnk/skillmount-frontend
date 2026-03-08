@@ -149,57 +149,81 @@ export const NotificationBell = () => {
         const token = localStorage.getItem('access_token');
         if (!token) return;
 
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = isLocal ? 'localhost:8000' : 'skillapi.moajmalnk.in';
-        const wsUrl = `${wsProtocol}//${wsHost}/ws/notifications/?token=${token}`;
+        let ws: WebSocket | null = null;
+        let reconnectTimer: ReturnType<typeof setTimeout>;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        const BASE_DELAY = 3000; // 3 seconds
+        let isMounted = true;
 
-        console.log("Connecting to Notification WS...");
-        const ws = new WebSocket(wsUrl);
+        const connect = () => {
+            if (!isMounted) return;
 
-        ws.onopen = () => {
-            console.log("Notification WS Connected");
-        };
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsHost = isLocal ? 'localhost:8000' : 'skillapi.moajmalnk.in';
+            const wsUrl = `${wsProtocol}//${wsHost}/ws/notifications/?token=${token}`;
 
-        ws.onmessage = (event) => {
             try {
-                const data = JSON.parse(event.data);
-                console.log("New Notification Received:", data);
-
-                // 1. Invalidate queries to refresh the list and badge count
-                queryClient.invalidateQueries({ queryKey: ['notifications'] });
-
-                // 2. Show a toast for immediate feedback
-                toast(data.title || "New Notification", {
-                    description: data.message,
-                    action: data.link ? {
-                        label: "View",
-                        onClick: () => navigate(fixLink({ link: data.link, title: data.title } as Notification))
-                    } : undefined,
-                });
-
-                // 3. Play subtle sound if possible
-                try {
-                    const audio = new Audio('/notification-sound.mp3');
-                    audio.volume = 0.5;
-                    audio.play().catch(() => { }); // Browser might block autoplay
-                } catch (e) { }
-
-            } catch (err) {
-                console.error("WS Notification Parse Error", err);
+                ws = new WebSocket(wsUrl);
+            } catch {
+                // WebSocket constructor failed — server likely doesn't support WS
+                return;
             }
+
+            ws.onopen = () => {
+                reconnectAttempts = 0; // Reset on successful connection
+                console.debug("Notification WS Connected");
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    // 1. Invalidate queries to refresh the list and badge count
+                    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+
+                    // 2. Show a toast for immediate feedback
+                    toast(data.title || "New Notification", {
+                        description: data.message,
+                        action: data.link ? {
+                            label: "View",
+                            onClick: () => navigate(fixLink({ link: data.link, title: data.title } as Notification))
+                        } : undefined,
+                    });
+
+                    // 3. Play subtle sound if possible
+                    try {
+                        const audio = new Audio('/notification-sound.mp3');
+                        audio.volume = 0.5;
+                        audio.play().catch(() => { }); // Browser might block autoplay
+                    } catch { }
+
+                } catch {
+                    // Silently ignore parse errors
+                }
+            };
+
+            ws.onerror = () => {
+                // Silently handle — no console.error to avoid noisy output
+            };
+
+            ws.onclose = () => {
+                // Attempt reconnect with exponential backoff
+                if (isMounted && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    const delay = Math.min(BASE_DELAY * Math.pow(2, reconnectAttempts), 30000);
+                    reconnectAttempts++;
+                    reconnectTimer = setTimeout(connect, delay);
+                }
+            };
         };
 
-        ws.onerror = (error) => {
-            console.error("Notification WS Error", error);
-        };
-
-        ws.onclose = () => {
-            console.log("Notification WS Disconnected");
-        };
+        connect();
 
         return () => {
-            ws.close();
+            isMounted = false;
+            clearTimeout(reconnectTimer);
+            if (ws) ws.close();
         };
     }, [queryClient, navigate]);
 
