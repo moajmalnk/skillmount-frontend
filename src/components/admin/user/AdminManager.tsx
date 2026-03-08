@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { DeleteConfirmationDialog } from "../DeleteConfirmationDialog";
+import { AdminDetailSheet } from "./AdminDetailSheet";
 
 // Import Service & Types
 import { userService } from "@/services/userService";
@@ -52,6 +53,10 @@ export const AdminManager = () => {
     // Dialog State
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
+
+    // Detail Sheet State
+    const [selectedAdmin, setSelectedAdmin] = useState<BaseUser | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
 
     // Delete State
     const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -279,7 +284,8 @@ export const AdminManager = () => {
                                     filteredAdmins.map((admin) => (
                                         <TableRow
                                             key={admin.id}
-                                            className="hover:bg-muted/50"
+                                            className="cursor-pointer hover:bg-muted/50"
+                                            onClick={() => { setSelectedAdmin(admin); setIsDetailOpen(true); }}
                                         >
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
@@ -400,6 +406,14 @@ export const AdminManager = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Admin Detail Sheet */}
+            <AdminDetailSheet
+                isOpen={isDetailOpen}
+                onClose={() => { setIsDetailOpen(false); loadData(); }}
+                admin={selectedAdmin}
+                onUpdate={loadData}
+            />
 
             {/* Delete Confirmation Dialog */}
             <DeleteConfirmationDialog

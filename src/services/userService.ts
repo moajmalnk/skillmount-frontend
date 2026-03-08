@@ -348,5 +348,20 @@ export const userService = {
       console.error("Impersonate failed", error);
       throw error;
     }
+  },
+
+  // 9. ADMIN RESET PASSWORD
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adminResetPassword: async (userId: string, customPassword?: string): Promise<any> => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = { user_id: userId };
+      if (customPassword) payload.password = customPassword;
+      const response = await api.post('/auth/admin-reset-password/', payload);
+      return response.data;
+    } catch (error) {
+      console.error("Admin reset password failed", error);
+      throw error;
+    }
   }
 };
