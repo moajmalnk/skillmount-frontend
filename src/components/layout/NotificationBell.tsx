@@ -16,6 +16,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner"; // Added toast for real-time alerts
 
 export const NotificationBell = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -142,6 +143,65 @@ export const NotificationBell = () => {
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
         }
     });
+
+    // --- REAL-TIME WEBSOCKET NOTIFICATIONS ---
+    useEffect(() => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = isLocal ? 'localhost:8000' : 'skillapi.moajmalnk.in';
+        const wsUrl = `${wsProtocol}//${wsHost}/ws/notifications/?token=${token}`;
+
+        console.log("Connecting to Notification WS...");
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            console.log("Notification WS Connected");
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log("New Notification Received:", data);
+
+                // 1. Invalidate queries to refresh the list and badge count
+                queryClient.invalidateQueries({ queryKey: ['notifications'] });
+
+                // 2. Show a toast for immediate feedback
+                toast(data.title || "New Notification", {
+                    description: data.message,
+                    action: data.link ? {
+                        label: "View",
+                        onClick: () => navigate(fixLink({ link: data.link, title: data.title } as Notification))
+                    } : undefined,
+                });
+
+                // 3. Play subtle sound if possible
+                try {
+                    const audio = new Audio('/notification-sound.mp3');
+                    audio.volume = 0.5;
+                    audio.play().catch(() => { }); // Browser might block autoplay
+                } catch (e) { }
+
+            } catch (err) {
+                console.error("WS Notification Parse Error", err);
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error("Notification WS Error", error);
+        };
+
+        ws.onclose = () => {
+            console.log("Notification WS Disconnected");
+        };
+
+        return () => {
+            ws.close();
+        };
+    }, [queryClient, navigate]);
 
     // 4. Handlers
     const handleMarkAsRead = (e: React.MouseEvent, id: number) => {

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, LogOut, GraduationCap, Users, Share2,
   FileText, MessageSquare, Ticket, Star, BookOpen,
-  Settings, Newspaper
+  Settings, Newspaper, ShieldCheck
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ import { MaterialsManager } from "@/components/admin/content/MaterialsManager";
 import { StudentManager } from "@/components/admin/user/StudentManager";
 import { TutorManager } from "@/components/admin/user/TutorManager";
 import { AffiliateManager } from "@/components/admin/user/AffiliateManager";
+import { AdminManager } from "@/components/admin/user/AdminManager";
 import { SettingsManager } from "@/components/admin/settings/SettingsManager";
 import { TicketManager } from "@/components/admin/tickets/TicketManager";
 import { FAQManager } from "@/components/admin/FAQManager";
@@ -115,6 +116,7 @@ const Admin = () => {
     { value: "students", icon: GraduationCap, label: "Students", component: <StudentManager /> },
     { value: "tutors", icon: Users, label: "Tutors", component: <TutorManager /> },
     { value: "affiliates", icon: Share2, label: "Affiliates", component: <AffiliateManager /> },
+    { value: "admins", icon: ShieldCheck, label: "Admins", component: <AdminManager /> },
     { value: "materials", icon: FileText, label: "Materials", component: <MaterialsManager /> },
     { value: "inquiries", icon: MessageSquare, label: "Inquiries", component: <InquiryManager /> },
     { value: "tickets", icon: Ticket, label: "Tickets", component: <TicketManager /> },
