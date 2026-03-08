@@ -75,7 +75,13 @@ export const AdminDetailSheet = ({ isOpen, onClose, admin, onUpdate }: AdminDeta
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await userService.update(admin.id, formData);
+            // Only send editable fields to avoid 400 from read-only fields
+            const updatePayload: Record<string, string | undefined> = {
+                name: userData.name,
+                email: userData.email,
+                phone: userData.phone,
+            };
+            await userService.update(admin.id, updatePayload);
             toast.success("Admin Profile Updated Successfully");
             if (onUpdate) onUpdate();
         } catch (error) {
