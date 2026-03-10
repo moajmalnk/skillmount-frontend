@@ -20,7 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 
-export const TicketManager = () => {
+export const TicketManager = ({ deepLinkTicketId }: { deepLinkTicketId?: string }) => {
     const { user } = useAuth();
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,6 +41,7 @@ export const TicketManager = () => {
 
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+    const [deepLinkHandled, setDeepLinkHandled] = useState(false);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -49,6 +50,35 @@ export const TicketManager = () => {
         };
         fetchCategories();
     }, []);
+
+    // Deep-link: Auto-open a specific ticket from notification URL (?id=TKT-xxx)
+    useEffect(() => {
+        if (deepLinkTicketId && !deepLinkHandled && !isLoading) {
+            // Try to find it in the currently loaded tickets first
+            const found = tickets.find(t => t.id === deepLinkTicketId);
+            if (found) {
+                setSelectedTicket(found);
+                setIsModalOpen(true);
+                setDeepLinkHandled(true);
+            } else if (tickets.length > 0) {
+                // Tickets loaded but this one isn't in the current page/filter.
+                // Fetch it directly by ID and open it.
+                const fetchAndOpen = async () => {
+                    try {
+                        const ticket = await ticketService.getById(deepLinkTicketId);
+                        if (ticket) {
+                            setSelectedTicket(ticket);
+                            setIsModalOpen(true);
+                        }
+                    } catch {
+                        toast.error("Could not find the requested ticket.");
+                    }
+                    setDeepLinkHandled(true);
+                };
+                fetchAndOpen();
+            }
+        }
+    }, [deepLinkTicketId, isLoading, tickets, deepLinkHandled]);
 
     // Load Tickets (Server-Side Filter)
     const loadTickets = async () => {

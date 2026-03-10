@@ -69,7 +69,11 @@ export const TicketDetailModal = ({
     formatTime
   } = useVoiceRecorder({
     onRecordingComplete: (blob) => {
-      setVoiceBlob(blob);
+      if (role === "student") {
+        sendStandaloneVoiceNote(blob);
+      } else {
+        setVoiceBlob(blob);
+      }
     }
   });
   const [attachment, setAttachment] = useState<File | null>(null);
@@ -190,6 +194,66 @@ export const TicketDetailModal = ({
     }
   };
 
+  const sendStandaloneVoiceNote = async (blob: Blob) => {
+    if (!ticket) return;
+    setIsSubmitting(true);
+    try {
+      const newMessage = await ticketService.reply(
+        ticket.id,
+        "",
+        blob,
+        undefined
+      );
+
+      setTicket(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          status: isSupportRole ? "In Progress" : "Open",
+          messages: [...(prev.messages || []), newMessage]
+        } as Ticket;
+      });
+
+      toast.success("Voice note sent");
+      setVoiceBlob(null);
+      if (onUpdate) onUpdate();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to send voice note");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const sendStandaloneFile = async (file: File) => {
+    if (!ticket) return;
+    setIsSubmitting(true);
+    try {
+      const newMessage = await ticketService.reply(
+        ticket.id,
+        "",
+        undefined,
+        file
+      );
+
+      setTicket(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          status: isSupportRole ? "In Progress" : "Open",
+          messages: [...(prev.messages || []), newMessage]
+        } as Ticket;
+      });
+
+      toast.success("Attachment sent");
+      setAttachment(null);
+      if (onUpdate) onUpdate();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to send attachment");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Enhanced to support "Direct Sending" (Immediate send on file/voice select)
   const handleSendReply = async (closeTicket: boolean = false, manualVoiceBlob?: Blob | null, manualAttachment?: File | null) => {
     // Determine payload source
@@ -244,7 +308,12 @@ export const TicketDetailModal = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
-      setAttachment(file);
+      if (role === "student") {
+        sendStandaloneFile(file);
+        e.target.value = ''; // Reset input so same file can be selected again
+      } else {
+        setAttachment(file);
+      }
     }
   };
 
@@ -453,7 +522,17 @@ export const TicketDetailModal = ({
             // Clean Message Text
             // If message is just "Attachment Sent" etc and we show the image, hide text.
             const hasMedia = msg.voice_note || isImage || msg.attachment;
-            const isRedundantText = hasMedia && (msg.message === '[Voice Note Sent]' || msg.message === '[Attachment Sent]' || msg.message === '[Initial Attachments]');
+            const isRedundantText = hasMedia && (
+              msg.message === '[Voice Note Sent]' ||
+              msg.message === '[Attachment Sent]' ||
+              msg.message.startsWith('[Attachment Sent:') ||
+              msg.message.startsWith('[Attachment ') ||
+              msg.message.startsWith('[Voice Note ') ||
+              msg.message === '[Initial Attachments]' ||
+              msg.message === '[Media File(s) Attached]' ||
+              msg.message === '' ||
+              !msg.message
+            );
             const showText = !isRedundantText && msg.message;
 
             return (
@@ -477,28 +556,35 @@ export const TicketDetailModal = ({
                       relative shadow-sm text-sm flex flex-col transition-all overflow-hidden
                       ${isMe
                         ? "bg-primary text-primary-foreground rounded-xl rounded-tr-none"
-                        : "bg-muted/40 border border-border/50 rounded-xl rounded-tl-none text-foreground"
+                        : "bg-slate-800 border border-slate-700 rounded-xl rounded-tl-none text-slate-100"
                       }
                       ${isImage ? "p-1" : "p-2 px-3"}
                     `}
                   >
                     {/* Image Preview */}
                     {isImage && (
-                      <div className="relative mb-1 overflow-hidden rounded-lg cursor-pointer bg-black/5 dark:bg-white/5 border border-black/5" onClick={() => window.open(msg.attachment, '_blank')}>
+                      <div className="relative mb-1 overflow-hidden rounded-lg cursor-pointer bg-black/5 dark:bg-white/5 border border-black/5 group-hover:opacity-90 transition-opacity" onClick={() => window.open(msg.attachment, '_blank')}>
                         <img
                           src={msg.attachment}
                           alt="Attachment"
                           className="w-full h-auto max-h-[300px] object-cover"
                           loading="lazy"
                         />
+                        {!showText && (
+                          <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/40 backdrop-blur-sm z-10">
+                            <span className="text-[10px] font-medium leading-none text-white/90 select-none">
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {/* Text */}
                     {showText && (
-                      <p className="whitespace-pre-wrap leading-relaxed mb-0 min-w-[60px] pr-8 pb-1 relative break-words break-all">
+                      <p className="whitespace-pre-wrap leading-relaxed mb-0 min-w-[60px] pr-10 pb-1 relative break-words break-all">
                         {msg.message}
-                        <span className={`text-[9px] font-medium leading-none ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'} absolute bottom-0 right-0 select-none`}>
+                        <span className={`text-[10px] font-medium leading-none absolute bottom-0 right-0 select-none ${isMe ? 'text-primary-foreground/70' : 'text-slate-400'}`}>
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </p>
@@ -521,20 +607,20 @@ export const TicketDetailModal = ({
                           className={`
                           flex items-center gap-3 p-2 rounded-lg mb-0 transition-colors border
                           ${isMe
-                              ? 'bg-white/10 border-white/10 hover:bg-white/20 text-white'
-                              : 'bg-background hover:bg-background/80 border-border/60 text-foreground'
+                              ? 'bg-primary/10 border-primary/10 hover:bg-primary/20 text-primary-foreground'
+                              : 'bg-slate-700/50 hover:bg-slate-700 border-slate-600/60 text-slate-100'
                             }
                         `}
                         >
-                          <div className={`p-1.5 rounded-md ${isMe ? 'bg-white/20' : 'bg-primary/10 text-primary'}`}>
+                          <div className={`p-1.5 rounded-md ${isMe ? 'bg-primary/20 text-primary-foreground' : 'bg-slate-700 text-slate-300'}`}>
                             <FileText className="w-4 h-4" />
                           </div>
                           <div className="flex flex-col overflow-hidden max-w-[160px]">
                             <span className="text-xs truncate font-medium">Document</span>
-                            <span className={`text-[10px] uppercase truncate opacity-70 ${isMe ? 'text-white/70' : 'text-muted-foreground'}`}>Click to open</span>
+                            <span className={`text-[10px] uppercase truncate opacity-70 ${isMe ? 'text-primary-foreground/70' : 'text-slate-400'}`}>Click to open</span>
                           </div>
                         </a>
-                        <span className={`text-[9px] font-medium leading-none ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'} absolute bottom-0 right-0 select-none`}>
+                        <span className={`text-[10px] font-medium leading-none absolute bottom-0 right-0 select-none ${isMe ? 'text-primary-foreground/70' : 'text-slate-400'}`}>
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>

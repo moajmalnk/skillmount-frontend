@@ -244,7 +244,11 @@ export const TicketDetailModal = ({
           { label: "Ticket Code", value: ticket.id, mono: true },
           { label: "Category", value: ticket.category },
           { label: "Created At", value: new Date(ticket.created_at).toLocaleDateString() },
-          { label: "Last Updated", value: new Date(ticket.created_at).toLocaleDateString() },
+          {
+            label: "Last Updated", value: new Date(
+              ticket.updated_at || ticket.created_at
+            ).toLocaleDateString()
+          },
         ].map((item, i) => (
           <div key={i} className="p-3 sm:p-4 rounded-xl border border-border bg-card">
             <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">{item.label}</div>
@@ -401,7 +405,17 @@ export const TicketDetailModal = ({
             // Clean Message Text
             // If message is just "Attachment Sent" etc and we show the image, hide text.
             const hasMedia = msg.voice_note || isImage || msg.attachment;
-            const isRedundantText = hasMedia && (msg.message === '[Voice Note Sent]' || msg.message === '[Attachment Sent]' || msg.message === '[Initial Attachments]');
+            const isRedundantText = hasMedia && (
+              msg.message === '[Voice Note Sent]' ||
+              msg.message === '[Attachment Sent]' ||
+              msg.message.startsWith('[Attachment Sent:') ||
+              msg.message.startsWith('[Attachment ') ||
+              msg.message.startsWith('[Voice Note ') ||
+              msg.message === '[Initial Attachments]' ||
+              msg.message === '[Media File(s) Attached]' ||
+              msg.message === '' ||
+              !msg.message
+            );
             const showText = !isRedundantText && msg.message;
 
             return (
@@ -432,13 +446,20 @@ export const TicketDetailModal = ({
                   >
                     {/* Image Preview */}
                     {isImage && (
-                      <div className="relative mb-1 overflow-hidden rounded-lg cursor-pointer bg-black/5 dark:bg-white/5 border border-black/5" onClick={() => window.open(msg.attachment, '_blank')}>
+                      <div className="relative mb-1 overflow-hidden rounded-lg cursor-pointer bg-black/5 dark:bg-white/5 border border-black/5 group-hover:opacity-90 transition-opacity" onClick={() => window.open(msg.attachment, '_blank')}>
                         <img
                           src={msg.attachment}
                           alt="Attachment"
                           className="w-full h-auto max-h-[300px] object-cover"
                           loading="lazy"
                         />
+                        {!showText && (
+                          <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/40 backdrop-blur-sm z-10">
+                            <span className="text-[10px] font-medium leading-none text-white/90 select-none">
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -446,7 +467,7 @@ export const TicketDetailModal = ({
                     {showText && (
                       <p className="whitespace-pre-wrap leading-relaxed mb-0 min-w-[60px] pr-12 pb-1 relative">
                         {msg.message}
-                        <span className={`text-[9px] font-medium leading-none ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'} absolute bottom-0 right-0 select-none`}>
+                        <span className={`text-[9px] font-medium leading-none ${isMe ? 'text-primary-foreground/70 dark:text-muted-foreground' : 'text-muted-foreground'} absolute bottom-0 right-0 select-none`}>
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </p>

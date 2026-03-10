@@ -120,12 +120,9 @@ export const TicketAudioPlayer = ({ src, isMe = false, timestamp }: TicketAudioP
     const progress = duration ? (currentTime / duration) * 100 : 0;
 
     return (
-        <div className={`
-            flex items-start gap-3 p-2 bg-[#202c33] rounded-xl w-full max-w-[340px] select-none relative shadow-sm min-h-[52px]
-            ${isMe ? 'bg-[#005c4b]' : 'bg-[#202c33]'}
-        `}>
+        <div className="flex items-start gap-2 w-full max-w-[340px] select-none relative min-h-[52px]">
             {/* Main Content Column */}
-            <div className="flex-1 flex flex-col justify-center min-w-[120px] ml-1">
+            <div className="flex-1 flex flex-col justify-center min-w-[120px]">
                 {/* Top Row: Play Button & Waveform */}
                 <div className="flex items-center gap-2 w-full h-8">
                     <button
@@ -135,11 +132,11 @@ export const TicketAudioPlayer = ({ src, isMe = false, timestamp }: TicketAudioP
                         className="shrink-0 focus:outline-none w-8 h-8 flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity"
                     >
                         {isLoading ? (
-                            <Loader2 className="w-7 h-7 animate-spin text-zinc-400" />
+                            <Loader2 className={`w-7 h-7 animate-spin ${isMe ? 'text-primary-foreground/70' : 'text-slate-400'}`} />
                         ) : isPlaying ? (
-                            <Pause className="w-7 h-7 fill-zinc-400 text-zinc-400" />
+                            <Pause className={`w-7 h-7 fill-current ${isMe ? 'text-primary-foreground' : 'text-slate-300'}`} />
                         ) : (
-                            <Play className="w-7 h-7 fill-zinc-400 text-zinc-400 ml-1" />
+                            <Play className={`w-7 h-7 fill-current ${isMe ? 'text-primary-foreground' : 'text-slate-300'} ml-1`} />
                         )}
                     </button>
 
@@ -163,11 +160,11 @@ export const TicketAudioPlayer = ({ src, isMe = false, timestamp }: TicketAudioP
 
                         {/* Green Progress Dot */}
                         <div
-                            className="absolute w-3 h-3 bg-[#00a884] rounded-full shadow-sm z-10 pointer-events-none top-1/2 -translate-y-1/2"
+                            className={`absolute w-3 h-3 rounded-full shadow-sm z-10 pointer-events-none top-1/2 -translate-y-1/2 ${isMe ? 'bg-primary-foreground' : 'bg-primary'}`}
                             style={{ left: `calc(${progress}% - 6px)` }}
                         />
 
-                        {/* Bars - Taller and better centered */}
+                        {/* Bars */}
                         <div className="flex items-center w-full h-4 justify-between px-1">
                             {bars.map((height, i) => {
                                 const barPos = (i / bars.length) * 100;
@@ -175,7 +172,9 @@ export const TicketAudioPlayer = ({ src, isMe = false, timestamp }: TicketAudioP
                                 return (
                                     <div
                                         key={i}
-                                        className={`w-[3px] rounded-full transition-colors duration-200 ${isPlayed ? 'bg-zinc-500' : 'bg-zinc-600/40'
+                                        className={`w-[3px] rounded-full transition-colors duration-200 ${isPlayed
+                                            ? (isMe ? 'bg-primary-foreground' : 'bg-primary')
+                                            : (isMe ? 'bg-primary-foreground/30' : 'bg-slate-600')
                                             }`}
                                         style={{ height: `${Math.max(30, height)}%` }}
                                     />
@@ -186,21 +185,26 @@ export const TicketAudioPlayer = ({ src, isMe = false, timestamp }: TicketAudioP
                 </div>
 
                 {/* Bottom Row: Info/Text */}
-                <div className="flex justify-between text-[11px] text-zinc-400 font-medium leading-none pl-[42px] pr-1 -mt-1">
+                <div className={`flex justify-between text-[11px] font-medium leading-none pl-[42px] pr-1 mt-1 ${isMe ? 'text-primary-foreground/70' : 'text-slate-400'}`}>
                     <span>{formatTime(currentTime || duration)}</span>
-                    <span>{formatTimestamp(timestamp)}</span>
                 </div>
             </div>
 
             {/* Right Side: Avatar & Mic Badge */}
-            <div className="relative shrink-0 mt-1">
-                <div className="w-10 h-10 rounded-full bg-zinc-600/30 flex items-center justify-center border border-zinc-700/50">
-                    <User className="w-6 h-6 text-zinc-400 fill-zinc-400/50" />
+            <div className="relative shrink-0 mt-1 mr-1">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${isMe ? 'bg-primary-foreground/20' : 'bg-slate-700'}`}>
+                    <User className={`w-6 h-6 ${isMe ? 'text-primary-foreground/70 fill-primary-foreground/30' : 'text-slate-400 fill-slate-500/30'}`} />
                 </div>
-                <div className="absolute -bottom-1 -left-2 bg-[#202c33] rounded-full p-[2px]">
-                    <Mic className="w-4 h-4 text-[#00a884] fill-[#00a884]" />
+                {/* The mic indicator typically shows read/played status on WA, but we use it cosmetically here */}
+                <div className="absolute -bottom-1 -left-2 bg-transparent rounded-full p-[2px]">
+                    <Mic className={`w-4 h-4 ${isMe ? 'text-primary-foreground fill-primary-foreground' : 'text-primary fill-primary'}`} />
                 </div>
             </div>
+
+            {/* Timestamp Absolute Overlay (Bottom right of player) */}
+            <span className={`text-[10px] font-medium leading-none absolute -bottom-3 right-0 select-none ${isMe ? 'text-primary-foreground/70' : 'text-slate-400'}`}>
+                {formatTimestamp(timestamp)}
+            </span>
         </div>
     );
 };

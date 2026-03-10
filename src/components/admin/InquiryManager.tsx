@@ -209,7 +209,7 @@ export const InquiryManager = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                            className="h-8 w-8 text-blue-600 dark:text-blue-400 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/30 dark:hover:text-blue-300 transition-colors"
                             onClick={(e) => { e.stopPropagation(); window.location.href = `mailto:${inq.email}`; }}
                           >
                             <Mail className="w-4 h-4" />
@@ -219,7 +219,7 @@ export const InquiryManager = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-green-600 hover:bg-green-50"
+                              className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/30 dark:hover:text-green-300 transition-colors"
                               onClick={(e) => handleMarkRead(inq.id, e)}
                             >
                               <CheckCircle2 className="w-4 h-4" />
@@ -229,7 +229,7 @@ export const InquiryManager = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            className="h-8 w-8 text-destructive dark:text-red-400 hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/30 dark:hover:text-red-300 transition-colors"
                             onClick={(e) => initiateDelete(inq.id, e)}
                           >
                             <Trash2 className="w-4 h-4" />

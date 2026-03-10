@@ -68,8 +68,31 @@ api.interceptors.response.use(
         return api(originalRequest);
 
       } catch (refreshError) {
-        // If refresh fails (token expired/invalid), force logout (clear state)
+        // If refresh fails (token expired/invalid)
         console.error("Session expired", refreshError);
+
+        // CHECK IMPERSONATION: If we are impersonating, just exit it instead of logging the admin out
+        const adminAccess = localStorage.getItem('admin_access_token');
+        const adminRefresh = localStorage.getItem('admin_refresh_token');
+        const adminUser = localStorage.getItem('admin_user_backup');
+
+        if (adminAccess && adminRefresh && adminUser) {
+          // Restore Admin Session
+          localStorage.setItem('access_token', adminAccess);
+          localStorage.setItem('refresh_token', adminRefresh);
+          localStorage.setItem('skillmount_user', adminUser);
+
+          // Clear Backups
+          localStorage.removeItem('admin_access_token');
+          localStorage.removeItem('admin_refresh_token');
+          localStorage.removeItem('admin_user_backup');
+
+          // Redirect to Admin safely
+          window.location.href = '/admin';
+          return Promise.reject(refreshError);
+        }
+
+        // Otherwise (normal user), force logout
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('skillmount_user');

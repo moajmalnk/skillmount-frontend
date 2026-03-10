@@ -43,6 +43,29 @@ const Admin = () => {
   const navigate = useNavigate();
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
+  // Handle Tab State via URL Params
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState("stats");
+
+  // Read the deep-link ticket ID from ?id=TKT-xxx
+  const deepLinkTicketId = searchParams.get("id") || undefined;
+
+  // Define tab configuration BEFORE any hooks or early returns reference it
+  const tabConfig = [
+    { value: "stats", icon: LayoutDashboard, label: "Statistics", component: <DashboardStats /> },
+    { value: "students", icon: GraduationCap, label: "Students", component: <StudentManager /> },
+    { value: "tutors", icon: Users, label: "Tutors", component: <TutorManager /> },
+    { value: "affiliates", icon: Share2, label: "Affiliates", component: <AffiliateManager /> },
+    { value: "admins", icon: ShieldCheck, label: "Admins", component: <AdminManager /> },
+    { value: "materials", icon: FileText, label: "Materials", component: <MaterialsManager /> },
+    { value: "inquiries", icon: MessageSquare, label: "Inquiries", component: <InquiryManager /> },
+    { value: "tickets", icon: Ticket, label: "Tickets", component: <TicketManager deepLinkTicketId={deepLinkTicketId} /> },
+    { value: "feedbacks", icon: Star, label: "Feedbacks", component: <FeedbackManager /> },
+    { value: "faqs", icon: BookOpen, label: "FAQs", component: <FAQManager /> },
+    { value: "blog", icon: Newspaper, label: "Blog", component: <BlogManager /> },
+    { value: "settings", icon: Settings, label: "Settings", component: <SettingsManager /> },
+  ];
+
   // 4. Protect the Route
   useEffect(() => {
     if (isLoading) return;
@@ -50,31 +73,13 @@ const Admin = () => {
     if (!isAuthenticated) {
       navigate("/login");
     }
-    /* 
-    else if (user?.role !== "super_admin") {
-      toast.error("Access Denied: Super Admin privileges required.");
-      navigate("/");
-    } 
-    */
   }, [isAuthenticated, isLoading, user, navigate]);
-
-  useEffect(() => {
-    if (user) {
-      console.log("Admin Page User State:", user);
-      console.log("Role Check:", user.role === 'super_admin');
-    }
-  }, [user]);
-
-  // Handle Tab State via URL Params
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState("stats");
 
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && tabConfig.some(t => t.value === tabFromUrl)) {
       setActiveTab(tabFromUrl);
     } else if (!tabFromUrl) {
-      // Default to stats if no param
       setActiveTab("stats");
     }
   }, [searchParams]);
@@ -109,22 +114,6 @@ const Admin = () => {
       </div>
     );
   }
-
-  // Define tab configuration
-  const tabConfig = [
-    { value: "stats", icon: LayoutDashboard, label: "Statistics", component: <DashboardStats /> },
-    { value: "students", icon: GraduationCap, label: "Students", component: <StudentManager /> },
-    { value: "tutors", icon: Users, label: "Tutors", component: <TutorManager /> },
-    { value: "affiliates", icon: Share2, label: "Affiliates", component: <AffiliateManager /> },
-    { value: "admins", icon: ShieldCheck, label: "Admins", component: <AdminManager /> },
-    { value: "materials", icon: FileText, label: "Materials", component: <MaterialsManager /> },
-    { value: "inquiries", icon: MessageSquare, label: "Inquiries", component: <InquiryManager /> },
-    { value: "tickets", icon: Ticket, label: "Tickets", component: <TicketManager /> },
-    { value: "feedbacks", icon: Star, label: "Feedbacks", component: <FeedbackManager /> },
-    { value: "faqs", icon: BookOpen, label: "FAQs", component: <FAQManager /> },
-    { value: "blog", icon: Newspaper, label: "Blog", component: <BlogManager /> },
-    { value: "settings", icon: Settings, label: "Settings", component: <SettingsManager /> },
-  ];
 
   return (
     <div className="min-h-screen bg-background">
